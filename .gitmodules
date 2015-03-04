@@ -1,0 +1,4 @@
+[submodule "glslang"]
+	path = glslang
+	url = ../glslang
+	branch = master
