@@ -5,7 +5,7 @@
 namespace krafix {
 	class GlslTranslator : public Translator {
 	public:
-		GlslTranslator(std::vector<unsigned>& spirv) : Translator(spirv) {}
+		GlslTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {}
 		void outputCode(const char* name);
 	};
 }

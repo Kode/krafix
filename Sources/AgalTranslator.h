@@ -5,7 +5,7 @@
 namespace krafix {
 	class AgalTranslator : public Translator {
 	public:
-		AgalTranslator(std::vector<unsigned>& spirv) : Translator(spirv) {}
+		AgalTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {}
 		void outputCode(const char* name) {}
 	};
 }

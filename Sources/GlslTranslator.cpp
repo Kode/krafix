@@ -61,8 +61,24 @@ void GlslTranslator::outputCode(const char* baseName) {
 			unsigned id = inst.operands[0];
 			Type subtype = types[inst.operands[1]];
 			if (subtype.name != NULL) {
-				if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 4) {
+				if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 3) {
+					t.name = "vec3";
+					types[id] = t;
+				}
+				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 4) {
 					t.name = "vec4";
+					types[id] = t;
+				}
+			}
+			break;
+		}
+		case OpTypeMatrix: {
+			Type t;
+			unsigned id = inst.operands[0];
+			Type subtype = types[inst.operands[1]];
+			if (subtype.name != NULL) {
+				if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
+					t.name = "mat4";
 					types[id] = t;
 				}
 			}
@@ -78,10 +94,28 @@ void GlslTranslator::outputCode(const char* baseName) {
 			Type t = types[v.type];
 			Name n = names[id];
 
-			if (v.storage == StorageInput) {
-				out << "varying " << t.name << " " << n.name << ";\n";
+			switch (stage) {
+			case EShLangVertex:
+				if (v.storage == StorageInput) {
+					out << "attribute " << t.name << " " << n.name << ";\n";
+				}
+				else if (v.storage == StorageOutput) {
+					out << "varying " << t.name << " " << n.name << ";\n";
+				}
+				else if (v.storage == StorageConstantUniform) {
+					out << "uniform " << t.name << " " << n.name << ";\n";
+				}
+				break;
+			case EShLangFragment:
+				if (v.storage == StorageInput) {
+					out << "varying " << t.name << " " << n.name << ";\n";
+				}
+				else if (v.storage == StorageConstantUniform) {
+					out << "uniform " << t.name << " " << n.name << ";\n";
+				}
+				break;
 			}
-
+			
 			break;
 		}
 		case OpFunction:
@@ -103,11 +137,11 @@ void GlslTranslator::outputCode(const char* baseName) {
 		}
 		case OpStore: {
 			Variable v = variables[inst.operands[0]];
-			if (v.storage == StorageOutput) {
+			if (stage == EShLangFragment && v.storage == StorageOutput) {
 				out << "\tgl_FragColor" << " = _" << inst.operands[1] << ";\n";
 			}
 			else {
-				out << "\t*" << inst.operands[0] << " = _" << inst.operands[1] << ";\n";
+				out << "\t" << names[inst.operands[0]].name << " = _" << inst.operands[1] << ";\n";
 			}
 			break;
 		}

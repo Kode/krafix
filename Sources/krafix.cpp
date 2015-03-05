@@ -521,7 +521,7 @@ bool ProcessArguments(int argc, char* argv[])
 				Options |= EOptionSuppressWarnings;
 				break;
 			default:
-				return false;
+				return true;
 			}
 		}
 		else {
@@ -655,7 +655,7 @@ void CompileAndLinkShaders()
 					case EShLangCompute:         name = "comp";    break;
 					default:                     name = "unknown"; break;
 					}
-					krafix::Translator* translator = new krafix::GlslTranslator(spirv);
+					krafix::Translator* translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
 					translator->outputCode(name);
 					delete translator;
 					//glslang::OutputSpv(spirv, name);

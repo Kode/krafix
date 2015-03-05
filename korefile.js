@@ -10,7 +10,6 @@ project.addExclude('glslang/.git/**');
 project.addExclude('build/**');
 
 project.addFile('Sources/**');
-project.addFile('glslang/glslang/OSDependent/Windows/**');
 project.addFile('glslang/glslang/GenericCodeGen/**');
 project.addFile('glslang/glslang/MachineIndependent/**');
 project.addFile('glslang/glslang/Include/**');
@@ -19,10 +18,18 @@ project.addFile('glslang/SPIRV/**');
 
 project.addIncludeDir('glslang');
 project.addIncludeDir('glslang/glslang');
-project.addIncludeDir('glslang/glslang/OSDependent/Windows');
 project.addIncludeDir('glslang/glslang/MachineIndependent');
 project.addIncludeDir('glslang/glslang/Include');
 project.addIncludeDir('glslang/OGLCompilersDLL');
+
+if (platform === Platform.Windows) {
+	project.addFile('glslang/glslang/OSDependent/Windows/**');
+	project.addIncludeDir('glslang/glslang/OSDependent/Windows');
+}
+else {
+	project.addFile('glslang/glslang/OSDependent/Linux/**');
+	project.addIncludeDir('glslang/glslang/OSDependent/Linux');
+}
 
 solution.addProject(project);
 

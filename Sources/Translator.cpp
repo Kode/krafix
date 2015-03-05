@@ -25,7 +25,7 @@ Instruction::Instruction(std::vector<unsigned>& spirv, unsigned& index) {
 	index += wordCount;
 }
 
-Translator::Translator(std::vector<unsigned>& spirv) {
+Translator::Translator(std::vector<unsigned>& spirv, EShLanguage stage) : stage(stage) {
 	unsigned index = 0;
 	unsigned magicNumber = spirv[index++];
 	unsigned version = spirv[index++];

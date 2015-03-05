@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SPIRV/spirv.h>
+#include "../glslang/glslang/Public/ShaderLang.h"
 #include <vector>
 
 namespace krafix {
@@ -15,9 +16,11 @@ namespace krafix {
 
 	class Translator {
 	public:
-		Translator(std::vector<unsigned>& spirv);
+		Translator(std::vector<unsigned>& spirv, EShLanguage stage);
+		virtual ~Translator() {}
 		virtual void outputCode(const char* name) = 0;
 	protected:
 		std::vector<Instruction> instructions;
+		EShLanguage stage;
 	};
 }
