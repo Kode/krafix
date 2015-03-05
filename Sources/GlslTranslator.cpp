@@ -61,7 +61,11 @@ void GlslTranslator::outputCode(const char* baseName) {
 			unsigned id = inst.operands[0];
 			Type subtype = types[inst.operands[1]];
 			if (subtype.name != NULL) {
-				if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 3) {
+				if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 2) {
+					t.name = "vec2";
+					types[id] = t;
+				}
+				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 3) {
 					t.name = "vec3";
 					types[id] = t;
 				}
@@ -82,6 +86,13 @@ void GlslTranslator::outputCode(const char* baseName) {
 					types[id] = t;
 				}
 			}
+			break;
+		}
+		case OpTypeSampler: {
+			Type t;
+			unsigned id = inst.operands[0];
+			t.name = "sampler2D";
+			types[id] = t;
 			break;
 		}
 		case OpVariable: {
