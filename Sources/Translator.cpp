@@ -9,6 +9,7 @@ Instruction::Instruction(std::vector<unsigned>& spirv, unsigned& index) {
 	opcode = (OpCode)(spirv[index] & 0xffff);
 
 	operands = wordCount > 1 ? &spirv[index + 1] : NULL;
+	length = wordCount - 1;
 
 	switch (opcode) {
 	case OpString:

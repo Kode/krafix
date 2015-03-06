@@ -11,6 +11,7 @@ namespace krafix {
 
 		spv::OpCode opcode;
 		unsigned* operands;
+		unsigned length;
 		const char* string;
 	};
 
