@@ -178,6 +178,62 @@ void GlslTranslator::outputCode(const char* baseName) {
 				out << "\t" << resultType.name << " _" << result << " = _" << matrix << " * _" << vector << ";\n";
 				break;
 			}
+			case OpTextureSample: {
+				Type resultType = types[inst.operands[0]];
+				unsigned result = inst.operands[1];
+				unsigned sampler = inst.operands[2];
+				unsigned coordinate = inst.operands[3];
+				out << "\t" << resultType.name << " _" << result << " = texture2D(_" << sampler << ", _" << coordinate << ");\n";
+				break;
+			}
+			case OpVectorShuffle: {
+				Type resultType = types[inst.operands[0]];
+				unsigned result = inst.operands[1];
+				unsigned vector1 = inst.operands[2];
+				unsigned vector2 = inst.operands[3];
+				out << "\t" << resultType.name << " _" << result << " = "
+				<< resultType.name << "(_" << vector1 << " _" << vector2 << ");\n";
+				break;
+			}
+			case OpFMul: {
+				Type resultType = types[inst.operands[0]];
+				unsigned result = inst.operands[1];
+				unsigned operand1 = inst.operands[2];
+				unsigned operand2 = inst.operands[3];
+				out << "\t" << resultType.name << " _" << result << " = _"
+				<< operand1 << " * _" << operand2 << ";\n";
+				break;
+			}
+			case OpVectorTimesScalar: {
+				Type resultType = types[inst.operands[0]];
+				unsigned result = inst.operands[1];
+				unsigned vector = inst.operands[2];
+				unsigned scalar = inst.operands[3];
+				out << "\t" << resultType.name << " _" << result << " = _"
+				<< vector << " * _" << scalar << ";\n";
+				break;
+			}
+			case OpReturn:
+				out << "\treturn;\n";
+				break;
+			case OpLabel:
+				break;
+			case OpBranch:
+				break;
+			case OpDecorate:
+				break;
+			case OpTypeFunction:
+				break;
+			case OpTypeVoid:
+				break;
+			case OpEntryPoint:
+				break;
+			case OpMemoryModel:
+				break;
+			case OpExtInstImport:
+				break;
+			case OpSource:
+				break;
 		case OpLoad: {
 			Type t = types[inst.operands[0]];
 			if (names.find(inst.operands[2]) != names.end()) {
@@ -199,6 +255,8 @@ void GlslTranslator::outputCode(const char* baseName) {
 			}
 			break;
 		}
+		default:
+			out << "Unknown operation " << inst.opcode << ".\n";
 		}
 	}
 
