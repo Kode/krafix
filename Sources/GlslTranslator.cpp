@@ -17,6 +17,19 @@ namespace {
 	struct Name {
 		const char* name;
 	};
+	
+	const char* indexName(unsigned index) {
+		switch (index) {
+			case 0:
+				return "x";
+			case 1:
+				return "y";
+			case 2:
+				return "z";
+			case 3:
+				return "w";
+		}
+	}
 }
 
 void GlslTranslator::outputCode(const char* baseName) {
@@ -95,6 +108,12 @@ void GlslTranslator::outputCode(const char* baseName) {
 			types[id] = t;
 			break;
 		}
+			case OpConstant: {
+				Type resultType = types[inst.operands[0]];
+				unsigned result = inst.operands[1];
+				out << resultType.name << " _" << result << " = " << *(float*)&inst.operands[2] << ";\n";
+				break;
+			}
 		case OpVariable: {
 			Variable v;
 			unsigned id = inst.operands[1]; 
@@ -135,6 +154,30 @@ void GlslTranslator::outputCode(const char* baseName) {
 		case OpFunctionEnd:
 			out << "}\n";
 			break;
+			case OpCompositeConstruct: {
+				Type resultType = types[inst.operands[0]];
+				unsigned result = inst.operands[1];
+				out << "\t" << resultType.name << " _" << result << " = vec4(_"
+				<< inst.operands[2] << ", _" << inst.operands[3] << ", _"
+				<< inst.operands[4] << ", _" << inst.operands[5] << ");\n";
+				break;
+			}
+			case OpCompositeExtract: {
+				Type resultType = types[inst.operands[0]];
+				unsigned result = inst.operands[1];
+				unsigned composite = inst.operands[2];
+				out << "\t" << resultType.name << " _" << result << " = _"
+				<< composite << "." << indexName(inst.operands[3]) << ";\n";
+				break;
+			}
+			case OpMatrixTimesVector: {
+				Type resultType = types[inst.operands[0]];
+				unsigned result = inst.operands[1];
+				unsigned matrix = inst.operands[2];
+				unsigned vector = inst.operands[3];
+				out << "\t" << resultType.name << " _" << result << " = _" << matrix << " * _" << vector << ";\n";
+				break;
+			}
 		case OpLoad: {
 			Type t = types[inst.operands[0]];
 			if (names.find(inst.operands[2]) != names.end()) {
