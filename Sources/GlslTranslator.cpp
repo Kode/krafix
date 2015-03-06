@@ -14,7 +14,7 @@ namespace {
 		const char* name;
 		unsigned length;
 
-		Type() : length(1) {}
+		Type() : name("unknown"), length(1) {}
 	};
 
 	struct Name {
@@ -23,15 +23,15 @@ namespace {
 	
 	const char* indexName(unsigned index) {
 		switch (index) {
-			case 0:
-				return "x";
-			case 1:
-				return "y";
-			case 2:
-				return "z";
-			case 3:
-			default:
-				return "w";
+		case 0:
+			return "x";
+		case 1:
+			return "y";
+		case 2:
+			return "z";
+		case 3:
+		default:
+			return "w";
 		}
 	}
 }
@@ -73,9 +73,17 @@ void GlslTranslator::outputCode(const char* baseName) {
 			types[id] = t;
 			break;
 		}
+		case OpTypeInt: {
+			Type t;
+			unsigned id = inst.operands[0];
+			t.name = "int";
+			types[id] = t;
+			break;
+		}
 		case OpTypeVector: {
 			Type t;
 			unsigned id = inst.operands[0];
+			t.name = "vec?";
 			Type subtype = types[inst.operands[1]];
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 2) {
@@ -99,6 +107,7 @@ void GlslTranslator::outputCode(const char* baseName) {
 		case OpTypeMatrix: {
 			Type t;
 			unsigned id = inst.operands[0];
+			t.name = "mat?";
 			Type subtype = types[inst.operands[1]];
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
@@ -239,8 +248,13 @@ void GlslTranslator::outputCode(const char* baseName) {
 			break;
 		case OpDecorate:
 			break;
-		case OpTypeFunction:
+		case OpTypeFunction: {
+			Type t;
+			unsigned id = inst.operands[0];
+			t.name = "function";
+			types[id] = t;
 			break;
+		}
 		case OpTypeVoid:
 			break;
 		case OpEntryPoint:
@@ -274,6 +288,7 @@ void GlslTranslator::outputCode(const char* baseName) {
 		}
 		default:
 			out << "Unknown operation " << inst.opcode << ".\n";
+			break;
 		}
 	}
 
