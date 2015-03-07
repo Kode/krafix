@@ -662,7 +662,9 @@ void CompileAndLinkShaders()
                     case EShLangCompute:         name = "comp";    break;
                     default:                     name = "unknown"; break;
                     }
-					krafix::Translator* translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
+					krafix::Translator* translator = NULL;
+					//translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
+					translator = new krafix::HlslTranslator(spirv, (EShLanguage)stage);
 					translator->outputCode(name);
 					delete translator;
                     //glslang::OutputSpv(spirv, name);
