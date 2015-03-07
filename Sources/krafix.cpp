@@ -664,7 +664,8 @@ void CompileAndLinkShaders()
                     }
 					krafix::Translator* translator = NULL;
 					//translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
-					translator = new krafix::HlslTranslator(spirv, (EShLanguage)stage);
+					//translator = new krafix::HlslTranslator(spirv, (EShLanguage)stage);
+					translator = new krafix::AgalTranslator(spirv, (EShLanguage)stage);
 					translator->outputCode(name);
 					delete translator;
                     //glslang::OutputSpv(spirv, name);
