@@ -8,6 +8,9 @@ namespace {
 	struct Variable {
 		unsigned type;
 		spv::StorageClass storage;
+		bool builtin;
+
+		Variable() : builtin(false) {}
 	};
 
 	struct Type {
@@ -132,40 +135,44 @@ void GlslTranslator::outputCode(const char* baseName) {
 			break;
 		}
 		case OpVariable: {
-			Variable v;
 			unsigned id = inst.operands[1]; 
+			Variable& v = variables[id];
 			v.type = inst.operands[0];
 			v.storage = (StorageClass)inst.operands[2];
-			variables[id] = v;
-
-			Type t = types[v.type];
-			Name n = names[id];
-
-			switch (stage) {
-			case EShLangVertex:
-				if (v.storage == StorageInput) {
-					out << "attribute " << t.name << " " << n.name << ";\n";
-				}
-				else if (v.storage == StorageOutput) {
-					out << "varying " << t.name << " " << n.name << ";\n";
-				}
-				else if (v.storage == StorageConstantUniform) {
-					out << "uniform " << t.name << " " << n.name << ";\n";
-				}
-				break;
-			case EShLangFragment:
-				if (v.storage == StorageInput) {
-					out << "varying " << t.name << " " << n.name << ";\n";
-				}
-				else if (v.storage == StorageConstantUniform) {
-					out << "uniform " << t.name << " " << n.name << ";\n";
-				}
-				break;
-			}
-			
 			break;
 		}
 		case OpFunction:
+			for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
+				unsigned id = v->first;
+				Variable& variable = v->second;
+
+				if (variable.builtin) continue;
+
+				Type t = types[variable.type];
+				Name n = names[id];
+				
+				switch (stage) {
+				case EShLangVertex:
+					if (variable.storage == StorageInput) {
+						out << "attribute " << t.name << " " << n.name << ";\n";
+					}
+					else if (variable.storage == StorageOutput) {
+						out << "varying " << t.name << " " << n.name << ";\n";
+					}
+					else if (variable.storage == StorageConstantUniform) {
+						out << "uniform " << t.name << " " << n.name << ";\n";
+					}
+					break;
+				case EShLangFragment:
+					if (variable.storage == StorageInput) {
+						out << "varying " << t.name << " " << n.name << ";\n";
+					}
+					else if (variable.storage == StorageConstantUniform) {
+						out << "uniform " << t.name << " " << n.name << ";\n";
+					}
+					break;
+				}
+			}
 			out << "\nvoid main() {\n";
 			break;
 		case OpFunctionEnd:
@@ -246,8 +253,14 @@ void GlslTranslator::outputCode(const char* baseName) {
 			break;
 		case OpBranch:
 			break;
-		case OpDecorate:
+		case OpDecorate: {
+			unsigned target = inst.operands[0];
+			Decoration decoration = (Decoration)inst.operands[1];
+			if (decoration == DecBuiltIn) {
+				variables[target].builtin = true;
+			}
 			break;
+		}
 		case OpTypeFunction: {
 			Type t;
 			unsigned id = inst.operands[0];
