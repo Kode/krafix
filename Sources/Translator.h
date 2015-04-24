@@ -9,7 +9,7 @@ namespace krafix {
 	public:
 		Instruction(std::vector<unsigned>& spirv, unsigned& index);
 
-		spv::OpCode opcode;
+		spv::Op opcode;
 		unsigned* operands;
 		unsigned length;
 		const char* string;

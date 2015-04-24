@@ -6,7 +6,7 @@ Instruction::Instruction(std::vector<unsigned>& spirv, unsigned& index) {
 	using namespace spv;
 
 	int wordCount = spirv[index] >> 16;
-	opcode = (OpCode)(spirv[index] & 0xffff);
+	opcode = (Op)(spirv[index] & 0xffff);
 
 	operands = wordCount > 1 ? &spirv[index + 1] : NULL;
 	length = wordCount - 1;

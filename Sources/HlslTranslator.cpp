@@ -149,7 +149,7 @@ void HlslTranslator::outputCode(const char* baseName) {
 				Type t = types[variable.type];
 				Name n = names[id];
 
-				if (variable.storage == StorageConstantUniform) {
+				if (variable.storage == StorageClassUniformConstant) {
 					out << "uniform " << t.name << " " << n.name << ";\n";
 				}
 			}
@@ -163,7 +163,7 @@ void HlslTranslator::outputCode(const char* baseName) {
 				Type t = types[variable.type];
 				Name n = names[id];
 
-				if (variable.storage == StorageInput) {
+				if (variable.storage == StorageClassInput) {
 					if (variable.builtin && stage == EShLangVertex) {
 						out << "\t" << t.name << " " << n.name << " : POSITION;\n";
 					}
@@ -184,7 +184,7 @@ void HlslTranslator::outputCode(const char* baseName) {
 				Type t = types[variable.type];
 				Name n = names[id];
 
-				if (variable.storage == StorageOutput) {
+				if (variable.storage == StorageClassOutput) {
 					if (variable.builtin && stage == EShLangVertex) {
 						out << "\t" << t.name << " " << n.name << " : POSITION;\n";
 					}
@@ -283,7 +283,7 @@ void HlslTranslator::outputCode(const char* baseName) {
 		case OpDecorate: {
 			unsigned target = inst.operands[0];
 			Decoration decoration = (Decoration)inst.operands[1];
-			if (decoration == DecBuiltIn) {
+			if (decoration == DecorationBuiltIn) {
 				variables[target].builtin = true;
 			}
 			break;
@@ -310,7 +310,7 @@ void HlslTranslator::outputCode(const char* baseName) {
 			if (names.find(inst.operands[2]) != names.end()) {
 				Name& n = names[inst.operands[2]];
 				Variable& v = variables[inst.operands[2]];
-				if (v.storage == StorageInput) {
+				if (v.storage == StorageClassInput) {
 					out << "\t" << t.name << " _" << inst.operands[1] << " = input." << n.name << ";\n";
 				}
 				else {
@@ -324,7 +324,7 @@ void HlslTranslator::outputCode(const char* baseName) {
 		}
 		case OpStore: {
 			Variable& v = variables[inst.operands[0]];
-			if (v.storage == StorageOutput) {
+			if (v.storage == StorageClassOutput) {
 				out << "\toutput." << names[inst.operands[0]].name << " = _" << inst.operands[1] << ";\n";
 			}
 			else {

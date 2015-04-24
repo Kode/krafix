@@ -153,21 +153,21 @@ void AgalTranslator::outputCode(const char* baseName) {
 
 				switch (stage) {
 				case EShLangVertex:
-					if (variable.storage == StorageInput) {
+					if (variable.storage == StorageClassInput) {
 						out << "attribute " << t.name << " " << n.name << ";\n";
 					}
-					else if (variable.storage == StorageOutput) {
+					else if (variable.storage == StorageClassOutput) {
 						out << "varying " << t.name << " " << n.name << ";\n";
 					}
-					else if (variable.storage == StorageConstantUniform) {
+					else if (variable.storage == StorageClassUniformConstant) {
 						out << "uniform " << t.name << " " << n.name << ";\n";
 					}
 					break;
 				case EShLangFragment:
-					if (variable.storage == StorageInput) {
+					if (variable.storage == StorageClassInput) {
 						out << "varying " << t.name << " " << n.name << ";\n";
 					}
-					else if (variable.storage == StorageConstantUniform) {
+					else if (variable.storage == StorageClassUniformConstant) {
 						out << "uniform " << t.name << " " << n.name << ";\n";
 					}
 					break;
@@ -253,7 +253,7 @@ void AgalTranslator::outputCode(const char* baseName) {
 		case OpDecorate: {
 			unsigned target = inst.operands[0];
 			Decoration decoration = (Decoration)inst.operands[1];
-			if (decoration == DecBuiltIn) {
+			if (decoration == DecorationBuiltIn) {
 				variables[target].builtin = true;
 			}
 			break;
