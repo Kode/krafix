@@ -176,7 +176,13 @@ void GlslTranslator::outputCode(const char* baseName) {
 		case OpTypeSampler: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "sampler2D";
+			bool video = inst.length >= 8 && inst.operands[8] == 1;
+			if (video) {
+				t.name = "samplerExternalOES";
+			}
+			else {
+				t.name = "sampler2D";
+			}
 			types[id] = t;
 			break;
 		}
@@ -232,11 +238,9 @@ void GlslTranslator::outputCode(const char* baseName) {
 			out << "void main()";
 			break;
 		case OpFunctionEnd:
-			output(out);
-			out << "// end function\n";
 			--indentation;
-			indent(out);
-			out << "}";
+			output(out);
+			out << "} // end function";
 			break;
 		case OpCompositeConstruct: {
 			output(out);
@@ -328,11 +332,9 @@ void GlslTranslator::outputCode(const char* baseName) {
 			++indentation;
 			break;
 		case OpBranch:
-			output(out);
-			out << "// Branch to " << inst.operands[0] << "\n";
 			--indentation;
-			indent(out);
-			out << "}";
+			output(out);
+			out << "} // Branch to " << inst.operands[0];
 			break;
 		case OpSelectionMerge: {
 			output(out);
