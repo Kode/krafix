@@ -663,9 +663,9 @@ void CompileAndLinkShaders()
                     default:                     name = "unknown"; break;
                     }
 					krafix::Translator* translator = NULL;
-					//translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
+					translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
 					//translator = new krafix::HlslTranslator(spirv, (EShLanguage)stage);
-					translator = new krafix::AgalTranslator(spirv, (EShLanguage)stage);
+					//translator = new krafix::AgalTranslator(spirv, (EShLanguage)stage);
 					translator->outputCode(name);
 					delete translator;
                     //glslang::OutputSpv(spirv, name);
@@ -786,6 +786,12 @@ EShLanguage FindLanguage(const std::string& name)
     }
 
     std::string suffix = name.substr(ext + 1, std::string::npos);
+
+	if (suffix == "glsl") {
+		size_t ext2 = name.substr(0, ext).rfind('.');
+		suffix = name.substr(ext2 + 1, ext - ext2 - 1);
+	}
+
     if (suffix == "vert")
         return EShLangVertex;
     else if (suffix == "tesc")
