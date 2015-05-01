@@ -64,6 +64,7 @@ void GlslTranslator::outputCode(const char* baseName) {
 	std::map<unsigned, Type> types;
 	std::map<unsigned, Variable> variables;
 	std::map<id, std::string> labelStarts;
+	std::map<id, int> merges;
 
 	std::ofstream out;
 	std::string fileName(baseName);
@@ -235,7 +236,10 @@ void GlslTranslator::outputCode(const char* baseName) {
 			}
 			out << "\n";
 			indent(out);
-			out << "void main()";
+			out << "void main()\n";
+			indent(out);
+			out << "{";
+			++indentation;
 			break;
 		case OpFunctionEnd:
 			--indentation;
@@ -317,30 +321,38 @@ void GlslTranslator::outputCode(const char* baseName) {
 		}
 		case OpReturn:
 			output(out);
-			out << "return;\n";
-			--indentation;
-			indent(out);
-			out << "}";
+			out << "return;";
 			break;
-		case OpLabel:
-			output(out);
-			if (labelStarts.find(inst.operands[0]) != labelStarts.end()) {
+		case OpLabel: {
+			id label = inst.operands[0];
+			if (merges.find(label) != merges.end()) {
+				--indentation;
+				output(out);
+				out << "} // Label " << label;
+			}
+			else if (labelStarts.find(inst.operands[0]) != labelStarts.end()) {
+				output(out);
 				out << labelStarts[inst.operands[0]] << "\n";
 				indent(out);
+				out << "{ // Label " << label;
+				++indentation;
 			}
-			out << "{ // Label " << inst.operands[0];
-			++indentation;
+			else {
+				output(out);
+				out << "// Label " << label;
+			}
 			break;
+		}
 		case OpBranch:
-			--indentation;
 			output(out);
-			out << "} // Branch to " << inst.operands[0];
+			out << "// Branch to " << inst.operands[0];
 			break;
 		case OpSelectionMerge: {
 			output(out);
 			id label = inst.operands[0];
 			unsigned selection = inst.operands[1];
 			out << "// Merge " << label << " " << selection;
+			merges[label] = 0;
 			break;
 		}
 		case OpBranchConditional: {
