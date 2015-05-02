@@ -18,6 +18,8 @@ namespace krafix {
 		Linux,
 		iOS,
 		Android,
+		HTML5,
+		Flash,
 		Unknown
 	};
 
@@ -25,6 +27,7 @@ namespace krafix {
 		TargetLanguage lang;
 		int version;
 		bool es;
+		bool kore;
 		TargetSystem system;
 	};
 

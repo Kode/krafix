@@ -49,6 +49,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sstream>
 
 #include "osinclude.h"
 
@@ -580,13 +581,39 @@ CompileShaders(void*)
 
 const char* GlslStd450DebugNames[GLSL_STD_450::Count];
 
+void executeSync(const char* command);
+int compileHLSLToD3D9(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage);
+int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage);
+
+std::string extractFilename(std::string path) {
+	int i = path.size() - 1;
+	for (; i > 0; --i) {
+		if (path[i] == '/' || path[i] == '\\') {
+			++i;
+			break;
+		}
+	}
+	return path.substr(i, std::string::npos);
+}
+
+std::string removeExtension(std::string filename) {
+	int i = filename.size() - 1;
+	for (; i > 0; --i) {
+		if (filename[i] == '.') {
+			break;
+		}
+	}
+	if (i == 0) return filename;
+	else return filename.substr(0, i);
+}
+
 //
 // For linking mode: Will independently parse each item in the worklist, but then put them
 // in the same program and link them together.
 //
 // Uses the new C++ interface instead of the old handle-based interface.
 //
-void CompileAndLinkShaders(krafix::Target target, const char* filename)
+void CompileAndLinkShaders(krafix::Target target, const char* filename, const char* tempdir, const char* kfx)
 {
     // keep track of what to free
     std::list<glslang::TShader*> shaders;
@@ -653,6 +680,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename)
                     std::vector<unsigned int> spirv;
                     glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv);
 					krafix::Translator* translator = NULL;
+					std::map<std::string, int> attributes;
 					switch (target.lang) {
 					case krafix::GLSL:
 						translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
@@ -667,7 +695,33 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename)
 						translator = new krafix::AgalTranslator(spirv, (EShLanguage)stage);
 						break;
 					}
-					translator->outputCode(target, filename);
+					
+					if (target.lang == krafix::HLSL) {
+						std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(filename)) + ".hlsl";
+						translator->outputCode(target, temp.c_str());
+						if (target.version == 9) {
+							compileHLSLToD3D9(temp.c_str(), filename, attributes, (EShLanguage)stage);
+						}
+						else {
+							compileHLSLToD3D11(temp.c_str(), filename, attributes, (EShLanguage)stage);
+						}
+					}
+					else if (target.system == krafix::Flash) {
+						if (kfx != NULL) {
+							std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(filename)) + ".glsl";
+							translator->outputCode(target, temp.c_str());
+							std::stringstream command;
+							command << "\"" << kfx << "\" " << "agal" << " " << temp << " " << filename << " " << tempdir;
+							executeSync(command.str().c_str());
+						}
+						else {
+							printf("kfx not found.\n");
+						}
+					}
+					else {
+						translator->outputCode(target, filename);
+					}
+
 					delete translator;
                     //glslang::OutputSpv(spirv, name);
                     if (Options & EOptionHumanReadableSpv) {
@@ -697,6 +751,8 @@ krafix::TargetSystem getSystem(const char* system) {
 	if (strcmp(system, "linux") == 0) return krafix::Linux;
 	if (strcmp(system, "ios") == 0) return krafix::iOS;
 	if (strcmp(system, "android") == 0) return krafix::Android;
+	if (strcmp(system, "html5") == 0) return krafix::HTML5;
+	if (strcmp(system, "flash") == 0) return krafix::Flash;
 	return krafix::Unknown;
 }
 
@@ -704,6 +760,12 @@ int C_DECL main(int argc, char* argv[]) {
 	if (argc < 6) {
 		usage();
 		return 1;
+	}
+
+	const char* tempdir = argv[4];
+	const char* kfx = NULL;
+	if (argc >= 7) {
+		kfx = argv[6];
 	}
 	
 	//Options |= EOptionHumanReadableSpv;
@@ -728,31 +790,35 @@ int C_DECL main(int argc, char* argv[]) {
 	krafix::Target target;
 	target.system = getSystem(argv[5]);
 	target.es = false;
+	target.kore = false;
 	if (strcmp(argv[1], "d3d9") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 9;
-		CompileAndLinkShaders(target, argv[3]);
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
 	}
 	else if (strcmp(argv[1], "d3d11") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 11;
-		CompileAndLinkShaders(target, argv[3]);
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
 	}
 	else if (strcmp(argv[1], "glsl") == 0) {
 		target.lang = krafix::GLSL;
 		if (target.system == krafix::Linux) target.version = 100;
 		else target.version = 330;
-		CompileAndLinkShaders(target, argv[3]);
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
 	}
 	else if (strcmp(argv[1], "essl") == 0) {
 		target.lang = krafix::GLSL;
 		target.version = 100;
 		target.es = true;
-		CompileAndLinkShaders(target, argv[3]);
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
 	}
 	else if (strcmp(argv[1], "agal") == 0) {
-		//return compileGLSLToAGAL(argv[2], argv[3], argv[4]);
-		CompileFailed = true;
+		target.lang = krafix::GLSL;
+		target.version = 100;
+		target.es = true;
+		target.kore = true;
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
 	}
 	else {
 		std::cout << "Unknown profile " << argv[1] << std::endl;
@@ -1076,4 +1142,23 @@ void InfoLogMsg(const char* msg, const char* name, const int num)
 {
     printf(num >= 0 ? "#### %s %s %d INFO LOG ####\n" :
            "#### %s %s INFO LOG ####\n", msg, name, num);
+}
+
+#ifdef SYS_WINDOWS
+#include <Windows.h>
+#endif
+
+void executeSync(const char* command) {
+#ifdef SYS_WINDOWS
+	STARTUPINFOA startupInfo;
+	PROCESS_INFORMATION processInfo;
+	memset(&startupInfo, 0, sizeof(startupInfo));
+	memset(&processInfo, 0, sizeof(processInfo));
+	startupInfo.cb = sizeof(startupInfo);
+	CreateProcessA(nullptr, (char*)command, nullptr, nullptr, FALSE, CREATE_DEFAULT_ERROR_MODE, "PATH=%PATH%;.\\cygwin\\bin\0", nullptr, &startupInfo, &processInfo);
+	WaitForSingleObject(processInfo.hProcess, INFINITE);
+	CloseHandle(processInfo.hProcess);
+	CloseHandle(processInfo.hThread);
+#endif
+	system(command);
 }

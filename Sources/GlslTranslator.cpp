@@ -319,7 +319,8 @@ void GlslTranslator::outputCode(const Target& target, const char* filename) {
 			}
 			out << "\n";
 			indent(out);
-			out << "void main()\n";
+			if (target.kore) out << "void kore()\n";
+			else out << "void main()\n";
 			indent(out);
 			out << "{";
 			++indentation;
