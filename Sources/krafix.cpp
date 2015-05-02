@@ -580,20 +580,13 @@ CompileShaders(void*)
 
 const char* GlslStd450DebugNames[GLSL_STD_450::Count];
 
-enum TargetLanguage {
-	GLSL,
-	HLSL,
-	Metal,
-	AGAL
-};
-
 //
 // For linking mode: Will independently parse each item in the worklist, but then put them
 // in the same program and link them together.
 //
 // Uses the new C++ interface instead of the old handle-based interface.
 //
-void CompileAndLinkShaders(TargetLanguage lang, const char* filename)
+void CompileAndLinkShaders(krafix::Target target, const char* filename)
 {
     // keep track of what to free
     std::list<glslang::TShader*> shaders;
@@ -660,21 +653,21 @@ void CompileAndLinkShaders(TargetLanguage lang, const char* filename)
                     std::vector<unsigned int> spirv;
                     glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv);
 					krafix::Translator* translator = NULL;
-					switch (lang) {
-					case GLSL:
+					switch (target.lang) {
+					case krafix::GLSL:
 						translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
 						break;
-					case HLSL:
+					case krafix::HLSL:
 						translator = new krafix::HlslTranslator(spirv, (EShLanguage)stage);
 						break;
-					case Metal:
+					case krafix::Metal:
 						translator = new krafix::MetalTranslator(spirv, (EShLanguage)stage);
 						break;
-					case AGAL:
+					case krafix::AGAL:
 						translator = new krafix::AgalTranslator(spirv, (EShLanguage)stage);
 						break;
 					}
-					translator->outputCode(filename);
+					translator->outputCode(target, filename);
 					delete translator;
                     //glslang::OutputSpv(spirv, name);
                     if (Options & EOptionHumanReadableSpv) {
@@ -698,31 +691,64 @@ void CompileAndLinkShaders(TargetLanguage lang, const char* filename)
     }
 }
 
+krafix::TargetSystem getSystem(const char* system) {
+	if (strcmp(system, "windows") == 0) return krafix::Windows;
+	if (strcmp(system, "osx") == 0) return krafix::OSX;
+	if (strcmp(system, "linux") == 0) return krafix::Linux;
+	if (strcmp(system, "ios") == 0) return krafix::iOS;
+	if (strcmp(system, "android") == 0) return krafix::Android;
+	return krafix::Unknown;
+}
+
 int C_DECL main(int argc, char* argv[]) {
-	if (argc < 5) {
-		std::cout << "Usage: krafix profile in out tempdir" << std::endl;
+	if (argc < 6) {
+		usage();
 		return 1;
 	}
 	
-	Options |= EOptionHumanReadableSpv;
+	//Options |= EOptionHumanReadableSpv;
 	Options |= EOptionSpv;
 	Options |= EOptionLinkProgram;
+	Options |= EOptionSuppressInfolog;
+
+	NumWorkItems = 1;
+	Work = new glslang::TWorkItem*[NumWorkItems];
+	Work[0] = 0;
+
+	std::string name(argv[2]);
+	if (!SetConfigFile(name)) {
+		Work[0] = new glslang::TWorkItem(name);
+		Worklist.add(Work[0]);
+	}
 
 	ProcessConfigFile();
 
 	glslang::InitializeProcess();
 	
+	krafix::Target target;
+	target.system = getSystem(argv[5]);
+	target.es = false;
 	if (strcmp(argv[1], "d3d9") == 0) {
-		CompileAndLinkShaders(HLSL, argv[3]);
+		target.lang = krafix::HLSL;
+		target.version = 9;
+		CompileAndLinkShaders(target, argv[3]);
 	}
 	else if (strcmp(argv[1], "d3d11") == 0) {
-		CompileAndLinkShaders(HLSL, argv[3]);
+		target.lang = krafix::HLSL;
+		target.version = 11;
+		CompileAndLinkShaders(target, argv[3]);
 	}
 	else if (strcmp(argv[1], "glsl") == 0) {
-		CompileAndLinkShaders(GLSL, argv[3]);
+		target.lang = krafix::GLSL;
+		if (target.system == krafix::Linux) target.version = 100;
+		else target.version = 330;
+		CompileAndLinkShaders(target, argv[3]);
 	}
 	else if (strcmp(argv[1], "essl") == 0) {
-		CompileAndLinkShaders(GLSL, argv[3]);
+		target.lang = krafix::GLSL;
+		target.version = 100;
+		target.es = true;
+		CompileAndLinkShaders(target, argv[3]);
 	}
 	else if (strcmp(argv[1], "agal") == 0) {
 		//return compileGLSLToAGAL(argv[2], argv[3], argv[4]);
@@ -917,7 +943,8 @@ void CompileFile(const char* fileName, ShHandle compiler)
 //
 void usage()
 {
-    printf("Usage: glslangValidator [option]... [file]...\n"
+	printf("Usage: krafix profile in out tempdir system\n");
+    /*printf("Usage: glslangValidator [option]... [file]...\n"
            "\n"
            "Where: each 'file' ends in .<stage>, where <stage> is one of\n"
            "    .conf to provide an optional config file that replaces the default configuration\n"
@@ -946,7 +973,7 @@ void usage()
            "  -t  multi-threaded mode\n"
            "  -v  print version strings\n"
            "  -w  suppress warnings (except as required by #extension : warn)\n"
-           );
+           );*/
 }
 
 #if !defined _MSC_VER && !defined MINGW_HAS_SECURE_API

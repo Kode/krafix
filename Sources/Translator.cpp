@@ -38,5 +38,5 @@ Translator::Translator(std::vector<unsigned>& spirv, EShLanguage stage) : stage(
 		instructions.push_back(Instruction(spirv, index));
 	}
 
-	printf("Read %i instructions.\n", instructions.size());
+	//printf("Read %i instructions.\n", instructions.size());
 }

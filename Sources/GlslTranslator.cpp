@@ -70,7 +70,7 @@ namespace {
 	}
 }
 
-void GlslTranslator::outputCode(const char* filename) {
+void GlslTranslator::outputCode(const Target& target, const char* filename) {
 	using namespace spv;
 
 	std::map<unsigned, Name> names;
@@ -81,6 +81,9 @@ void GlslTranslator::outputCode(const char* filename) {
 
 	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
+
+	out << "#version " << target.version << "\n";
+	if (target.es) out << "precision mediump float;\n";
 	
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		outputting = false;
@@ -194,7 +197,7 @@ void GlslTranslator::outputCode(const char* filename) {
 			Type t;
 			unsigned id = inst.operands[0];
 			bool video = inst.length >= 8 && inst.operands[8] == 1;
-			if (video) {
+			if (video && target.system == Android) {
 				t.name = "samplerExternalOES";
 			}
 			else {
@@ -204,16 +207,14 @@ void GlslTranslator::outputCode(const char* filename) {
 			break;
 		}
 		case OpConstant: {
-			//output(out);
 			Type resultType = types[inst.operands[0]];
 			id result = inst.operands[1];
-			//out << "const " << resultType.name << " _" << result << " = ";
 			std::string value = "unknown";
 			if (resultType.name == "float") {
 				float f = *(float*)&inst.operands[2];
 				std::stringstream strvalue;
 				strvalue << f;
-				if (strvalue.str().find('.') < 0) strvalue << ".0";
+				if (strvalue.str().find('.') == std::string::npos) strvalue << ".0";
 				value = strvalue.str();
 			}
 			if (resultType.name == "int") {
@@ -222,7 +223,19 @@ void GlslTranslator::outputCode(const char* filename) {
 				value = strvalue.str();
 			}
 			references[result] = value;
-			//out << ";";
+			break;
+		}
+		case OpConstantComposite: {
+			Type resultType = types[inst.operands[0]];
+			id result = inst.operands[1];
+			std::stringstream str;
+			str << resultType.name << "(";
+			for (unsigned i = 2; i < inst.length; ++i) {
+				str << getReference(inst.operands[i]);
+				if (i < inst.length - 1) str << ", ";
+			}
+			str << ")";
+			references[result] = str.str();
 			break;
 		}
 		case OpVariable: {
@@ -294,79 +307,80 @@ void GlslTranslator::outputCode(const char* filename) {
 			out << "} // end function";
 			break;
 		case OpCompositeConstruct: {
-			output(out);
 			Type resultType = types[inst.operands[0]];
-			unsigned result = inst.operands[1];
-			out << resultType.name << " _" << result << " = vec4(_"
-			<< inst.operands[2] << ", _" << inst.operands[3] << ", _"
-			<< inst.operands[4] << ", _" << inst.operands[5] << ");";
+			id result = inst.operands[1];
+			std::stringstream str;
+			str << "vec4(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ", "
+				<< getReference(inst.operands[4]) << ", " << getReference(inst.operands[5]) << ")";
+			references[result] = str.str();
 			break;
 		}
 		case OpCompositeExtract: {
-			//output(out);
 			Type resultType = types[inst.operands[0]];
 			id result = inst.operands[1];
 			id composite = inst.operands[2];
-			//out << resultType.name << " _" << result << " = _"
-			//<< composite << "." << indexName(inst.operands[3]) << ";";
 			std::stringstream str;
-			str << composite << "." << indexName(inst.operands[3]);
+			str << getReference(composite) << "." << indexName(inst.operands[3]);
 			references[result] = str.str();
 			break;
 		}
 		case OpMatrixTimesVector: {
-			output(out);
 			Type resultType = types[inst.operands[0]];
-			unsigned result = inst.operands[1];
-			unsigned matrix = inst.operands[2];
-			unsigned vector = inst.operands[3];
-			out << resultType.name << " _" << result << " = _" << matrix << " * _" << vector << ";";
+			id result = inst.operands[1];
+			id matrix = inst.operands[2];
+			id vector = inst.operands[3];
+			std::stringstream str;
+			str << "(" << getReference(matrix) << " * " << getReference(vector) << ")";
+			references[result] = str.str();
 			break;
 		}
 		case OpTextureSample: {
-			output(out);
 			Type resultType = types[inst.operands[0]];
-			unsigned result = inst.operands[1];
-			unsigned sampler = inst.operands[2];
-			unsigned coordinate = inst.operands[3];
-			out << resultType.name << " _" << result << " = texture2D(_" << sampler << ", _" << coordinate << ");";
+			id result = inst.operands[1];
+			id sampler = inst.operands[2];
+			id coordinate = inst.operands[3];
+			std::stringstream str;
+			str << "texture2D(" << getReference(sampler) << ", " << getReference(coordinate) << ")";
+			references[result] = str.str();
 			break;
 		}
 		case OpVectorShuffle: {
-			output(out);
 			Type resultType = types[inst.operands[0]];
-			unsigned result = inst.operands[1];
-			unsigned vector1 = inst.operands[2];
-			unsigned vector1length = 4; // types[variables[inst.operands[2]].type].length;
-			unsigned vector2 = inst.operands[3];
-			unsigned vector2length = 4; // types[variables[inst.operands[3]].type].length;
-
-			out << resultType.name << " _" << result << " = " << resultType.name << "(";
+			id result = inst.operands[1];
+			id vector1 = inst.operands[2];
+			id vector1length = 4; // types[variables[inst.operands[2]].type].length;
+			id vector2 = inst.operands[3];
+			id vector2length = 4; // types[variables[inst.operands[3]].type].length;
+			std::stringstream str;
+			str << resultType.name << "(";
 			for (unsigned i = 4; i < inst.length; ++i) {
-				unsigned index = inst.operands[i];
-				if (index < vector1length) out << "_" << vector1 << "." << indexName(index);
-				else out << "_" << vector2 << "." << indexName(index - vector1length);
-				if (i < inst.length - 1) out << ", ";
+				id index = inst.operands[i];
+				if (index < vector1length) str << getReference(vector1) << "." << indexName(index);
+				else str << getReference(vector2) << "." << indexName(index - vector1length);
+				if (i < inst.length - 1) str << ", ";
 			}
-			out << ");";
+			str << ")";
+			references[result] = str.str();
 			break;
 		}
 		case OpFMul: {
-			output(out);
 			Type resultType = types[inst.operands[0]];
-			unsigned result = inst.operands[1];
-			unsigned operand1 = inst.operands[2];
-			unsigned operand2 = inst.operands[3];
-			out << resultType.name << " _" << result << " = _" << operand1 << " * _" << operand2 << ";";
+			id result = inst.operands[1];
+			id operand1 = inst.operands[2];
+			id operand2 = inst.operands[3];
+			std::stringstream str;
+			str << "(" << getReference(operand1) << " * " << getReference(operand2) << ")";
+			references[result] = str.str();
 			break;
 		}
 		case OpVectorTimesScalar: {
-			output(out);
 			Type resultType = types[inst.operands[0]];
-			unsigned result = inst.operands[1];
-			unsigned vector = inst.operands[2];
-			unsigned scalar = inst.operands[3];
-			out << resultType.name << " _" << result << " = _" << vector << " * _" << scalar << ";";
+			id result = inst.operands[1];
+			id vector = inst.operands[2];
+			id scalar = inst.operands[3];
+			std::stringstream str;
+			str << "(" << getReference(vector) << " * " << getReference(scalar) << ")";
+			references[result] = str.str();
 			break;
 		}
 		case OpReturn:
@@ -431,12 +445,9 @@ void GlslTranslator::outputCode(const char* filename) {
 			break;
 		}
 		case OpIEqual: {
-			//output(out);
-			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
 			unsigned operand1 = inst.operands[2];
 			unsigned operand2 = inst.operands[3];
-			//out << resultType.name << " _" << result << " = _" << operand1 << " == _" << operand2 << ";";
 			std::stringstream str;
 			str << getReference(operand1) << " == " << getReference(operand2);
 			references[result] = str.str();
@@ -453,48 +464,27 @@ void GlslTranslator::outputCode(const char* filename) {
 		case OpSource:
 			break;
 		case OpAccessChain: {
-			//output(out);
 			Type t = types[inst.operands[0]];
 			id result = inst.operands[1];
 			id base = inst.operands[2];
 			id index = inst.operands[3];
-			//out << t.name << " _" << result << " = _" << base << "[" << getValue(index) << "];";
 			std::stringstream str;
 			str << getReference(base) << "[" << getReference(index) << "]";
 			references[result] = str.str();
 			break;
 		}
 		case OpLoad: {
-			//output(out);
-			Type t = types[inst.operands[0]];
 			references[inst.operands[1]] = getReference(inst.operands[2]);
-			if (names.find(inst.operands[2]) != names.end()) {
-				Name n = names[inst.operands[2]];
-				//out << t.name << " _" << inst.operands[1] << " = " << n.name << ";";
-				//references[inst.operands[1]] = n.name;
-			}
-			else {
-				//out << t.name << " _" << inst.operands[1] << " = _" << inst.operands[2] << ";";
-				std::stringstream name;
-				name << "_" << inst.operands[2];
-				//references[inst.operands[1]] = name.str();
-			}
-			//out << " // OpLoad " << inst.operands[1] << ", " << inst.operands[2];
 			break;
 		}
 		case OpStore: {
 			output(out);
 			Variable v = variables[inst.operands[0]];
 			if (stage == EShLangFragment && v.storage == StorageClassOutput) {
-				out << "gl_FragColor" << " = _" << inst.operands[1] << ";";
+				out << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
 			}
 			else {
-				if (names.find(inst.operands[0]) != names.end()) {
-					out << names[inst.operands[0]].name << " = " << getReference(inst.operands[1]) << ";";
-				}
-				else {
-					out << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
-				}
+				out << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 			break;
 		}

@@ -39,7 +39,7 @@ namespace {
 	}
 }
 
-void AgalTranslator::outputCode(const char* baseName) {
+void AgalTranslator::outputCode(const Target& target, const char* filename) {
 	using namespace spv;
 
 	std::map<unsigned, Name> names;
@@ -47,9 +47,7 @@ void AgalTranslator::outputCode(const char* baseName) {
 	std::map<unsigned, Variable> variables;
 
 	std::ofstream out;
-	std::string fileName(baseName);
-	fileName.append(".agal");
-	out.open(fileName.c_str(), std::ios::binary | std::ios::out);
+	out.open(filename, std::ios::binary | std::ios::out);
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
