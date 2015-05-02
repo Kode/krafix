@@ -254,18 +254,36 @@ void GlslTranslator::outputCode(const Target& target, const char* filename) {
 				unsigned id = v->first;
 				Variable& variable = v->second;
 
-				if (variable.builtin) continue;
-
 				Type t = types[variable.type];
 				Name n = names[id];
+
+				if (variable.builtin) {
+					if (target.version >= 300 && n.name == "gl_FragColor") {
+						n.name = "krafix_FragColor";
+						names[id] = n;
+					}
+					else {
+						continue;
+					}
+				}
 				
 				switch (stage) {
 				case EShLangVertex:
 					if (variable.storage == StorageClassInput) {
-						out << "attribute " << t.name << " " << n.name << ";\n";
+						if (target.version < 300) {
+							out << "attribute " << t.name << " " << n.name << ";\n";
+						}
+						else {
+							out << "in " << t.name << " " << n.name << ";\n";
+						}
 					}
 					else if (variable.storage == StorageClassOutput) {
-						out << "varying " << t.name << " " << n.name << ";\n";
+						if (target.version < 300) {
+							out << "varying " << t.name << " " << n.name << ";\n";
+						}
+						else {
+							out << "out " << t.name << " " << n.name << ";\n";
+						}
 					}
 					else if (variable.storage == StorageClassUniformConstant) {
 						out << "uniform " << t.name << " " << n.name << ";\n";
@@ -273,7 +291,12 @@ void GlslTranslator::outputCode(const Target& target, const char* filename) {
 					break;
 				case EShLangFragment:
 					if (variable.storage == StorageClassInput) {
-						out << "varying " << t.name << " " << n.name << ";\n";
+						if (target.version < 300) {
+							out << "varying " << t.name << " " << n.name << ";\n";
+						}
+						else {
+							out << "in " << t.name << " " << n.name << ";\n";
+						}
 					}
 					else if (variable.storage == StorageClassUniformConstant) {
 						out << "uniform " << t.name << " " << n.name << ";\n";
@@ -340,7 +363,9 @@ void GlslTranslator::outputCode(const Target& target, const char* filename) {
 			id sampler = inst.operands[2];
 			id coordinate = inst.operands[3];
 			std::stringstream str;
-			str << "texture2D(" << getReference(sampler) << ", " << getReference(coordinate) << ")";
+			if (target.version < 300) str << "texture2D";
+			else str << "texture";
+			str << "(" << getReference(sampler) << ", " << getReference(coordinate) << ")";
 			references[result] = str.str();
 			break;
 		}
@@ -480,7 +505,7 @@ void GlslTranslator::outputCode(const Target& target, const char* filename) {
 		case OpStore: {
 			output(out);
 			Variable v = variables[inst.operands[0]];
-			if (stage == EShLangFragment && v.storage == StorageClassOutput) {
+			if (stage == EShLangFragment && v.storage == StorageClassOutput && target.version < 300) {
 				out << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
 			}
 			else {
