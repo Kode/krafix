@@ -8,15 +8,6 @@ using namespace krafix;
 typedef unsigned id;
 
 void HlslTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
-	using namespace spv;
-
-	std::map<unsigned, Name> names;
-	std::map<unsigned, Type> types;
-	std::map<unsigned, Variable> variables;
-	std::map<id, std::string> labelStarts;
-	std::map<id, int> merges;
-
-	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
@@ -33,33 +24,25 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	using namespace spv;
 
 	switch (inst.opcode) {
-	case OpName: {
-		Name n;
-		unsigned id = inst.operands[0];
-		n.name = inst.string;
-		names[id] = n;
+	case OpExecutionMode:
 		break;
-	}
-	case OpTypePointer: {
+	case OpTypeArray: {
 		Type t;
 		unsigned id = inst.operands[0];
-		Type subtype = types[inst.operands[2]];
-		t.name = subtype.name;
-		types[id] = t;
-		break;
-	}
-	case OpTypeFloat: {
-		Type t;
-		unsigned id = inst.operands[0];
-		t.name = "float";
-		types[id] = t;
-		break;
-	}
-	case OpTypeInt: {
-		Type t;
-		unsigned id = inst.operands[0];
-		t.name = "int";
-		types[id] = t;
+		t.name = "?[]";
+		Type subtype = types[inst.operands[1]];
+		if (subtype.name != NULL) {
+			if (strcmp(subtype.name, "float") == 0) {
+				t.name = "float[]";
+				t.length = 2;
+				types[id] = t;
+			}
+			if (strcmp(subtype.name, "float3") == 0) {
+				t.name = "float3[]";
+				t.length = 2;
+				types[id] = t;
+			}
+		}
 		break;
 	}
 	case OpTypeVector: {
@@ -103,38 +86,6 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		unsigned id = inst.operands[0];
 		t.name = "sampler2D";
 		types[id] = t;
-		break;
-	}
-	case OpConstant: {
-		Type resultType = types[inst.operands[0]];
-		id result = inst.operands[1];
-		std::string value = "unknown";
-		if (resultType.name == "float") {
-			float f = *(float*)&inst.operands[2];
-			std::stringstream strvalue;
-			strvalue << f;
-			if (strvalue.str().find('.') == std::string::npos) strvalue << ".0";
-			value = strvalue.str();
-		}
-		if (resultType.name == "int") {
-			std::stringstream strvalue;
-			strvalue << *(int*)&inst.operands[2];
-			value = strvalue.str();
-		}
-		references[result] = value;
-		break;
-	}
-	case OpConstantComposite: {
-		Type resultType = types[inst.operands[0]];
-		id result = inst.operands[1];
-		std::stringstream str;
-		str << resultType.name << "(";
-		for (unsigned i = 2; i < inst.length; ++i) {
-			str << getReference(inst.operands[i]);
-			if (i < inst.length - 1) str << ", ";
-		}
-		str << ")";
-		references[result] = str.str();
 		break;
 	}
 	case OpVariable: {
@@ -239,35 +190,11 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		out << "Output output;";
 		break;
 	}
-	case OpFunctionEnd:
-		--indentation;
-		output(out);
-		out << "}";
-		break;
 	case OpCompositeConstruct: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		std::stringstream str;
 		str << "float4(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ", " << getReference(inst.operands[4]) << ", " << getReference(inst.operands[5]) << ")";
-		references[result] = str.str();
-		break;
-	}
-	case OpCompositeExtract: {
-		Type resultType = types[inst.operands[0]];
-		id result = inst.operands[1];
-		id composite = inst.operands[2];
-		std::stringstream str;
-		str << getReference(composite) << "." << indexName(inst.operands[3]);
-		references[result] = str.str();
-		break;
-	}
-	case OpMatrixTimesVector: {
-		Type resultType = types[inst.operands[0]];
-		id result = inst.operands[1];
-		id matrix = inst.operands[2];
-		id vector = inst.operands[3];
-		std::stringstream str;
-		str << "(" << matrix << " * " << vector << ")";
 		references[result] = str.str();
 		break;
 	}
@@ -281,105 +208,12 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		references[result] = str.str();
 		break;
 	}
-	case OpVectorShuffle: {
-		Type resultType = types[inst.operands[0]];
-		id result = inst.operands[1];
-		id vector1 = inst.operands[2];
-		id vector1length = 4; // types[variables[inst.operands[2]].type].length;
-		id vector2 = inst.operands[3];
-		id vector2length = 4; // types[variables[inst.operands[3]].type].length;
-		std::stringstream str;
-		str << resultType.name << "(";
-		for (unsigned i = 4; i < inst.length; ++i) {
-			id index = inst.operands[i];
-			if (index < vector1length) str << getReference(vector1) << "." << indexName(index);
-			else str << getReference(vector2) << "." << indexName(index - vector1length);
-			if (i < inst.length - 1) str << ", ";
-		}
-		str << ")";
-		references[result] = str.str();
-		break;
-	}
-	case OpFMul: {
-		Type resultType = types[inst.operands[0]];
-		id result = inst.operands[1];
-		id operand1 = inst.operands[2];
-		id operand2 = inst.operands[3];
-		std::stringstream str;
-		str << "(" << getReference(operand1) << " * " << getReference(operand2) << ")";
-		references[result] = str.str();
-		break;
-	}
-	case OpVectorTimesScalar: {
-		Type resultType = types[inst.operands[0]];
-		id result = inst.operands[1];
-		id vector = inst.operands[2];
-		id scalar = inst.operands[3];
-		std::stringstream str;
-		str << "(" << getReference(vector) << " * " << getReference(scalar) << ")";
-		references[result] = str.str();
-		break;
-	}
 	case OpReturn:
 		output(out);
 		out << "return output;";
 		break;
-	case OpLabel:
-		break;
-	case OpBranch:
-		break;
-	case OpDecorate: {
-		unsigned target = inst.operands[0];
-		Decoration decoration = (Decoration)inst.operands[1];
-		if (decoration == DecorationBuiltIn) {
-			variables[target].builtin = true;
-		}
-		break;
-	}
-	case OpTypeFunction: {
-		Type t;
-		unsigned id = inst.operands[0];
-		t.name = "function";
-		types[id] = t;
-		break;
-	}
-	case OpTypeVoid:
-		break;
-	case OpEntryPoint:
-		break;
-	case OpMemoryModel:
-		break;
-	case OpExtInstImport:
-		break;
-	case OpSource:
-		break;
-	case OpLoad: {
-		/*Type t = types[inst.operands[0]];
-		if (names.find(inst.operands[2]) != names.end()) {
-		Name& n = names[inst.operands[2]];
-		Variable& v = variables[inst.operands[2]];
-		if (v.storage == StorageClassInput) {
-		out << "\t" << t.name << " _" << inst.operands[1] << " = input." << n.name << ";\n";
-		}
-		else {
-		out << "\t" << t.name << " _" << inst.operands[1] << " = " << n.name << ";\n";
-		}
-		}
-		else {
-		out << "\t" << t.name << " _" << inst.operands[1] << " = _" << inst.operands[2] << ";\n";
-		}*/
-		references[inst.operands[1]] = getReference(inst.operands[2]);
-		break;
-	}
 	case OpStore: {
 		output(out);
-		/*Variable& v = variables[inst.operands[0]];
-		if (v.storage == StorageClassOutput) {
-		out << "output." << names[inst.operands[0]].name << " = _" << inst.operands[1] << ";\n";
-		}
-		else {
-		out << "\t" << names[inst.operands[0]].name << " = _" << inst.operands[1] << ";\n";
-		}*/
 		Variable& v = variables[inst.operands[0]];
 		if (!v.declared) {
 			out << types[v.type].name << " " << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
