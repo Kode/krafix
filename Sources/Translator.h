@@ -2,6 +2,7 @@
 
 #include <SPIRV/spirv.h>
 #include "../glslang/glslang/Public/ShaderLang.h"
+#include <map>
 #include <vector>
 
 namespace krafix {
@@ -45,7 +46,7 @@ namespace krafix {
 	public:
 		Translator(std::vector<unsigned>& spirv, EShLanguage stage);
 		virtual ~Translator() {}
-		virtual void outputCode(const Target& target, const char* filename) = 0;
+		virtual void outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) = 0;
 	protected:
 		std::vector<Instruction> instructions;
 		EShLanguage stage;

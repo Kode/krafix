@@ -39,7 +39,7 @@ namespace {
 	}
 }
 
-void AgalTranslator::outputCode(const Target& target, const char* filename) {
+void AgalTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
 	using namespace spv;
 
 	std::map<unsigned, Name> names;

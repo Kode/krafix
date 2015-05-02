@@ -3,7 +3,7 @@
 
 using namespace krafix;
 
-void MetalTranslator::outputCode(const Target& target, const char* filename) {
+void MetalTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
 	std::ofstream out(filename);
 	out << "#include <metal_stdlib>\n";
 	out << "using namespace metal;\n";

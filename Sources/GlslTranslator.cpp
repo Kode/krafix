@@ -70,7 +70,7 @@ namespace {
 	}
 }
 
-void GlslTranslator::outputCode(const Target& target, const char* filename) {
+void GlslTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
 	using namespace spv;
 
 	std::map<unsigned, Name> names;
@@ -328,7 +328,7 @@ void GlslTranslator::outputCode(const Target& target, const char* filename) {
 		case OpFunctionEnd:
 			--indentation;
 			output(out);
-			out << "} // end function";
+			out << "}";
 			break;
 		case OpCompositeConstruct: {
 			Type resultType = types[inst.operands[0]];
