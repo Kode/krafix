@@ -70,7 +70,7 @@ namespace {
 	}
 }
 
-void GlslTranslator::outputCode(const char* baseName) {
+void GlslTranslator::outputCode(const char* filename) {
 	using namespace spv;
 
 	std::map<unsigned, Name> names;
@@ -80,9 +80,7 @@ void GlslTranslator::outputCode(const char* baseName) {
 	std::map<id, int> merges;
 
 	std::ofstream out;
-	std::string fileName(baseName);
-	fileName.append(".glsl");
-	out.open(fileName.c_str(), std::ios::binary | std::ios::out);
+	out.open(filename, std::ios::binary | std::ios::out);
 	
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		outputting = false;
@@ -268,7 +266,9 @@ void GlslTranslator::outputCode(const char* baseName) {
 						out << "uniform " << t.name << " " << n.name << ";\n";
 					}
 					break;
+				case EShLangGeometry:
 				case EShLangTessControl:
+				case EShLangTessEvaluation:
 					if (variable.storage == StorageClassInput) {
 						out << "in " << t.name << " " << n.name << ";\n";
 					}
@@ -303,12 +303,15 @@ void GlslTranslator::outputCode(const char* baseName) {
 			break;
 		}
 		case OpCompositeExtract: {
-			output(out);
+			//output(out);
 			Type resultType = types[inst.operands[0]];
-			unsigned result = inst.operands[1];
-			unsigned composite = inst.operands[2];
-			out << resultType.name << " _" << result << " = _"
-			<< composite << "." << indexName(inst.operands[3]) << ";";
+			id result = inst.operands[1];
+			id composite = inst.operands[2];
+			//out << resultType.name << " _" << result << " = _"
+			//<< composite << "." << indexName(inst.operands[3]) << ";";
+			std::stringstream str;
+			str << composite << "." << indexName(inst.operands[3]);
+			references[result] = str.str();
 			break;
 		}
 		case OpMatrixTimesVector: {

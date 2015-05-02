@@ -580,13 +580,20 @@ CompileShaders(void*)
 
 const char* GlslStd450DebugNames[GLSL_STD_450::Count];
 
+enum TargetLanguage {
+	GLSL,
+	HLSL,
+	Metal,
+	AGAL
+};
+
 //
 // For linking mode: Will independently parse each item in the worklist, but then put them
 // in the same program and link them together.
 //
 // Uses the new C++ interface instead of the old handle-based interface.
 //
-void CompileAndLinkShaders()
+void CompileAndLinkShaders(TargetLanguage lang, const char* filename)
 {
     // keep track of what to free
     std::list<glslang::TShader*> shaders;
@@ -652,21 +659,22 @@ void CompileAndLinkShaders()
                 if (program.getIntermediate((EShLanguage)stage)) {
                     std::vector<unsigned int> spirv;
                     glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv);
-                    const char* name;
-                    switch (stage) {
-                    case EShLangVertex:          name = "vert";    break;
-                    case EShLangTessControl:     name = "tesc";    break;
-                    case EShLangTessEvaluation:  name = "tese";    break;
-                    case EShLangGeometry:        name = "geom";    break;
-                    case EShLangFragment:        name = "frag";    break;
-                    case EShLangCompute:         name = "comp";    break;
-                    default:                     name = "unknown"; break;
-                    }
 					krafix::Translator* translator = NULL;
-					translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
-					//translator = new krafix::HlslTranslator(spirv, (EShLanguage)stage);
-					//translator = new krafix::AgalTranslator(spirv, (EShLanguage)stage);
-					translator->outputCode(name);
+					switch (lang) {
+					case GLSL:
+						translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
+						break;
+					case HLSL:
+						translator = new krafix::HlslTranslator(spirv, (EShLanguage)stage);
+						break;
+					case Metal:
+						translator = new krafix::MetalTranslator(spirv, (EShLanguage)stage);
+						break;
+					case AGAL:
+						translator = new krafix::AgalTranslator(spirv, (EShLanguage)stage);
+						break;
+					}
+					translator->outputCode(filename);
 					delete translator;
                     //glslang::OutputSpv(spirv, name);
                     if (Options & EOptionHumanReadableSpv) {
@@ -690,7 +698,52 @@ void CompileAndLinkShaders()
     }
 }
 
-int C_DECL main(int argc, char* argv[])
+int C_DECL main(int argc, char* argv[]) {
+	if (argc < 5) {
+		std::cout << "Usage: krafix profile in out tempdir" << std::endl;
+		return 1;
+	}
+	
+	Options |= EOptionHumanReadableSpv;
+	Options |= EOptionSpv;
+	Options |= EOptionLinkProgram;
+
+	ProcessConfigFile();
+
+	glslang::InitializeProcess();
+	
+	if (strcmp(argv[1], "d3d9") == 0) {
+		CompileAndLinkShaders(HLSL, argv[3]);
+	}
+	else if (strcmp(argv[1], "d3d11") == 0) {
+		CompileAndLinkShaders(HLSL, argv[3]);
+	}
+	else if (strcmp(argv[1], "glsl") == 0) {
+		CompileAndLinkShaders(GLSL, argv[3]);
+	}
+	else if (strcmp(argv[1], "essl") == 0) {
+		CompileAndLinkShaders(GLSL, argv[3]);
+	}
+	else if (strcmp(argv[1], "agal") == 0) {
+		//return compileGLSLToAGAL(argv[2], argv[3], argv[4]);
+		CompileFailed = true;
+	}
+	else {
+		std::cout << "Unknown profile " << argv[1] << std::endl;
+		CompileFailed = true;
+	}
+
+	glslang::FinalizeProcess();
+
+	if (CompileFailed)
+		return EFailCompile;
+	if (LinkFailed)
+		return EFailLink;
+
+	return 0;
+}
+
+int C_DECL main_glslangValidator(int argc, char* argv[])
 {
     if (! ProcessArguments(argc, argv)) {
         usage();
@@ -724,7 +777,7 @@ int C_DECL main(int argc, char* argv[])
     //
     if (Options & EOptionLinkProgram) {
         glslang::InitializeProcess();
-        CompileAndLinkShaders();
+        //CompileAndLinkShaders();
         glslang::FinalizeProcess();
     } else {
         ShInitialize();

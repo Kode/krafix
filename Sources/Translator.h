@@ -19,7 +19,7 @@ namespace krafix {
 	public:
 		Translator(std::vector<unsigned>& spirv, EShLanguage stage);
 		virtual ~Translator() {}
-		virtual void outputCode(const char* name) = 0;
+		virtual void outputCode(const char* filename) = 0;
 	protected:
 		std::vector<Instruction> instructions;
 		EShLanguage stage;
