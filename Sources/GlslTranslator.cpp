@@ -55,6 +55,19 @@ namespace {
 		outputting = true;
 		indent(out);
 	}
+
+	std::map<id, std::string> references;
+
+	std::string getReference(id _id) {
+		if (references.find(_id) == references.end()) {
+			std::stringstream str;
+			str << "_" << _id;
+			return str.str();
+		}
+		else {
+			return references[_id];
+		}
+	}
 }
 
 void GlslTranslator::outputCode(const char* baseName) {
@@ -133,6 +146,11 @@ void GlslTranslator::outputCode(const char* baseName) {
 					t.length = 2;
 					types[id] = t;
 				}
+				if (strcmp(subtype.name, "vec3") == 0) {
+					t.name = "vec3[]";
+					t.length = 2;
+					types[id] = t;
+				}
 			}
 			break;
 		}
@@ -188,17 +206,35 @@ void GlslTranslator::outputCode(const char* baseName) {
 			break;
 		}
 		case OpConstant: {
-			output(out);
+			//output(out);
 			Type resultType = types[inst.operands[0]];
-			unsigned result = inst.operands[1];
-			out << "const " << resultType.name << " _" << result << " = " << *(float*)&inst.operands[2] << ";";
+			id result = inst.operands[1];
+			//out << "const " << resultType.name << " _" << result << " = ";
+			std::string value = "unknown";
+			if (resultType.name == "float") {
+				float f = *(float*)&inst.operands[2];
+				std::stringstream strvalue;
+				strvalue << f;
+				if (strvalue.str().find('.') < 0) strvalue << ".0";
+				value = strvalue.str();
+			}
+			if (resultType.name == "int") {
+				std::stringstream strvalue;
+				strvalue << *(int*)&inst.operands[2];
+				value = strvalue.str();
+			}
+			references[result] = value;
+			//out << ";";
 			break;
 		}
 		case OpVariable: {
-			unsigned id = inst.operands[1]; 
+			unsigned id = inst.operands[1];
 			Variable& v = variables[id];
 			v.type = inst.operands[0];
 			v.storage = (StorageClass)inst.operands[2];
+			if (names.find(id) != names.end()) {
+				references[id] = names[id].name;
+			}
 			break;
 		}
 		case OpFunction:
@@ -227,6 +263,17 @@ void GlslTranslator::outputCode(const char* baseName) {
 				case EShLangFragment:
 					if (variable.storage == StorageClassInput) {
 						out << "varying " << t.name << " " << n.name << ";\n";
+					}
+					else if (variable.storage == StorageClassUniformConstant) {
+						out << "uniform " << t.name << " " << n.name << ";\n";
+					}
+					break;
+				case EShLangTessControl:
+					if (variable.storage == StorageClassInput) {
+						out << "in " << t.name << " " << n.name << ";\n";
+					}
+					else if (variable.storage == StorageClassOutput) {
+						out << "out " << t.name << " " << n.name << ";\n";
 					}
 					else if (variable.storage == StorageClassUniformConstant) {
 						out << "uniform " << t.name << " " << n.name << ";\n";
@@ -360,7 +407,7 @@ void GlslTranslator::outputCode(const char* baseName) {
 			id trueLabel = inst.operands[1];
 			id falseLabel = inst.operands[2];
 			std::stringstream _true;
-			_true << "if (_" << condition << ")";
+			_true << "if (" << getReference(condition) << ")";
 			labelStarts[trueLabel] = _true.str();
 			labelStarts[falseLabel] = "else";
 			break;
@@ -381,12 +428,15 @@ void GlslTranslator::outputCode(const char* baseName) {
 			break;
 		}
 		case OpIEqual: {
-			output(out);
+			//output(out);
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
 			unsigned operand1 = inst.operands[2];
 			unsigned operand2 = inst.operands[3];
-			out << resultType.name << " _" << result << " = _" << operand1 << " == _" << operand2 << ";";
+			//out << resultType.name << " _" << result << " = _" << operand1 << " == _" << operand2 << ";";
+			std::stringstream str;
+			str << getReference(operand1) << " == " << getReference(operand2);
+			references[result] = str.str();
 			break;
 		}
 		case OpTypeVoid:
@@ -400,24 +450,33 @@ void GlslTranslator::outputCode(const char* baseName) {
 		case OpSource:
 			break;
 		case OpAccessChain: {
-			output(out);
+			//output(out);
 			Type t = types[inst.operands[0]];
-			unsigned result = inst.operands[1];
-			unsigned base = inst.operands[2];
-			unsigned index = inst.operands[3];
-			out << t.name << " _" << result << " = _" << base << "[_" << index << "];";
+			id result = inst.operands[1];
+			id base = inst.operands[2];
+			id index = inst.operands[3];
+			//out << t.name << " _" << result << " = _" << base << "[" << getValue(index) << "];";
+			std::stringstream str;
+			str << getReference(base) << "[" << getReference(index) << "]";
+			references[result] = str.str();
 			break;
 		}
 		case OpLoad: {
-			output(out);
+			//output(out);
 			Type t = types[inst.operands[0]];
+			references[inst.operands[1]] = getReference(inst.operands[2]);
 			if (names.find(inst.operands[2]) != names.end()) {
 				Name n = names[inst.operands[2]];
-				out << t.name << " _" << inst.operands[1] << " = " << n.name << ";";
+				//out << t.name << " _" << inst.operands[1] << " = " << n.name << ";";
+				//references[inst.operands[1]] = n.name;
 			}
 			else {
-				out << t.name << " _" << inst.operands[1] << " = _" << inst.operands[2] << ";";
+				//out << t.name << " _" << inst.operands[1] << " = _" << inst.operands[2] << ";";
+				std::stringstream name;
+				name << "_" << inst.operands[2];
+				//references[inst.operands[1]] = name.str();
 			}
+			//out << " // OpLoad " << inst.operands[1] << ", " << inst.operands[2];
 			break;
 		}
 		case OpStore: {
@@ -428,10 +487,10 @@ void GlslTranslator::outputCode(const char* baseName) {
 			}
 			else {
 				if (names.find(inst.operands[0]) != names.end()) {
-					out << names[inst.operands[0]].name << " = _" << inst.operands[1] << ";";
+					out << names[inst.operands[0]].name << " = " << getReference(inst.operands[1]) << ";";
 				}
 				else {
-					out << "_" << inst.operands[0] << " = _" << inst.operands[1] << ";";
+					out << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
 				}
 			}
 			break;
