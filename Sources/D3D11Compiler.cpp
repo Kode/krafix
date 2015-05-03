@@ -67,6 +67,7 @@ int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::str
 				D3D11_SHADER_VARIABLE_DESC variableDesc;
 				hr = variable->GetDesc(&variableDesc);
 				if (hr == S_OK) {
+					if (strcmp(variableDesc.Name, "dx_ViewAdjust") != 0) file << "_"; // TODO: Remove when kfx is deprecated
 					file << variableDesc.Name;
 					file.put(0);
 					//file.put(variable->GetType()->);

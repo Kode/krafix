@@ -54,6 +54,7 @@ int compileHLSLToD3D9(const char* from, const char* to, const std::map<std::stri
 					break;
 				}
 				//std::cout << descriptions[i2].Name << " " << regtype << descriptions[i2].RegisterIndex << " " << descriptions[i2].RegisterCount << std::endl;
+				if (strcmp(descriptions[i2].Name, "dx_ViewAdjust") != 0) file << "_"; // TODO: Remove when kfx is deprecated
 				file << descriptions[i2].Name;
 				file.put(0);
 				file.put(regtype);
