@@ -7,6 +7,10 @@ using namespace krafix;
 
 typedef unsigned id;
 
+namespace {
+	std::string positionName = "gl_Position";
+}
+
 void HlslTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
 	out.open(filename, std::ios::binary | std::ios::out);
 
@@ -109,6 +113,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	}
 	case OpFunction: {
 		output(out);
+		out << "uniform float4 dx_ViewAdjust;\n";
 		for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 			unsigned id = v->first;
 			Variable& variable = v->second;
@@ -134,18 +139,12 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			Name n = names[id];
 
 			if (variable.storage == StorageClassInput) {
-				if (variable.builtin && stage == EShLangVertex) {
-					indent(out);
-					out << t.name << " " << n.name << " : POSITION;\n";
+				indent(out);
+				out << t.name << " " << n.name << " : TEXCOORD" << i << ";\n";
+				if (stage == EShLangVertex) {
+					attributes[n.name] = i;
 				}
-				else {
-					indent(out);
-					out << t.name << " " << n.name << " : TEXCOORD" << i << ";\n";
-					if (stage == EShLangVertex) {
-						attributes[n.name] = i;
-					}
-					++i;
-				}
+				++i;
 			}
 		}
 		--indentation;
@@ -165,6 +164,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 			if (variable.storage == StorageClassOutput) {
 				if (variable.builtin && stage == EShLangVertex) {
+					positionName = n.name;
 					indent(out);
 					out << t.name << " " << n.name << " : POSITION;\n";
 				}
@@ -198,6 +198,16 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		references[result] = str.str();
 		break;
 	}
+	case OpMatrixTimesVector: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id matrix = inst.operands[2];
+		id vector = inst.operands[3];
+		std::stringstream str;
+		str << "mul(transpose(" << getReference(matrix) << "), " << getReference(vector) << ")"; // TODO: Get rid of transpose, when kfx is deprecated
+		references[result] = str.str();
+		break;
+	}
 	case OpTextureSample: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
@@ -210,6 +220,16 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	}
 	case OpReturn:
 		output(out);
+		if (stage == EShLangVertex) {
+			if (target.version == 9) {
+				out << "output." << positionName << ".x = output." << positionName << ".x - dx_ViewAdjust.x * output." << positionName << ".w;\n";
+				indent(out);
+				out << "output." << positionName << ".y = output." << positionName << ".y + dx_ViewAdjust.y * output." << positionName << ".w;\n";
+				indent(out);
+			}
+			out << "output." << positionName << ".z = (output." << positionName << ".z + output." << positionName << ".w) * 0.5;\n";
+			indent(out);
+		}
 		out << "return output;";
 		break;
 	case OpStore: {

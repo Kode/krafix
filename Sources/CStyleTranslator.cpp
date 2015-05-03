@@ -131,16 +131,6 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
-	case OpMatrixTimesVector: {
-		Type resultType = types[inst.operands[0]];
-		id result = inst.operands[1];
-		id matrix = inst.operands[2];
-		id vector = inst.operands[3];
-		std::stringstream str;
-		str << "(" << getReference(matrix) << " * " << getReference(vector) << ")";
-		references[result] = str.str();
-		break;
-	}
 	case OpVectorShuffle: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];

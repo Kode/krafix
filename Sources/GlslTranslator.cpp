@@ -203,6 +203,16 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		references[result] = str.str();
 		break;
 	}
+	case OpMatrixTimesVector: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id matrix = inst.operands[2];
+		id vector = inst.operands[3];
+		std::stringstream str;
+		str << "(" << getReference(matrix) << " * " << getReference(vector) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case OpTextureSample: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
@@ -221,7 +231,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		break;
 	case OpStore: {
 		output(out);
-		Variable v = variables[inst.operands[0]];
+		Variable& v = variables[inst.operands[0]];
 		if (stage == EShLangFragment && v.storage == StorageClassOutput && target.version < 300) {
 			out << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
 		}
