@@ -960,7 +960,7 @@ EShLanguage FindLanguage(const std::string& name)
 //
 void CompileFile(const char* fileName, ShHandle compiler)
 {
-    int ret;
+    int ret = 0;
     char** shaderStrings = ReadFileData(fileName);
     if (! shaderStrings) {
         usage();

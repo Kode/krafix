@@ -120,6 +120,11 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	}
 	case OpFunction:
 		output(out);
+		
+		if (target.system == Android && stage == EShLangFragment) {
+			out << "#extension GL_OES_EGL_image_external : require\n";
+		}
+		
 		for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 			unsigned id = v->first;
 			Variable& variable = v->second;
@@ -128,7 +133,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			Name n = names[id];
 
 			if (variable.builtin) {
-				if (target.version >= 300 && n.name == "gl_FragColor") {
+				if (target.version >= 300 && strcmp(n.name, "gl_FragColor") == 0) {
 					n.name = "krafix_FragColor";
 					names[id] = n;
 				}

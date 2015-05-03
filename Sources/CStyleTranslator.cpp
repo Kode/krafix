@@ -89,14 +89,14 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		std::string value = "unknown";
-		if (resultType.name == "float") {
+		if (strcmp(resultType.name, "float") == 0) {
 			float f = *(float*)&inst.operands[2];
 			std::stringstream strvalue;
 			strvalue << f;
 			if (strvalue.str().find('.') == std::string::npos) strvalue << ".0";
 			value = strvalue.str();
 		}
-		if (resultType.name == "int") {
+		if (strcmp(resultType.name, "int") == 0) {
 			std::stringstream strvalue;
 			strvalue << *(int*)&inst.operands[2];
 			value = strvalue.str();
