@@ -114,7 +114,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	}
 	case OpFunction: {
 		output(out);
-		out << "uniform float4 dx_ViewAdjust;\n";
+		if (stage == EShLangVertex) {
+			out << "uniform float4 dx_ViewAdjust;";
+		}
+		out << "\n";
 		for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 			unsigned id = v->first;
 			Variable& variable = v->second;
