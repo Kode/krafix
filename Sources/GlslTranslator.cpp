@@ -2,6 +2,7 @@
 #include <fstream>
 #include <map>
 #include <sstream>
+#include <string.h>
 
 using namespace krafix;
 
@@ -12,7 +13,7 @@ void GlslTranslator::outputCode(const Target& target, const char* filename, std:
 
 	out << "#version " << target.version << "\n";
 	if (target.es) out << "precision mediump float;\n";
-	
+
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		outputting = false;
 		Instruction& inst = instructions[i];

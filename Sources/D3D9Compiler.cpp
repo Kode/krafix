@@ -1,14 +1,17 @@
-#ifdef SYS_WINDOWS
-
 #include "../glslang/glslang/Public/ShaderLang.h"
+#include <map>
+#include <string>
+
+#ifdef SYS_WINDOWS
 #include <Windows.h>
 #include <d3d9.h>
 #include <d3dx9.h>
 #include <fstream>
 #include <iostream>
-#include <map>
+#endif
 
 int compileHLSLToD3D9(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage) {
+#ifdef SYS_WINDOWS
 	LPD3DXBUFFER errors;
 	LPD3DXBUFFER shader;
 	LPD3DXCONSTANTTABLE table;
@@ -73,6 +76,7 @@ int compileHLSLToD3D9(const char* from, const char* to, const std::map<std::stri
 		std::cerr.write((char*)errors->GetBufferPointer(), errors->GetBufferSize());
 		return 1;
 	}
-}
-
+#else
+    return 1;
 #endif
+}

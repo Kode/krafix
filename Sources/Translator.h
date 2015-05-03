@@ -3,6 +3,7 @@
 #include <SPIRV/spirv.h>
 #include "../glslang/glslang/Public/ShaderLang.h"
 #include <map>
+#include <string>
 #include <vector>
 
 namespace krafix {

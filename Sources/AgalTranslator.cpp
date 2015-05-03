@@ -1,6 +1,7 @@
 #include "AgalTranslator.h"
 #include <fstream>
 #include <map>
+#include <string.h>
 
 using namespace krafix;
 

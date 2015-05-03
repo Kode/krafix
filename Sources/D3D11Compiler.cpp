@@ -1,15 +1,18 @@
-#ifdef SYS_WINDOWS
-
 #include "../glslang/glslang/Public/ShaderLang.h"
+#include <map>
+#include <string>
+
+#ifdef SYS_WINDOWS
 #define INITGUID
 #include <Windows.h>
 #include <d3d11.h>
 #include <D3Dcompiler.h>
 #include <fstream>
 #include <iostream>
-#include <map>
+#endif
 
 int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage) {
+#ifdef SYS_WINDOWS
 	FILE* in = fopen(from, "rb");
 	if (!in) {
 		printf("Error: unable to open input file: %s\n", from);
@@ -22,9 +25,9 @@ int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::str
 
 	char* data = new char[length];
 	fread(data, 1, length, in);
-	
+
 	fclose(in);
-	
+
 	ID3DBlob* errorMessage;
 	ID3DBlob* shaderBuffer;
 	HRESULT hr = D3DCompile(data, length, from, nullptr, nullptr, "main", stage == EShLangVertex ? "vs_4_0" : "ps_4_0", /*D3DCOMPILE_DEBUG |*/ D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, 0, &shaderBuffer, &errorMessage);
@@ -82,6 +85,7 @@ int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::str
 		std::cerr.write((char*)errorMessage->GetBufferPointer(), errorMessage->GetBufferSize());
 		return 1;
 	}
-}
-
+#else
+	return 1;
 #endif
+}
