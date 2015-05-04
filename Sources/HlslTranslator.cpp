@@ -114,7 +114,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	}
 	case OpFunction: {
 		output(out);
-		if (stage == EShLangVertex) {
+		if (stage == EShLangVertex && target.version == 9) {
 			out << "uniform float4 dx_ViewAdjust;";
 		}
 		out << "\n";

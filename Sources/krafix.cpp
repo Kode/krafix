@@ -820,6 +820,11 @@ int C_DECL main(int argc, char* argv[]) {
 		target.kore = true;
 		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
 	}
+	else if (strcmp(argv[1], "metal") == 0) {
+		target.lang = krafix::Metal;
+		target.version = 1;
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
+	}
 	else {
 		std::cout << "Unknown profile " << argv[1] << std::endl;
 		CompileFailed = true;
