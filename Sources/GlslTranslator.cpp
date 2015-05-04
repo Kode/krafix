@@ -114,6 +114,9 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		v.storage = (StorageClass)inst.operands[2];
 		v.declared = v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
 		if (names.find(id) != names.end()) {
+			if (target.version >= 300 && strcmp(names[id].name, "gl_FragColor") == 0) {
+				names[id].name = "krafix_FragColor";
+			}
 			references[id] = names[id].name;
 		}
 		break;
@@ -133,9 +136,8 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			Name n = names[id];
 
 			if (variable.builtin) {
-				if (target.version >= 300 && strcmp(n.name, "gl_FragColor") == 0) {
-					n.name = "krafix_FragColor";
-					names[id] = n;
+				if (target.version >= 300 && strcmp(n.name, "krafix_FragColor") == 0) {
+					out << "out vec4 krafix_FragColor;\n";
 				}
 				else {
 					continue;
