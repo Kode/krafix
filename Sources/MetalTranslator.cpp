@@ -123,12 +123,23 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			v.declared = v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
 			if (names.find(id) != names.end()) {
 				if (v.storage == StorageClassInput) {
-					if (stage == EShLangVertex) references[id] = std::string("vertices[vid].") + names[id].name;
-					else references[id] = std::string("input.") + names[id].name;
+					if (stage == EShLangVertex) {
+						Type type = types[v.type];
+						if (strcmp(type.name, "float2") == 0 || strcmp(type.name, "float3") == 0 || strcmp(type.name, "float4") == 0) references[id] = type.name + std::string("(vertices[vid].") + names[id].name + ")";
+						else references[id] = std::string("vertices[vid].") + names[id].name;
+					}
+					else {
+						references[id] = std::string("input.") + names[id].name;
+					}
 				}
 				else if (v.storage == StorageClassOutput) {
 					if (stage == EShLangVertex) references[id] = std::string("output.") + names[id].name;
 					else references[id] = "output";
+				}
+				else if (v.storage == StorageClassUniformConstant) {
+					Type type = types[v.type];
+					if (strcmp(type.name, "sampler2D") == 0) references[id] = names[id].name;
+					else references[id] = std::string("uniforms.") + names[id].name;
 				}
 				else {
 					references[id] = names[id].name;
@@ -225,12 +236,12 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			
 			indent(out);
 			if (stage == EShLangVertex) {
-				out << name << "_out " << name << "_main(device " << name << "_in* vertices [[buffer(0)]]"
-					<< ", constant " << name << "_uniforms& [[buffer(1)]]"
+				out << "vertex " << name << "_out " << name << "_main(device " << name << "_in* vertices [[buffer(0)]]"
+					<< ", constant " << name << "_uniforms& uniforms [[buffer(1)]]"
 					<< ", unsigned int vid [[vertex_id]]) {\n";
 			}
 			else {
-				out << name << "_out " << name << "_main(constant " << name << "_uniforms& [[buffer(0)]]"
+				out << "fragment float4 " << name << "_main(constant " << name << "_uniforms& uniforms [[buffer(0)]]"
 					<< ", " << name << "_in input [[stage_in]]";
 				
 				int texindex = 0;
