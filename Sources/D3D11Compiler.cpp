@@ -52,6 +52,7 @@ int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::str
 		for (unsigned i = 0; i < desc.BoundResources; ++i) {
 			D3D11_SHADER_INPUT_BIND_DESC bindDesc;
 			reflector->GetResourceBindingDesc(i, &bindDesc);
+			if (strcmp(bindDesc.Name, "dx_ViewAdjust") != 0) file << "_"; // TODO: Remove when kfx is deprecated
 			file << bindDesc.Name;
 			file.put(0);
 			file.put(bindDesc.BindPoint);

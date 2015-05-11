@@ -22,7 +22,7 @@ namespace {
 	
 	std::string replace(std::string str, char c1, char c2) {
 		std::string ret = str;
-		for (int i = 0; i < str.length(); ++i) {
+		for (unsigned i = 0; i < str.length(); ++i) {
 			if (str[i] == c1) ret[i] = c2;
 		}
 		return ret;
