@@ -134,6 +134,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 		out << "struct Input {\n";
 		++indentation;
+		if (stage == EShLangFragment && target.version > 9) {
+			indent(out);
+			out << "float4 gl_Position : SV_POSITION;\n";
+		}
 		int i = 0;
 		for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 			unsigned id = v->first;
@@ -170,7 +174,12 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				if (variable.builtin && stage == EShLangVertex) {
 					positionName = n.name;
 					indent(out);
-					out << t.name << " " << n.name << " : POSITION;\n";
+					if (target.version == 9) {
+						out << t.name << " " << n.name << " : POSITION;\n";
+					}
+					else {
+						out << t.name << " " << n.name << " : SV_POSITION;\n";
+					}
 				}
 				else if (variable.builtin && stage == EShLangFragment) {
 					indent(out);
