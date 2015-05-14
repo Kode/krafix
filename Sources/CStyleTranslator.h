@@ -5,6 +5,7 @@
 
 namespace krafix {
 	struct Variable {
+		unsigned id;
 		unsigned type;
 		spv::StorageClass storage;
 		bool builtin;

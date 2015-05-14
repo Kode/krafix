@@ -1,4 +1,5 @@
 #include "HlslTranslator.h"
+#include <algorithm>
 #include <fstream>
 #include <map>
 #include <sstream>
@@ -10,6 +11,13 @@ typedef unsigned id;
 
 namespace {
 	std::string positionName = "gl_Position";
+	std::map<unsigned, Name> currentNames;
+
+	bool compareVariables(const Variable& v1, const Variable& v2) {
+		Name n1 = currentNames[v1.id];
+		Name n2 = currentNames[v2.id];
+		return strcmp(n1.name, n2.name) < 0;
+	}
 }
 
 void HlslTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
@@ -96,6 +104,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpVariable: {
 		unsigned id = inst.operands[1];
 		Variable& v = variables[id];
+		v.id = id;
 		v.type = inst.operands[0];
 		v.storage = (StorageClass)inst.operands[2];
 		v.declared = v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
@@ -118,12 +127,19 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			out << "uniform float4 dx_ViewAdjust;";
 		}
 		out << "\n";
+
+		std::vector<Variable> sortedVariables;
 		for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
-			unsigned id = v->first;
-			Variable& variable = v->second;
+			sortedVariables.push_back(v->second);
+		}
+		currentNames = names;
+		std::sort(sortedVariables.begin(), sortedVariables.end(), compareVariables);
+
+		for (unsigned i = 0; i < sortedVariables.size(); ++i) {
+			Variable variable = sortedVariables[i];
 
 			Type t = types[variable.type];
-			Name n = names[id];
+			Name n = names[variable.id];
 
 			if (variable.storage == StorageClassUniformConstant) {
 				indent(out);
@@ -138,21 +154,20 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			indent(out);
 			out << "float4 gl_Position : SV_POSITION;\n";
 		}
-		int i = 0;
-		for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
-			unsigned id = v->first;
-			Variable& variable = v->second;
+		int index = 0;
+		for (unsigned i = 0; i < sortedVariables.size(); ++i) {
+			Variable variable = sortedVariables[i];
 
 			Type t = types[variable.type];
-			Name n = names[id];
+			Name n = names[variable.id];
 
 			if (variable.storage == StorageClassInput) {
 				indent(out);
-				out << t.name << " " << n.name << " : TEXCOORD" << i << ";\n";
+				out << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
 				if (stage == EShLangVertex) {
-					attributes[n.name] = i;
+					attributes[n.name] = index;
 				}
-				++i;
+				++index;
 			}
 		}
 		--indentation;
@@ -162,13 +177,13 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		indent(out);
 		out << "struct Output {\n";
 		++indentation;
-		i = 0;
-		for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
-			unsigned id = v->first;
-			Variable& variable = v->second;
+		index = 0;
+
+		for (unsigned i = 0; i < sortedVariables.size(); ++i) {
+			Variable variable = sortedVariables[i];
 
 			Type t = types[variable.type];
-			Name n = names[id];
+			Name n = names[variable.id];
 
 			if (variable.storage == StorageClassOutput) {
 				if (variable.builtin && stage == EShLangVertex) {
@@ -185,13 +200,30 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					indent(out);
 					out << t.name << " " << n.name << " : COLOR;\n";
 				}
+			}
+		}
+
+		for (unsigned i = 0; i < sortedVariables.size(); ++i) {
+			Variable variable = sortedVariables[i];
+
+			Type t = types[variable.type];
+			Name n = names[variable.id];
+
+			if (variable.storage == StorageClassOutput) {
+				if (variable.builtin && stage == EShLangVertex) {
+
+				}
+				else if (variable.builtin && stage == EShLangFragment) {
+					
+				}
 				else {
 					indent(out);
-					out << t.name << " " << n.name << " : TEXCOORD" << i << ";\n";
-					++i;
+					out << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
+					++index;
 				}
 			}
 		}
+
 		--indentation;
 		indent(out);
 		out << "};\n\n";
