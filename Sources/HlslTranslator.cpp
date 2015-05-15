@@ -232,7 +232,20 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		out << "Output main(Input input) {\n";
 		++indentation;
 		indent(out);
-		out << "Output output;";
+		out << "Output output;\n";
+		for (unsigned i = 0; i < sortedVariables.size(); ++i) {
+			Variable variable = sortedVariables[i];
+			if (variable.storage == StorageClassOutput) {
+				Type t = types[variable.type];
+				Name n = names[variable.id];
+				indent(out);
+				out << "output." << n.name << " = ";
+				if (t.name == "float") out << "0.0;\n";
+				if (t.name == "float2") out << "float2(0.0, 0.0);\n";
+				if (t.name == "float3") out << "float3(0.0, 0.0, 0.0);\n";
+				if (t.name == "float4") out << "float4(0.0, 0.0, 0.0, 0.0);\n";
+			}
+		}
 		break;
 	}
 	case OpCompositeConstruct: {
@@ -250,6 +263,16 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		id vector = inst.operands[3];
 		std::stringstream str;
 		str << "mul(transpose(" << getReference(matrix) << "), " << getReference(vector) << ")"; // TODO: Get rid of transpose, when kfx is deprecated
+		references[result] = str.str();
+		break;
+	}
+	case OpMatrixTimesMatrix: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id operand1 = inst.operands[2];
+		id operand2 = inst.operands[3];
+		std::stringstream str;
+		str << "transpose(mul(transpose(" << getReference(operand1) << "), transpose(" << getReference(operand2) << ")))";
 		references[result] = str.str();
 		break;
 	}

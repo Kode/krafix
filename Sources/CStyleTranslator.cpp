@@ -160,6 +160,26 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
+	case OpFAdd: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id operand1 = inst.operands[2];
+		id operand2 = inst.operands[3];
+		std::stringstream str;
+		str << "(" << getReference(operand1) << " + " << getReference(operand2) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpMatrixTimesMatrix: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id operand1 = inst.operands[2];
+		id operand2 = inst.operands[3];
+		std::stringstream str;
+		str << "(" << getReference(operand1) << " * " << getReference(operand2) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case OpVectorTimesScalar: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
