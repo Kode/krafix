@@ -2,3 +2,7 @@
 	path = glslang
 	url = ../glslang
 	branch = master
+[submodule "tests"]
+	path = tests
+	url = ../krafix_tests
+	branch = master
