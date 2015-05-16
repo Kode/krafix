@@ -92,7 +92,12 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		t.name = "mat?";
 		Type subtype = types[inst.operands[1]];
 		if (subtype.name != NULL) {
-			if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
+			if (strcmp(subtype.name, "vec3") == 0 && inst.operands[2] == 3) {
+				t.name = "mat3";
+				t.length = 4;
+				types[id] = t;
+			}
+			else if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
 				t.name = "mat4";
 				t.length = 4;
 				types[id] = t;
@@ -268,17 +273,12 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		std::stringstream str;
-		if (inst.length == 4) {
-			str << "vec2(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ")";
+		str << resultType.name << "(";
+		for (unsigned i = 2; i < inst.length; ++i) {
+			str << getReference(inst.operands[i]);
+			if (i < inst.length - 1) str << ", ";
 		}
-		else if (inst.length == 5) {
-			str << "vec3(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ", "
-				<< getReference(inst.operands[4]) << ")";
-		}
-		else if (inst.length == 6) {
-			str << "vec4(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ", "
-				<< getReference(inst.operands[4]) << ", " << getReference(inst.operands[5]) << ")";
-		}
+		str << ")";
 		references[result] = str.str();
 		break;
 	}
