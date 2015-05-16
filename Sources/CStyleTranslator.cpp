@@ -268,7 +268,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id result = inst.operands[1];
 		id func = inst.operands[2];
 		std::stringstream str;
-		str << getReference(func) << "()";
+		str << getReference(func) << "(";
+		for (unsigned i = 3; i < inst.length; ++i) {
+			str << getReference(inst.operands[i]);
+			if (i < inst.length - 1) str << ", ";
+		}
+		str << ")";
 		references[result] = str.str();
 		break;
 	}
@@ -315,6 +320,16 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 				out << "// Unknown GLSL instruction " << instruction;
 				break;
 			}
+		}
+		break;
+	}
+	case OpFunctionParameter: {
+		Parameter param;
+		param.type = types[inst.operands[0]];
+		param.id = inst.operands[1];
+		parameters.push_back(param);
+		if (names.find(param.id) != names.end()) {
+			references[param.id] = names[param.id].name;
 		}
 		break;
 	}
@@ -410,6 +425,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpTypeVoid:
 		break;
 	case OpEntryPoint:
+		entryPoint = inst.operands[1];
 		break;
 	case OpMemoryModel:
 		break;

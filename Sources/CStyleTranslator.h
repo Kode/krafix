@@ -25,6 +25,11 @@ namespace krafix {
 		const char* name;
 	};
 
+	struct Parameter {
+		Type type;
+		unsigned id;
+	};
+
 	class CStyleTranslator : public Translator {
 	public:
 		CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage);
@@ -39,10 +44,14 @@ namespace krafix {
 		std::map<unsigned, int> merges;
 		std::map<unsigned, std::string> references;
 		std::map<unsigned, unsigned> compositeInserts;
+		std::vector<Parameter> parameters;
+		std::vector<unsigned> callParameters;
 		int indentation = 0;
 		bool outputting = false;
 		bool firstFunction = true;
+		std::string funcName;
 		bool firstLabel = true;
+		unsigned entryPoint = -1;
 		
 		const char* indexName(unsigned index);
 		void indent(std::ofstream& out);
