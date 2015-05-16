@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Translator.h"
+#include <SPIRV/GLSL450Lib.h>
 #include <fstream>
 #include <sstream>
 
@@ -41,6 +42,7 @@ namespace krafix {
 		CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage);
 		virtual ~CStyleTranslator() {}
 		virtual void outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst);
+		virtual void outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSL_STD_450::Entrypoints entrypoint);
 		void startFunction(std::string name);
 		void endFunction();
 	protected:

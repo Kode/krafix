@@ -43,7 +43,6 @@
 #include "./../glslang/Include/ShHandle.h"
 #include "./../glslang/Public/ShaderLang.h"
 #include "../SPIRV/GlslangToSpv.h"
-#include "../SPIRV/GLSL450Lib.h"
 #include "../SPIRV/doc.h"
 #include "../SPIRV/disassemble.h"
 #include <string.h>
