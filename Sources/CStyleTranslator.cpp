@@ -233,7 +233,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		std::stringstream _true;
 		_true << "if (" << getReference(condition) << ")";
 		labelStarts[trueLabel] = _true.str();
-		labelStarts[falseLabel] = "else";
+		if (merges.find(falseLabel) == merges.end()) labelStarts[falseLabel] = "else";
 		break;
 	}
 	case OpDecorate: {

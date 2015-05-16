@@ -40,6 +40,7 @@ namespace krafix {
 		std::map<unsigned, std::string> references;
 		int indentation = 0;
 		bool outputting = false;
+		bool firstFunction = true;
 		
 		const char* indexName(unsigned index);
 		void indent(std::ofstream& out);

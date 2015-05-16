@@ -124,76 +124,80 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpFunction:
 		output(out);
 		
-		if (target.system == Android && stage == EShLangFragment) {
-			out << "#extension GL_OES_EGL_image_external : require\n";
-		}
-		
-		for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
-			unsigned id = v->first;
-			Variable& variable = v->second;
-
-			Type t = types[variable.type];
-			Name n = names[id];
-
-			if (variable.builtin) {
-				if (target.version >= 300 && strcmp(n.name, "krafix_FragColor") == 0) {
-					out << "out vec4 krafix_FragColor;\n";
-				}
-				else {
-					continue;
-				}
+		if (firstFunction) {
+			if (target.system == Android && stage == EShLangFragment) {
+				out << "#extension GL_OES_EGL_image_external : require\n";
 			}
 
-			switch (stage) {
-			case EShLangVertex:
-				if (variable.storage == StorageClassInput) {
-					if (target.version < 300) {
-						out << "attribute " << t.name << " " << n.name << ";\n";
+			for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
+				unsigned id = v->first;
+				Variable& variable = v->second;
+
+				Type t = types[variable.type];
+				Name n = names[id];
+
+				if (variable.builtin) {
+					if (target.version >= 300 && strcmp(n.name, "krafix_FragColor") == 0) {
+						out << "out vec4 krafix_FragColor;\n";
 					}
 					else {
-						out << "in " << t.name << " " << n.name << ";\n";
+						continue;
 					}
 				}
-				else if (variable.storage == StorageClassOutput) {
-					if (target.version < 300) {
-						out << "varying " << t.name << " " << n.name << ";\n";
+
+				switch (stage) {
+				case EShLangVertex:
+					if (variable.storage == StorageClassInput) {
+						if (target.version < 300) {
+							out << "attribute " << t.name << " " << n.name << ";\n";
+						}
+						else {
+							out << "in " << t.name << " " << n.name << ";\n";
+						}
 					}
-					else {
+					else if (variable.storage == StorageClassOutput) {
+						if (target.version < 300) {
+							out << "varying " << t.name << " " << n.name << ";\n";
+						}
+						else {
+							out << "out " << t.name << " " << n.name << ";\n";
+						}
+					}
+					else if (variable.storage == StorageClassUniformConstant) {
+						out << "uniform " << t.name << " " << n.name << ";\n";
+					}
+					break;
+				case EShLangFragment:
+					if (variable.storage == StorageClassInput) {
+						if (target.version < 300) {
+							out << "varying " << t.name << " " << n.name << ";\n";
+						}
+						else {
+							out << "in " << t.name << " " << n.name << ";\n";
+						}
+					}
+					else if (variable.storage == StorageClassUniformConstant) {
+						out << "uniform " << t.name << " " << n.name << ";\n";
+					}
+					break;
+				case EShLangGeometry:
+				case EShLangTessControl:
+				case EShLangTessEvaluation:
+					if (variable.storage == StorageClassInput) {
+						out << "in " << t.name << " " << n.name << ";\n";
+					}
+					else if (variable.storage == StorageClassOutput) {
 						out << "out " << t.name << " " << n.name << ";\n";
 					}
-				}
-				else if (variable.storage == StorageClassUniformConstant) {
-					out << "uniform " << t.name << " " << n.name << ";\n";
-				}
-				break;
-			case EShLangFragment:
-				if (variable.storage == StorageClassInput) {
-					if (target.version < 300) {
-						out << "varying " << t.name << " " << n.name << ";\n";
+					else if (variable.storage == StorageClassUniformConstant) {
+						out << "uniform " << t.name << " " << n.name << ";\n";
 					}
-					else {
-						out << "in " << t.name << " " << n.name << ";\n";
-					}
+					break;
 				}
-				else if (variable.storage == StorageClassUniformConstant) {
-					out << "uniform " << t.name << " " << n.name << ";\n";
-				}
-				break;
-			case EShLangGeometry:
-			case EShLangTessControl:
-			case EShLangTessEvaluation:
-				if (variable.storage == StorageClassInput) {
-					out << "in " << t.name << " " << n.name << ";\n";
-				}
-				else if (variable.storage == StorageClassOutput) {
-					out << "out " << t.name << " " << n.name << ";\n";
-				}
-				else if (variable.storage == StorageClassUniformConstant) {
-					out << "uniform " << t.name << " " << n.name << ";\n";
-				}
-				break;
 			}
+			firstFunction = false;
 		}
+
 		out << "\n";
 		indent(out);
 		if (target.kore) out << "void kore()\n";
