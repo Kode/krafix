@@ -1,4 +1,5 @@
 #include "CStyleTranslator.h"
+#include <SPIRV/GLSL450Lib.h>
 #include <sstream>
 
 using namespace krafix;
@@ -190,6 +191,122 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
+	case OpFOrdGreaterThan: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id op1 = inst.operands[2];
+		id op2 = inst.operands[3];
+		std::stringstream str;
+		str << "(" << getReference(op1) << " > " << getReference(op2) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpLogicalAnd: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id op1 = inst.operands[2];
+		id op2 = inst.operands[3];
+		std::stringstream str;
+		str << "(" << getReference(op1) << " && " << getReference(op2) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpFSub: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id op1 = inst.operands[2];
+		id op2 = inst.operands[3];
+		std::stringstream str;
+		str << "(" << getReference(op1) << " - " << getReference(op2) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpDot: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id op1 = inst.operands[2];
+		id op2 = inst.operands[3];
+		std::stringstream str;
+		str << "dot(" << getReference(op1) << ", " << getReference(op2) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpFDiv: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id op1 = inst.operands[2];
+		id op2 = inst.operands[3];
+		std::stringstream str;
+		str << "(" << getReference(op1) << " / " << getReference(op2) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpSelect: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id condition = inst.operands[2];
+		id obj1 = inst.operands[3];
+		id obj2 = inst.operands[4];
+		std::stringstream str;
+		str << "(" << getReference(condition) << " ? " << getReference(obj1) << " : " << getReference(obj2) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpFunctionCall: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id func = inst.operands[2];
+		std::stringstream str;
+		str << getReference(func) << "()";
+		references[result] = str.str();
+		break;
+	}
+	case OpExtInst: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id set = inst.operands[2];
+		{
+			using namespace GLSL_STD_450;
+			Entrypoints instruction = (Entrypoints)inst.operands[3];
+			switch (instruction) {
+			case Normalize: {
+				std::stringstream str;
+				str << "normalize(" << getReference(inst.operands[4]) << ")";
+				references[result] = str.str();
+				break;
+			}
+			case Clamp: {
+				id x = inst.operands[4];
+				id minVal = inst.operands[5];
+				id maxVal = inst.operands[6];
+				std::stringstream str;
+				str << "clamp(" << getReference(x) << ", " << getReference(minVal) << ", " << getReference(maxVal) << ")";
+				references[result] = str.str();
+				break;
+			}
+			case Pow: {
+				id x = inst.operands[4];
+				id y = inst.operands[5];
+				std::stringstream str;
+				str << "pow(" << getReference(x) << ", " << getReference(y) << ")";
+				references[result] = str.str();
+				break;
+			}
+			case InverseSqrt: {
+				id x = inst.operands[4];
+				std::stringstream str;
+				str << "inversesqrt(" << getReference(x) << ")";
+				references[result] = str.str();
+				break;
+			}
+			default:
+				output(out);
+				out << "// Unknown GLSL instruction " << instruction;
+				break;
+			}
+		}
+		break;
+	}
 	case OpLabel: {
 		id label = inst.operands[0];
 		if (labelStarts.find(inst.operands[0]) != labelStarts.end()) {
@@ -234,6 +351,11 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		_true << "if (" << getReference(condition) << ")";
 		labelStarts[trueLabel] = _true.str();
 		if (merges.find(falseLabel) == merges.end()) labelStarts[falseLabel] = "else";
+		break;
+	}
+	case OpReturnValue: {
+		output(out);
+		out << "return " << getReference(inst.operands[0]) << ";";
 		break;
 	}
 	case OpDecorate: {
