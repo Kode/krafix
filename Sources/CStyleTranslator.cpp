@@ -192,12 +192,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	}
 	case OpLabel: {
 		id label = inst.operands[0];
-		if (merges.find(label) != merges.end()) {
-			--indentation;
-			output(out);
-			out << "} // Label " << label;
-		}
-		else if (labelStarts.find(inst.operands[0]) != labelStarts.end()) {
+		if (labelStarts.find(inst.operands[0]) != labelStarts.end()) {
 			output(out);
 			out << labelStarts[inst.operands[0]] << "\n";
 			indent(out);
@@ -210,10 +205,19 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		}
 		break;
 	}
-	case OpBranch:
-		output(out);
-		out << "// Branch to " << inst.operands[0];
+	case OpBranch: {
+		id branch = inst.operands[0];
+		if (merges.find(branch) != merges.end()) {
+			--indentation;
+			output(out);
+			out << "} // Branch to " << branch;
+		}
+		else {
+			output(out);
+			out << "// Branch to " << branch;
+		}
 		break;
+	}
 	case OpSelectionMerge: {
 		output(out);
 		id label = inst.operands[0];
