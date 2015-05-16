@@ -213,6 +213,16 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
+	case OpFOrdLessThanEqual: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id op1 = inst.operands[2];
+		id op2 = inst.operands[3];
+		std::stringstream str;
+		str << "(" << getReference(op1) << " <= " << getReference(op2) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case OpLogicalAnd: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
@@ -250,6 +260,16 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id op2 = inst.operands[3];
 		std::stringstream str;
 		str << "(" << getReference(op1) << " / " << getReference(op2) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpVectorTimesMatrix: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id vector = inst.operands[2];
+		id matrix = inst.operands[3];
+		std::stringstream str;
+		str << "(" << getReference(vector) << " * " << getReference(matrix) << ")";
 		references[result] = str.str();
 		break;
 	}

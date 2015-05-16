@@ -308,6 +308,10 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		output(out);
 		(*out) << "return;";
 		break;
+	case OpKill:
+		output(out);
+		(*out) << "discard;";
+		break;
 	case OpStore: {
 		Variable& v = variables[inst.operands[0]];
 		if (getReference(inst.operands[0]) == "param") {
