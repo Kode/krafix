@@ -9,19 +9,25 @@ using namespace krafix;
 typedef unsigned id;
 
 void GlslTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
-	out.open(filename, std::ios::binary | std::ios::out);
+	std::ofstream file;
+	file.open(filename, std::ios::binary | std::ios::out);
+	out = &file;
 
-	out << "#version " << target.version << "\n";
-	if (target.es) out << "precision mediump float;\n";
+	(*out) << "#version " << target.version << "\n";
+	if (target.es) (*out) << "precision mediump float;\n";
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		outputting = false;
 		Instruction& inst = instructions[i];
 		outputInstruction(target, attributes, inst);
-		if (outputting) out << "\n";
+		if (outputting) (*out) << "\n";
+	}
+	for (unsigned i = 0; i < functions.size(); ++i) {
+		(*out) << functions[i]->text.str();
+		(*out) << "\n\n";
 	}
 
-	out.close();
+	file.close();
 }
 
 void GlslTranslator::outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst) {
@@ -32,10 +38,10 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		output(out);
 		switch (inst.operands[1]) {
 		case ExecutionModeOutputVertices:
-			out << "layout(vertices = " << inst.operands[2] << ") out;";
+			(*out) << "layout(vertices = " << inst.operands[2] << ") out;";
 			break;
 		default:
-			out << "// Unknown execution mode";
+			(*out) << "// Unknown execution mode";
 		}
 		break;
 	}
@@ -121,7 +127,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		}
 		if (v.storage == StorageClassFunction && getReference(id) != "param") {
 			output(out);
-			out << types[v.type].name << " " << getReference(id) << ";";
+			(*out) << types[v.type].name << " " << getReference(id) << ";";
 		}
 		break;
 	}
@@ -131,7 +137,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 			if (firstFunction) {
 				if (target.system == Android && stage == EShLangFragment) {
-					out << "#extension GL_OES_EGL_image_external : require\n";
+					(*out) << "#extension GL_OES_EGL_image_external : require\n";
 				}
 
 				for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
@@ -143,7 +149,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					if (variable.builtin) {
 						if (target.version >= 300 && strcmp(n.name, "krafix_FragColor") == 0) {
-							out << "out vec4 krafix_FragColor;\n";
+							(*out) << "out vec4 krafix_FragColor;\n";
 						}
 						else {
 							continue;
@@ -154,67 +160,76 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					case EShLangVertex:
 						if (variable.storage == StorageClassInput) {
 							if (target.version < 300) {
-								out << "attribute " << t.name << " " << n.name << ";\n";
+								(*out) << "attribute " << t.name << " " << n.name << ";\n";
 							}
 							else {
-								out << "in " << t.name << " " << n.name << ";\n";
+								(*out) << "in " << t.name << " " << n.name << ";\n";
 							}
 						}
 						else if (variable.storage == StorageClassOutput) {
 							if (target.version < 300) {
-								out << "varying " << t.name << " " << n.name << ";\n";
+								(*out) << "varying " << t.name << " " << n.name << ";\n";
 							}
 							else {
-								out << "out " << t.name << " " << n.name << ";\n";
+								(*out) << "out " << t.name << " " << n.name << ";\n";
 							}
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
-							out << "uniform " << t.name << " " << n.name << ";\n";
+							(*out) << "uniform " << t.name << " " << n.name << ";\n";
 						}
 						break;
 					case EShLangFragment:
 						if (variable.storage == StorageClassInput) {
 							if (target.version < 300) {
-								out << "varying " << t.name << " " << n.name << ";\n";
+								(*out) << "varying " << t.name << " " << n.name << ";\n";
 							}
 							else {
-								out << "in " << t.name << " " << n.name << ";\n";
+								(*out) << "in " << t.name << " " << n.name << ";\n";
 							}
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
-							out << "uniform " << t.name << " " << n.name << ";\n";
+							(*out) << "uniform " << t.name << " " << n.name << ";\n";
 						}
 						break;
 					case EShLangGeometry:
 					case EShLangTessControl:
 					case EShLangTessEvaluation:
 						if (variable.storage == StorageClassInput) {
-							out << "in " << t.name << " " << n.name << ";\n";
+							(*out) << "in " << t.name << " " << n.name << ";\n";
 						}
 						else if (variable.storage == StorageClassOutput) {
-							out << "out " << t.name << " " << n.name << ";\n";
+							(*out) << "out " << t.name << " " << n.name << ";\n";
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
-							out << "uniform " << t.name << " " << n.name << ";\n";
+							(*out) << "uniform " << t.name << " " << n.name << ";\n";
 						}
 						break;
 					}
 				}
+				(*out) << "\n";
 				firstFunction = false;
 			}
 
-			out << "\n";
-			indent(out);
-
-			out << funcType << " " << funcName << "(";
-			for (unsigned i = 0; i < parameters.size(); ++i) {
-				out << parameters[i].type.name << " " << getReference(parameters[i].id);
-				if (i < parameters.size() - 1) out << ", ";
+			if (funcName != "main") {
+				(*out) << funcType << " " << funcName << "(";
+				for (unsigned i = 0; i < parameters.size(); ++i) {
+					(*out) << parameters[i].type.name << " " << getReference(parameters[i].id);
+					if (i < parameters.size() - 1) (*out) << ", ";
+				}
+				(*out) << ");\n";
 			}
-			out << ")\n";
+
+			startFunction(funcName);
+
+			(*out) << funcType << " " << funcName << "(";
+			for (unsigned i = 0; i < parameters.size(); ++i) {
+				(*out) << parameters[i].type.name << " " << getReference(parameters[i].id);
+				if (i < parameters.size() - 1) (*out) << ", ";
+			}
+			(*out) << ")\n";
 		
 			indent(out);
-			out << "{";
+			(*out) << "{";
 			++indentation;
 			firstLabel = false;
 		}
@@ -291,7 +306,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	}
 	case OpReturn:
 		output(out);
-		out << "return;";
+		(*out) << "return;";
 		break;
 	case OpStore: {
 		Variable& v = variables[inst.operands[0]];
@@ -301,19 +316,19 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		else if (stage == EShLangFragment && v.storage == StorageClassOutput && target.version < 300) {
 			output(out);
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
-				out << "gl_FragColor." << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << "gl_FragColor." << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 			else {
-				out << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
 			}
 		}
 		else {
 			output(out);
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
-				out << getReference(inst.operands[0]) << "." << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << getReference(inst.operands[0]) << "." << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 			else {
-				out << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 		}
 		break;

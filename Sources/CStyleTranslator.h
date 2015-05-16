@@ -2,6 +2,7 @@
 
 #include "Translator.h"
 #include <fstream>
+#include <sstream>
 
 namespace krafix {
 	struct Variable {
@@ -30,13 +31,20 @@ namespace krafix {
 		unsigned id;
 	};
 
+	struct Function {
+		std::string name;
+		std::stringstream text;
+	};
+
 	class CStyleTranslator : public Translator {
 	public:
 		CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage);
 		virtual ~CStyleTranslator() {}
 		virtual void outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst);
+		void startFunction(std::string name);
+		void endFunction();
 	protected:
-		std::ofstream out;
+		std::ostream* out;
 		std::map<unsigned, Name> names;
 		std::map<unsigned, Type> types;
 		std::map<unsigned, Variable> variables;
@@ -53,10 +61,12 @@ namespace krafix {
 		std::string funcType;
 		bool firstLabel = true;
 		unsigned entryPoint = -1;
+		std::vector<Function*> functions;
+		std::ostream* tempout = NULL;
 		
 		const char* indexName(unsigned index);
-		void indent(std::ofstream& out);
-		void output(std::ofstream& out);
+		void indent(std::ostream* out);
+		void output(std::ostream* out);
 		std::string getReference(unsigned _id);
 	};
 }

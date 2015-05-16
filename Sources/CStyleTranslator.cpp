@@ -1,6 +1,5 @@
 #include "CStyleTranslator.h"
 #include <SPIRV/GLSL450Lib.h>
-#include <sstream>
 
 using namespace krafix;
 
@@ -24,13 +23,13 @@ const char* CStyleTranslator::indexName(unsigned index) {
 	}
 }
 
-void CStyleTranslator::indent(std::ofstream& out) {
+void CStyleTranslator::indent(std::ostream* out) {
 	for (int i = 0; i < indentation; ++i) {
-		out << "\t";
+		(*out) << "\t";
 	}
 }
 
-void CStyleTranslator::output(std::ofstream& out) {
+void CStyleTranslator::output(std::ostream* out) {
 	outputting = true;
 	indent(out);
 }
@@ -44,6 +43,18 @@ std::string CStyleTranslator::getReference(id _id) {
 	else {
 		return references[_id];
 	}
+}
+
+void CStyleTranslator::startFunction(std::string name) {
+	tempout = out;
+	Function* func = new Function;
+	func->name = name;
+	functions.push_back(func);
+	out = &func->text;
+}
+
+void CStyleTranslator::endFunction() {
+	out = tempout;
 }
 
 void CStyleTranslator::outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst) {
@@ -121,7 +132,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpFunctionEnd:
 		--indentation;
 		output(out);
-		out << "}";
+		(*out) << "}";
+		endFunction();
 		break;
 	case OpCompositeExtract: {
 		Type resultType = types[inst.operands[0]];
@@ -317,7 +329,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			}
 			default:
 				output(out);
-				out << "// Unknown GLSL instruction " << instruction;
+				(*out) << "// Unknown GLSL instruction " << instruction;
 				break;
 			}
 		}
@@ -337,14 +349,14 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id label = inst.operands[0];
 		if (labelStarts.find(inst.operands[0]) != labelStarts.end()) {
 			output(out);
-			out << labelStarts[inst.operands[0]] << "\n";
+			(*out) << labelStarts[inst.operands[0]] << "\n";
 			indent(out);
-			out << "{ // Label " << label;
+			(*out) << "{ // Label " << label;
 			++indentation;
 		}
 		else {
 			output(out);
-			out << "// Label " << label;
+			(*out) << "// Label " << label;
 		}
 		break;
 	}
@@ -353,11 +365,11 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		if (merges.find(branch) != merges.end()) {
 			--indentation;
 			output(out);
-			out << "} // Branch to " << branch;
+			(*out) << "} // Branch to " << branch;
 		}
 		else {
 			output(out);
-			out << "// Branch to " << branch;
+			(*out) << "// Branch to " << branch;
 		}
 		break;
 	}
@@ -365,7 +377,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		output(out);
 		id label = inst.operands[0];
 		unsigned selection = inst.operands[1];
-		out << "// Merge " << label << " " << selection;
+		(*out) << "// Merge " << label << " " << selection;
 		merges[label] = 0;
 		break;
 	}
@@ -381,7 +393,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	}
 	case OpReturnValue: {
 		output(out);
-		out << "return " << getReference(inst.operands[0]) << ";";
+		(*out) << "return " << getReference(inst.operands[0]) << ";";
 		break;
 	}
 	case OpDecorate: {
@@ -435,7 +447,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	default:
 		output(out);
-		out << "// Unknown operation " << inst.opcode;
+		(*out) << "// Unknown operation " << inst.opcode;
 		break;
 	}
 }

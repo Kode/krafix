@@ -35,16 +35,18 @@ void MetalTranslator::outputCode(const Target& target, const char* filename, std
 	name = replace(name, '-', '_');
 	name = replace(name, '.', '_');
 	
-	out.open(filename, std::ios::binary | std::ios::out);
-	
+	std::ofstream file;
+	file.open(filename, std::ios::binary | std::ios::out);
+	out = &file;
+
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		outputting = false;
 		Instruction& inst = instructions[i];
 		outputInstruction(target, attributes, inst);
-		if (outputting) out << "\n";
+		if (outputting) (*out) << "\n";
 	}
 	
-	out.close();
+	file.close();
 }
 
 void MetalTranslator::outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst) {
@@ -149,13 +151,13 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 		}
 		case OpFunction: {
 			output(out);
-			out << "#include <metal_stdlib>\n";
-			out << "#include <simd/simd.h>\n";
-			out << "\n";
-			out << "using namespace metal;\n";
-			out << "\n";
+			(*out) << "#include <metal_stdlib>\n";
+			(*out) << "#include <simd/simd.h>\n";
+			(*out) << "\n";
+			(*out) << "using namespace metal;\n";
+			(*out) << "\n";
 			indent(out);
-			out << "struct " << name << "_uniforms {\n";
+			(*out) << "struct " << name << "_uniforms {\n";
 			++indentation;
 			for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 				unsigned id = v->first;
@@ -167,15 +169,15 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 				if (variable.storage == StorageClassUniformConstant) {
 					if (strcmp(t.name, "sampler2D") != 0) {
 						indent(out);
-						out << t.name << " " << n.name << ";\n";
+						(*out) << t.name << " " << n.name << ";\n";
 					}
 				}
 			}
 			--indentation;
 			indent(out);
-			out << "};\n\n";
+			(*out) << "};\n\n";
 			
-			out << "struct " << name << "_in {\n";
+			(*out) << "struct " << name << "_in {\n";
 			++indentation;
 			int i = 0;
 			for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
@@ -188,21 +190,21 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 				if (variable.storage == StorageClassInput) {
 					indent(out);
 					if (stage == EShLangVertex) {
-						out << "packed_" << t.name << " " << n.name << ";\n";
+						(*out) << "packed_" << t.name << " " << n.name << ";\n";
 					}
 					else {
-						out << t.name << " " << n.name << ";\n";
+						(*out) << t.name << " " << n.name << ";\n";
 					}
 					++i;
 				}
 			}
 			--indentation;
 			indent(out);
-			out << "};\n\n";
+			(*out) << "};\n\n";
 			
 			if (stage == EShLangVertex) {
 				indent(out);
-				out << "struct " << name << "_out {\n";
+				(*out) << "struct " << name << "_out {\n";
 				++indentation;
 				i = 0;
 				for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
@@ -216,32 +218,32 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 						if (variable.builtin && stage == EShLangVertex) {
 							positionName = n.name;
 							indent(out);
-							out << t.name << " " << n.name << " [[position]];\n";
+							(*out) << t.name << " " << n.name << " [[position]];\n";
 						}
 						else if (variable.builtin && stage == EShLangFragment) {
 							indent(out);
-							out << t.name << " " << n.name << " : COLOR;\n";
+							(*out) << t.name << " " << n.name << " : COLOR;\n";
 						}
 						else {
 							indent(out);
-							out << t.name << " " << n.name << ";\n";
+							(*out) << t.name << " " << n.name << ";\n";
 							++i;
 						}
 					}
 				}
 				--indentation;
 				indent(out);
-				out << "};\n\n";
+				(*out) << "};\n\n";
 			}
 			
 			indent(out);
 			if (stage == EShLangVertex) {
-				out << "vertex " << name << "_out " << name << "_main(device " << name << "_in* vertices [[buffer(0)]]"
+				(*out) << "vertex " << name << "_out " << name << "_main(device " << name << "_in* vertices [[buffer(0)]]"
 					<< ", constant " << name << "_uniforms& uniforms [[buffer(1)]]"
 					<< ", unsigned int vid [[vertex_id]]) {\n";
 			}
 			else {
-				out << "fragment float4 " << name << "_main(constant " << name << "_uniforms& uniforms [[buffer(0)]]"
+				(*out) << "fragment float4 " << name << "_main(constant " << name << "_uniforms& uniforms [[buffer(0)]]"
 					<< ", " << name << "_in input [[stage_in]]";
 				
 				int texindex = 0;
@@ -255,19 +257,19 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 					if (variable.storage == StorageClassUniformConstant) {
 						if (strcmp(t.name, "sampler2D") == 0) {
 							indent(out);
-							out << ", texture2d<float> " << n.name << " [[texture(" << texindex << ")]]"
+							(*out) << ", texture2d<float> " << n.name << " [[texture(" << texindex << ")]]"
 								<< ", sampler " << n.name << "Sampler [[sampler(" << texindex << ")]]";
 							++texindex;
 						}
 					}
 				}
 				
-				out << ") {\n";
+				(*out) << ") {\n";
 			}
 			++indentation;
 			indent(out);
-			if (stage == EShLangVertex) out << name << "_out output;";
-			else out << "float4 output;";
+			if (stage == EShLangVertex) (*out) << name << "_out output;";
+			else (*out) << "float4 output;";
 			break;
 		}
 		case OpCompositeConstruct: {
@@ -307,20 +309,20 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 					//out << "output." << positionName << ".y = output." << positionName << ".y + dx_ViewAdjust.y * output." << positionName << ".w;\n";
 					//indent(out);
 				}
-				out << "output." << positionName << ".z = (output." << positionName << ".z + output." << positionName << ".w) * 0.5;\n";
+				(*out) << "output." << positionName << ".z = (output." << positionName << ".z + output." << positionName << ".w) * 0.5;\n";
 				indent(out);
 			}
-			out << "return output;";
+			(*out) << "return output;";
 			break;
 		case OpStore: {
 			output(out);
 			Variable& v = variables[inst.operands[0]];
 			if (!v.declared) {
-				out << types[v.type].name << " " << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << types[v.type].name << " " << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
 				v.declared = true;
 			}
 			else {
-				out << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 			break;
 		}
