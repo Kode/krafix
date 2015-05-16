@@ -424,11 +424,19 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpLabel: {
 		id label = inst.operands[0];
 		if (labelStarts.find(inst.operands[0]) != labelStarts.end()) {
+			if (labelStarts[inst.operands[0]].at(0) == '}') {
+				--indentation;
+			}
 			output(out);
 			(*out) << labelStarts[inst.operands[0]] << "\n";
 			indent(out);
 			(*out) << "{ // Label " << label;
 			++indentation;
+		}
+		else if (merges.find(label) != merges.end()) {
+			--indentation;
+			output(out);
+			(*out) << "} // Label " << label;
 		}
 		else {
 			output(out);
@@ -438,15 +446,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	}
 	case OpBranch: {
 		id branch = inst.operands[0];
-		if (merges.find(branch) != merges.end()) {
-			--indentation;
-			output(out);
-			(*out) << "} // Branch to " << branch;
-		}
-		else {
-			output(out);
-			(*out) << "// Branch to " << branch;
-		}
+		output(out);
+		(*out) << "// Branch to " << branch;
 		break;
 	}
 	case OpSelectionMerge: {
@@ -462,9 +463,15 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id trueLabel = inst.operands[1];
 		id falseLabel = inst.operands[2];
 		std::stringstream _true;
-		_true << "if (" << getReference(condition) << ")";
+		_true << "if (" << getReference(condition) << ") // true: " << trueLabel << " false: " << falseLabel;
 		labelStarts[trueLabel] = _true.str();
-		if (merges.find(falseLabel) == merges.end()) labelStarts[falseLabel] = "else";
+		if (merges.find(falseLabel) == merges.end()) {
+			std::stringstream str;
+			str << "}\n";
+			for (int i = 0; i < indentation; ++i) str << "\t";
+			str << "else";
+			labelStarts[falseLabel] = str.str();
+		}
 		break;
 	}
 	case OpReturnValue: {
