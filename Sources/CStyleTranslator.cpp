@@ -279,8 +279,10 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		id func = inst.operands[2];
+		std::string funcname = names[func].name;
+		funcname = funcname.substr(0, funcname.find_first_of('('));
 		std::stringstream str;
-		str << getReference(func) << "(";
+		str << funcname << "(";
 		for (unsigned i = 3; i < inst.length; ++i) {
 			str << getReference(inst.operands[i]);
 			if (i < inst.length - 1) str << ", ";
