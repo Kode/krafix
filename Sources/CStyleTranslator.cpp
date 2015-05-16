@@ -252,6 +252,17 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
+	case OpCompositeInsert: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id object = inst.operands[2];
+		id composite = inst.operands[3];
+		std::stringstream str;
+		str << getReference(object);
+		references[result] = str.str();
+		compositeInserts[result] = inst.operands[4];
+		break;
+	}
 	case OpFunctionCall: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];

@@ -245,14 +245,29 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		output(out);
 		Variable& v = variables[inst.operands[0]];
 		if (stage == EShLangFragment && v.storage == StorageClassOutput && target.version < 300) {
-			out << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
+			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
+				out << "gl_FragColor." << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+			}
+			else {
+				out << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
+			}
 		}
 		else if (!v.declared) {
-			out << types[v.type].name << " " << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
+				out << types[v.type].name << " " << getReference(inst.operands[0]) << "." << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+			}
+			else {
+				out << types[v.type].name << " " << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+			}
 			v.declared = true;
 		}
 		else {
-			out << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
+				out << getReference(inst.operands[0]) << "." << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+			}
+			else {
+				out << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+			}
 		}
 		break;
 	}
