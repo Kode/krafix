@@ -347,6 +347,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			using namespace GLSL_STD_450;
 			Entrypoints instruction = (Entrypoints)inst.operands[3];
 			switch (instruction) {
+			case Abs: {
+				std::stringstream str;
+				str << "abs(" << getReference(inst.operands[4]) << ")";
+				references[result] = str.str();
+				break;
+			}
 			case Normalize: {
 				std::stringstream str;
 				str << "normalize(" << getReference(inst.operands[4]) << ")";
@@ -374,6 +380,26 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 				id x = inst.operands[4];
 				std::stringstream str;
 				str << "inversesqrt(" << getReference(x) << ")";
+				references[result] = str.str();
+				break;
+			}
+			case Min: {
+				std::stringstream str;
+				str << "min(" << getReference(inst.operands[4]) << ", " << getReference(inst.operands[5]) << ")";
+				references[result] = str.str();
+				break;
+			}
+			case Cross: {
+				id x = inst.operands[4];
+				id y = inst.operands[5];
+				std::stringstream str;
+				str << "cross(" << getReference(x) << ", " << getReference(y) << ")";
+				references[result] = str.str();
+				break;
+			}
+			case Exp2: {
+				std::stringstream str;
+				str << "exp2(" << getReference(inst.operands[4]) << ")";
 				references[result] = str.str();
 				break;
 			}
@@ -490,6 +516,14 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = getReference(inst.operands[2]);
 		break;
 	}
+	case OpEmitVertex:
+		output(out);
+		(*out) << "EmitVertex();";
+		break;
+	case OpEndPrimitive:
+		output(out);
+		(*out) << "EndPrimitive();";
+		break;
 	case OpTypeVoid:
 		break;
 	case OpEntryPoint:

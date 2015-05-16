@@ -127,7 +127,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		v.storage = (StorageClass)inst.operands[2];
 		v.declared = true; //v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
 		if (names.find(result) != names.end()) {
-			if (target.version >= 300 && strcmp(names[result].name, "gl_FragColor") == 0) {
+			if (target.version >= 300 && v.storage == StorageClassOutput && stage == EShLangFragment) {
 				names[result].name = "krafix_FragColor";
 			}
 			references[result] = names[result].name;
@@ -147,6 +147,10 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "#extension GL_OES_EGL_image_external : require\n";
 				}
 
+				if (target.version >= 300 && stage == EShLangFragment) {
+					(*out) << "out vec4 krafix_FragColor;\n";
+				}
+
 				for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 					unsigned id = v->first;
 					Variable& variable = v->second;
@@ -155,12 +159,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Name n = names[id];
 
 					if (variable.builtin) {
-						if (target.version >= 300 && strcmp(n.name, "krafix_FragColor") == 0) {
-							(*out) << "out vec4 krafix_FragColor;\n";
-						}
-						else {
-							continue;
-						}
+						continue;
 					}
 
 					switch (stage) {
