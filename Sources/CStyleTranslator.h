@@ -50,6 +50,7 @@ namespace krafix {
 		bool outputting = false;
 		bool firstFunction = true;
 		std::string funcName;
+		std::string funcType;
 		bool firstLabel = true;
 		unsigned entryPoint = -1;
 		

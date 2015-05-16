@@ -112,12 +112,16 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		Variable& v = variables[id];
 		v.type = inst.operands[0];
 		v.storage = (StorageClass)inst.operands[2];
-		v.declared = v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
+		v.declared = true; //v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
 		if (names.find(id) != names.end()) {
 			if (target.version >= 300 && strcmp(names[id].name, "gl_FragColor") == 0) {
 				names[id].name = "krafix_FragColor";
 			}
 			references[id] = names[id].name;
+		}
+		if (v.storage == StorageClassFunction && getReference(id) != "param") {
+			output(out);
+			out << types[v.type].name << " " << getReference(id) << ";";
 		}
 		break;
 	}
@@ -202,7 +206,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			out << "\n";
 			indent(out);
 
-			out << "void " << funcName << "(";
+			out << funcType << " " << funcName << "(";
 			for (unsigned i = 0; i < parameters.size(); ++i) {
 				out << parameters[i].type.name << " " << getReference(parameters[i].id);
 				if (i < parameters.size() - 1) out << ", ";
@@ -228,10 +232,12 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			if (target.kore) {
 				references[result] = "kore";
 				funcName = "kore";
+				funcType = "void";
 			}
 			else {
 				references[result] = "main";
 				funcName = "main";
+				funcType = "void";
 			}
 		}
 		else if (names.find(result) != names.end()) {
@@ -239,6 +245,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			name = name.substr(0, name.find_first_of('('));
 			references[result] = name;
 			funcName = name;
+			funcType = resultType.name;
 		}
 		break;
 	}
@@ -246,8 +253,17 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		std::stringstream str;
-		str << "vec4(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ", "
-			<< getReference(inst.operands[4]) << ", " << getReference(inst.operands[5]) << ")";
+		if (inst.length == 4) {
+			str << "vec2(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ")";
+		}
+		else if (inst.length == 5) {
+			str << "vec3(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ", "
+				<< getReference(inst.operands[4]) << ")";
+		}
+		else if (inst.length == 6) {
+			str << "vec4(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ", "
+				<< getReference(inst.operands[4]) << ", " << getReference(inst.operands[5]) << ")";
+		}
 		references[result] = str.str();
 		break;
 	}
@@ -290,16 +306,6 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			else {
 				out << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
 			}
-		}
-		else if (!v.declared) {
-			output(out);
-			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
-				out << types[v.type].name << " " << getReference(inst.operands[0]) << "." << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
-			}
-			else {
-				out << types[v.type].name << " " << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
-			}
-			v.declared = true;
 		}
 		else {
 			output(out);
