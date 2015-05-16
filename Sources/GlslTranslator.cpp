@@ -119,20 +119,22 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		break;
 	}
 	case OpVariable: {
-		unsigned id = inst.operands[1];
-		Variable& v = variables[id];
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		Variable& v = variables[result];
 		v.type = inst.operands[0];
 		v.storage = (StorageClass)inst.operands[2];
 		v.declared = true; //v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
-		if (names.find(id) != names.end()) {
-			if (target.version >= 300 && strcmp(names[id].name, "gl_FragColor") == 0) {
-				names[id].name = "krafix_FragColor";
+		if (names.find(result) != names.end()) {
+			if (target.version >= 300 && strcmp(names[result].name, "gl_FragColor") == 0) {
+				names[result].name = "krafix_FragColor";
 			}
-			references[id] = names[id].name;
+			references[result] = names[result].name;
 		}
-		if (v.storage == StorageClassFunction && getReference(id) != "param") {
+		if (v.storage == StorageClassFunction && getReference(result) != "param") {
 			output(out);
-			(*out) << types[v.type].name << " " << getReference(id) << ";";
+			(*out) << types[v.type].name << " " << getReference(result) << ";";
 		}
 		break;
 	}
@@ -248,6 +250,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		parameters.clear();
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
+		types[result] = resultType;
 		if (result == entryPoint) {
 			if (target.kore) {
 				references[result] = "kore";
@@ -272,6 +275,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpCompositeConstruct: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
+		types[result] = resultType;
 		std::stringstream str;
 		str << resultType.name << "(";
 		for (unsigned i = 2; i < inst.length; ++i) {
@@ -285,6 +289,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpMatrixTimesVector: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
+		types[result] = resultType;
 		id matrix = inst.operands[2];
 		id vector = inst.operands[3];
 		std::stringstream str;
@@ -295,6 +300,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpTextureSample: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
+		types[result] = resultType;
 		id sampler = inst.operands[2];
 		id coordinate = inst.operands[3];
 		std::stringstream str;
@@ -320,7 +326,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		else if (stage == EShLangFragment && v.storage == StorageClassOutput && target.version < 300) {
 			output(out);
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
-				(*out) << "gl_FragColor." << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << "gl_FragColor" << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 			else {
 				(*out) << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
@@ -329,7 +335,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		else {
 			output(out);
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
-				(*out) << getReference(inst.operands[0]) << "." << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << getReference(inst.operands[0]) << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 			else {
 				(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";

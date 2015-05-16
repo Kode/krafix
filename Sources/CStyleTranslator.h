@@ -51,7 +51,7 @@ namespace krafix {
 		std::map<unsigned, std::string> labelStarts;
 		std::map<unsigned, int> merges;
 		std::map<unsigned, std::string> references;
-		std::map<unsigned, unsigned> compositeInserts;
+		std::map<unsigned, std::vector<unsigned>> compositeInserts;
 		std::vector<Parameter> parameters;
 		std::vector<unsigned> callParameters;
 		int indentation = 0;
@@ -64,7 +64,7 @@ namespace krafix {
 		std::vector<Function*> functions;
 		std::ostream* tempout = NULL;
 		
-		const char* indexName(unsigned index);
+		virtual std::string indexName(const std::vector<unsigned>& indices);
 		void indent(std::ostream* out);
 		void output(std::ostream* out);
 		std::string getReference(unsigned _id);
