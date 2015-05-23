@@ -269,154 +269,33 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		t.name = "sampler2D";
 		types[id] = t;
 		break;
-	}
+	} 
 	case OpVariable: {
-		unsigned id = inst.operands[1];
-		Variable& v = variables[id];
-		v.id = id;
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		Variable& v = variables[result];
+		v.id = result;
 		v.type = inst.operands[0];
 		v.storage = (StorageClass)inst.operands[2];
-		v.declared = v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
-		if (names.find(id) != names.end()) {
+		v.declared = true; // v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
+		if (names.find(result) != names.end()) {
 			if (v.storage == StorageClassInput) {
-				references[id] = std::string("input.") + names[id].name;
+				references[result] = std::string("input.") + names[result].name;
 			}
 			else if (v.storage == StorageClassOutput) {
-				references[id] = std::string("output.") + names[id].name;
+				references[result] = std::string("output.") + names[result].name;
 			}
 			else {
-				references[id] = names[id].name;
+				references[result] = names[result].name;
 			}
+		}
+		if (v.storage == StorageClassFunction && getReference(result) != "param") {
+			output(out);
+			(*out) << types[v.type].name << " " << getReference(result) << ";";
 		}
 		break;
 	}
-	/*case OpFunction: {
-		output(out);
-		if (stage == EShLangVertex && target.version == 9) {
-			(*out) << "uniform float4 dx_ViewAdjust;";
-		}
-		(*out) << "\n";
-
-		std::vector<Variable> sortedVariables;
-		for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
-			sortedVariables.push_back(v->second);
-		}
-		currentNames = names;
-		std::sort(sortedVariables.begin(), sortedVariables.end(), compareVariables);
-
-		for (unsigned i = 0; i < sortedVariables.size(); ++i) {
-			Variable variable = sortedVariables[i];
-
-			Type t = types[variable.type];
-			Name n = names[variable.id];
-
-			if (variable.storage == StorageClassUniformConstant) {
-				indent(out);
-				(*out) << "uniform " << t.name << " " << n.name << ";\n";
-			}
-		}
-		(*out) << "\n";
-
-		(*out) << "struct Input {\n";
-		++indentation;
-		if (stage == EShLangFragment && target.version > 9) {
-			indent(out);
-			(*out) << "float4 gl_Position : SV_POSITION;\n";
-		}
-		int index = 0;
-		for (unsigned i = 0; i < sortedVariables.size(); ++i) {
-			Variable variable = sortedVariables[i];
-
-			Type t = types[variable.type];
-			Name n = names[variable.id];
-
-			if (variable.storage == StorageClassInput) {
-				indent(out);
-				(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
-				if (stage == EShLangVertex) {
-					attributes[n.name] = index;
-				}
-				++index;
-			}
-		}
-		--indentation;
-		indent(out);
-		(*out) << "};\n\n";
-
-		indent(out);
-		(*out) << "struct Output {\n";
-		++indentation;
-		index = 0;
-
-		for (unsigned i = 0; i < sortedVariables.size(); ++i) {
-			Variable variable = sortedVariables[i];
-
-			Type t = types[variable.type];
-			Name n = names[variable.id];
-
-			if (variable.storage == StorageClassOutput) {
-				if (variable.builtin && stage == EShLangVertex) {
-					positionName = n.name;
-					indent(out);
-					if (target.version == 9) {
-						(*out) << t.name << " " << n.name << " : POSITION;\n";
-					}
-					else {
-						(*out) << t.name << " " << n.name << " : SV_POSITION;\n";
-					}
-				}
-				else if (variable.builtin && stage == EShLangFragment) {
-					indent(out);
-					(*out) << t.name << " " << n.name << " : COLOR;\n";
-				}
-			}
-		}
-
-		for (unsigned i = 0; i < sortedVariables.size(); ++i) {
-			Variable variable = sortedVariables[i];
-
-			Type t = types[variable.type];
-			Name n = names[variable.id];
-
-			if (variable.storage == StorageClassOutput) {
-				if (variable.builtin && stage == EShLangVertex) {
-
-				}
-				else if (variable.builtin && stage == EShLangFragment) {
-					
-				}
-				else {
-					indent(out);
-					(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
-					++index;
-				}
-			}
-		}
-
-		--indentation;
-		indent(out);
-		(*out) << "};\n\n";
-
-		indent(out);
-		(*out) << "Output main(Input input) {\n";
-		++indentation;
-		indent(out);
-		(*out) << "Output output;\n";
-		for (unsigned i = 0; i < sortedVariables.size(); ++i) {
-			Variable variable = sortedVariables[i];
-			if (variable.storage == StorageClassOutput) {
-				Type t = types[variable.type];
-				Name n = names[variable.id];
-				indent(out);
-				(*out) << "output." << n.name << " = ";
-				if (t.name == "float") (*out) << "0.0;\n";
-				if (t.name == "float2") (*out) << "float2(0.0, 0.0);\n";
-				if (t.name == "float3") (*out) << "float3(0.0, 0.0, 0.0);\n";
-				if (t.name == "float4") (*out) << "float4(0.0, 0.0, 0.0, 0.0);\n";
-			}
-		}
-		break;
-	}*/
 	case OpCompositeConstruct: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];

@@ -288,6 +288,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id result = inst.operands[1];
 		types[result] = resultType;
 		Variable& v = variables[result];
+		v.id = result;
 		v.type = inst.operands[0];
 		v.storage = (StorageClass)inst.operands[2];
 		v.declared = true; //v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
