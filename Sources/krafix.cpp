@@ -695,7 +695,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
 						break;
 					}
 					
-					if (target.lang == krafix::HLSL) {
+					if (target.lang == krafix::HLSL && target.system != krafix::Unknown) {
 						std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(filename)) + ".hlsl";
 						translator->outputCode(target, temp.c_str(), attributes);
 						if (target.version == 9) {

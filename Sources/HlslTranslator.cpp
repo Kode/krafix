@@ -92,12 +92,23 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 				(*out) << "\n";
 
-				(*out) << "struct Input {\n";
+				if (stage == EShLangFragment) {
+					(*out) << "struct Input2 {\n";
+				}
+				else {
+					(*out) << "struct Input {\n";
+				}
 				++indentation;
 				if (stage == EShLangFragment && target.version > 9) {
 					indent(out);
 					(*out) << "float4 gl_Position : SV_POSITION;\n";
 				}
+				else if (stage == EShLangFragment && target.version == 9 && target.system == Unknown) {
+					indent(out);
+					(*out) << "float4 gl_Position : POSITION;\n";
+				}
+				int uvindex = 0;
+				int threeindex = 0;
 				int index = 0;
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
@@ -107,9 +118,33 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					if (variable.storage == StorageClassInput) {
 						indent(out);
-						(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
-						if (stage == EShLangVertex) {
-							attributes[n.name] = index;
+						if (stage == EShLangVertex && target.system == Unknown) {
+							if (t.name == "float") {
+								(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
+								++uvindex;
+							}
+							else if (t.name == "float2") {
+								(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
+								++uvindex;
+							}
+							else if (t.name == "float3") {
+								if (threeindex == 0) {
+									(*out) << t.name << " " << n.name << " : POSITION;\n";
+								}
+								else {
+									(*out) << t.name << " " << n.name << " : NORMAL;\n";
+								}
+								++threeindex;
+							}
+							else if (t.name == "float4") {
+								(*out) << t.name << " " << n.name << " : TANGENT;\n";
+							}
+						}
+						else {
+							(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
+							if (stage == EShLangVertex) {
+								attributes[n.name] = index;
+							}
 						}
 						++index;
 					}
@@ -119,7 +154,12 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				(*out) << "};\n\n";
 
 				indent(out);
-				(*out) << "struct Output {\n";
+				if (stage == EShLangFragment) {
+					(*out) << "struct Output2 {\n";
+				}
+				else {
+					(*out) << "struct Output {\n";
+				}
 				++indentation;
 				index = 0;
 
@@ -186,7 +226,22 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			startFunction(funcName);
 
 			if (funcName == "main") {
-				(*out) << "Output main(Input input)\n";
+				if (target.system == Unknown) {
+					if (stage == EShLangFragment) {
+						(*out) << "Output2 frag(Input2 input)\n";
+					}
+					else {
+						(*out) << "Output vert(Input input)\n";
+					}
+				}
+				else {
+					if (stage == EShLangFragment) {
+						(*out) << "Output2 main(Input2 input)\n";
+					}
+					else {
+						(*out) << "Output main(Input input)\n";
+					}
+				}
 			}
 			else {
 				(*out) << funcType << " " << funcName << "(";
@@ -203,7 +258,12 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			if (funcName == "main") {
 				(*out) << "\n";
 				indent(out);
-				(*out) << "Output output;\n";
+				if (stage == EShLangFragment) {
+					(*out) << "Output2 output;\n";
+				}
+				else {
+					(*out) << "Output output;\n";
+				}
 				for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 					Variable variable = v->second;
 					if (variable.storage == StorageClassOutput) {
@@ -375,14 +435,19 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		id sampler = inst.operands[2];
 		id coordinate = inst.operands[3];
 		std::stringstream str;
-		str << "tex2D(" << getReference(sampler) << ", " << getReference(coordinate) << ")";
+		if (target.system == Unknown) {
+			str << "tex2D(" << getReference(sampler) << ", float2(" << getReference(coordinate) << ".x, 1.0 - " << getReference(coordinate) << ".y))";
+		}
+		else {
+			str << "tex2D(" << getReference(sampler) << ", " << getReference(coordinate) << ")";
+		}
 		references[result] = str.str();
 		break;
 	}
 	case OpReturn:
 		output(out);
 		if (stage == EShLangVertex) {
-			if (target.version == 9) {
+			if (target.version == 9 && target.system != Unknown) {
 				(*out) << "output." << positionName << ".x = output." << positionName << ".x - dx_ViewAdjust.x * output." << positionName << ".w;\n";
 				indent(out);
 				(*out) << "output." << positionName << ".y = output." << positionName << ".y + dx_ViewAdjust.y * output." << positionName << ".w;\n";
