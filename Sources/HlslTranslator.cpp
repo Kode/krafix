@@ -255,6 +255,11 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		t.name = "float4x?";
 		Type subtype = types[inst.operands[1]];
 		if (subtype.name != NULL) {
+			if (strcmp(subtype.name, "float3") == 0 && inst.operands[2] == 3) {
+				t.name = "float3x3";
+				t.length = 4;
+				types[id] = t;
+			}
 			if (strcmp(subtype.name, "float4") == 0 && inst.operands[2] == 4) {
 				t.name = "float4x4";
 				t.length = 4;
@@ -299,8 +304,14 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpCompositeConstruct: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
+		types[result] = resultType;
 		std::stringstream str;
-		str << "float4(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ", " << getReference(inst.operands[4]) << ", " << getReference(inst.operands[5]) << ")";
+		str << resultType.name << "(";
+		for (unsigned i = 2; i < inst.length; ++i) {
+			str << getReference(inst.operands[i]);
+			if (i < inst.length - 1) str << ", ";
+		}
+		str << ")";
 		references[result] = str.str();
 		break;
 	}
@@ -311,6 +322,17 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		id vector = inst.operands[3];
 		std::stringstream str;
 		str << "mul(transpose(" << getReference(matrix) << "), " << getReference(vector) << ")"; // TODO: Get rid of transpose, when kfx is deprecated
+		references[result] = str.str();
+		break;
+	}
+	case OpVectorTimesMatrix: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		id vector = inst.operands[2];
+		id matrix = inst.operands[3];
+		std::stringstream str;
+		str << "mul(" << getReference(vector) << ", transpose(" << getReference(matrix) << "))";
 		references[result] = str.str();
 		break;
 	}
