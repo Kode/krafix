@@ -86,6 +86,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						indent(out);
 						(*out) << "uniform " << t.name << " " << n.name << ";\n";
 					}
+					else if (variable.storage != StorageClassInput && variable.storage != StorageClassOutput) {
+						(*out) << "static " << t.name << " " << n.name << ";\n";
+					}
 				}
 				(*out) << "\n";
 

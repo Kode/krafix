@@ -106,9 +106,52 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
+	case Sin: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "sin(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case Cos: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "cos(" << getReference(x)  << ")";
+		references[result] = str.str();
+		break;
+	}
+	case Asin: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "asin(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case Sqrt: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "sqrt(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case Length: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "length(" << getReference(x) << ")"; //TODO
+		references[result] = str.str();
+		break;
+	}
 	case Exp2: {
 		std::stringstream str;
 		str << "exp2(" << getReference(inst.operands[4]) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case Distance: {
+		std::stringstream str;
+		id p0 = inst.operands[4];
+		id p1 = inst.operands[5];
+		str << "distance(" << getReference(p0) << ", " << getReference(p1) << ")";
 		references[result] = str.str();
 		break;
 	}
@@ -612,6 +655,27 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		unsigned operand2 = inst.operands[3];
 		std::stringstream str;
 		str << getReference(operand1) << " == " << getReference(operand2);
+		references[result] = str.str();
+		break;
+	}
+	case OpFOrdLessThan: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		unsigned operand1 = inst.operands[2];
+		unsigned operand2 = inst.operands[3];
+		std::stringstream str;
+		str << getReference(operand1) << " < " << getReference(operand2);
+		references[result] = str.str();
+		break;
+	}
+	case OpFNegate: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		unsigned operand = inst.operands[2];
+		std::stringstream str;
+		str << "-" << getReference(operand);
 		references[result] = str.str();
 		break;
 	}

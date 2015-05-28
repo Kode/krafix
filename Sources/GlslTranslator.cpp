@@ -79,6 +79,9 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						else if (variable.storage == StorageClassUniformConstant) {
 							(*out) << "uniform " << t.name << " " << n.name << ";\n";
 						}
+						else {
+							(*out) << t.name << " " << n.name << ";\n";
+						}
 						break;
 					case EShLangFragment:
 						if (variable.storage == StorageClassInput) {
@@ -92,6 +95,9 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						else if (variable.storage == StorageClassUniformConstant) {
 							(*out) << "uniform " << t.name << " " << n.name << ";\n";
 						}
+						else {
+							(*out) << t.name << " " << n.name << ";\n";
+						}
 						break;
 					case EShLangGeometry:
 					case EShLangTessControl:
@@ -104,6 +110,9 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
 							(*out) << "uniform " << t.name << " " << n.name << ";\n";
+						}
+						else {
+							(*out) << t.name << " " << n.name << ";\n";
 						}
 						break;
 					}
