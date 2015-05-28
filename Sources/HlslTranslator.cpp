@@ -338,6 +338,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpMatrixTimesVector: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
+		types[result] = resultType;
 		id matrix = inst.operands[2];
 		id vector = inst.operands[3];
 		std::stringstream str;
@@ -359,6 +360,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpMatrixTimesMatrix: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
+		types[result] = resultType;
 		id operand1 = inst.operands[2];
 		id operand2 = inst.operands[3];
 		std::stringstream str;
@@ -369,6 +371,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpTextureSample: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
+		types[result] = resultType;
 		id sampler = inst.operands[2];
 		id coordinate = inst.operands[3];
 		std::stringstream str;
