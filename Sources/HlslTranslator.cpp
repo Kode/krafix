@@ -39,6 +39,23 @@ void HlslTranslator::outputCode(const Target& target, const char* filename, std:
 	file.close();
 }
 
+void HlslTranslator::outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSL_STD_450::Entrypoints entrypoint) {
+	using namespace GLSL_STD_450;
+	id result = inst.operands[1];
+	switch (entrypoint) {
+	case InverseSqrt: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "rsqrt(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
+	default:
+		CStyleTranslator::outputLibraryInstruction(target, attributes, inst, entrypoint);
+		break;
+	}
+}
+
 void HlslTranslator::outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst) {
 	using namespace spv;
 
