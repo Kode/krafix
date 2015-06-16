@@ -41,6 +41,10 @@
 #pragma warning( push ) // CRT deprecation
 #pragma warning( disable : 4996 )
 
+#ifndef SYS_WINDOWS
+#define _snprintf snprintf
+#endif
+
 namespace krafix
 {
     /** This is a Light-weight string wrapper around the C string interface.
