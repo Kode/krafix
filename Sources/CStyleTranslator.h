@@ -37,6 +37,10 @@ namespace krafix {
 		std::stringstream text;
 	};
 
+	struct Merge {
+		bool loop;
+	};
+
 	class CStyleTranslator : public Translator {
 	public:
 		CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage);
@@ -51,7 +55,7 @@ namespace krafix {
 		std::map<unsigned, Type> types;
 		std::map<unsigned, Variable> variables;
 		std::map<unsigned, std::string> labelStarts;
-		std::map<unsigned, int> merges;
+		std::map<unsigned, Merge> merges;
 		std::map<unsigned, std::string> references;
 		std::map<unsigned, std::vector<unsigned>> compositeInserts;
 		std::vector<Parameter> parameters;

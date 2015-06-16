@@ -608,17 +608,38 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id label = inst.operands[0];
 		unsigned selection = inst.operands[1];
 		(*out) << "// Merge " << label << " " << selection;
-		merges[label] = 0;
+		Merge merge;
+		merge.loop = false;
+		merges[label] = merge;
+		break;
+	}
+	case OpLoopMerge: {
+		output(out);
+		id label = inst.operands[0];
+		unsigned selection = inst.operands[1];
+		(*out) << "// Merge " << label << " " << selection;
+		Merge merge;
+		merge.loop = true;
+		merges[label] = merge;
 		break;
 	}
 	case OpBranchConditional: {
 		id condition = inst.operands[0];
 		id trueLabel = inst.operands[1];
 		id falseLabel = inst.operands[2];
+
+		bool foundMerge = false;
+		bool loop = false;
+		if (merges.find(falseLabel) != merges.end()) {
+			foundMerge = true;
+			loop = merges[falseLabel].loop;
+		}
+
 		std::stringstream _true;
-		_true << "if (" << getReference(condition) << ") // true: " << trueLabel << " false: " << falseLabel;
+		if (loop) _true << "while (" << getReference(condition) << ") // true: " << trueLabel << " false: " << falseLabel;
+		else _true << "if (" << getReference(condition) << ") // true: " << trueLabel << " false: " << falseLabel;
 		labelStarts[trueLabel] = _true.str();
-		if (merges.find(falseLabel) == merges.end()) {
+		if (!foundMerge) {
 			std::stringstream str;
 			str << "}\n";
 			for (int i = 0; i < indentation; ++i) str << "\t";
