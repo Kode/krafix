@@ -1,6 +1,8 @@
 #include "MetalTranslator.h"
 #include <fstream>
 #include <sstream>
+#include <stdio.h>
+#include <string.h>
 
 using namespace krafix;
 
@@ -8,7 +10,7 @@ typedef unsigned id;
 
 namespace {
 	std::string positionName = "position";
-	
+
 	std::string extractFilename(std::string path) {
 		int i = (int)path.size() - 1;
 		for (; i > 0; --i) {
@@ -19,7 +21,7 @@ namespace {
 		}
 		return path.substr(i, std::string::npos);
 	}
-	
+
 	std::string replace(std::string str, char c1, char c2) {
 		std::string ret = str;
 		for (unsigned i = 0; i < str.length(); ++i) {
@@ -34,7 +36,7 @@ void MetalTranslator::outputCode(const Target& target, const char* filename, std
 	name = name.substr(0, name.find_last_of("."));
 	name = replace(name, '-', '_');
 	name = replace(name, '.', '_');
-	
+
 	std::ofstream file;
 	file.open(filename, std::ios::binary | std::ios::out);
 	out = &file;
@@ -45,13 +47,13 @@ void MetalTranslator::outputCode(const Target& target, const char* filename, std
 		outputInstruction(target, attributes, inst);
 		if (outputting) (*out) << "\n";
 	}
-	
+
 	file.close();
 }
 
 void MetalTranslator::outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst) {
 	using namespace spv;
-	
+
 	switch (inst.opcode) {
 		case OpExecutionMode:
 			break;
@@ -162,10 +164,10 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 				unsigned id = v->first;
 				Variable& variable = v->second;
-				
+
 				Type t = types[variable.type];
 				Name n = names[id];
-				
+
 				if (variable.storage == StorageClassUniformConstant) {
 					if (strcmp(t.name, "sampler2D") != 0) {
 						indent(out);
@@ -176,17 +178,17 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			--indentation;
 			indent(out);
 			(*out) << "};\n\n";
-			
+
 			(*out) << "struct " << name << "_in {\n";
 			++indentation;
 			int i = 0;
 			for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 				unsigned id = v->first;
 				Variable& variable = v->second;
-				
+
 				Type t = types[variable.type];
 				Name n = names[id];
-				
+
 				if (variable.storage == StorageClassInput) {
 					indent(out);
 					if (stage == EShLangVertex) {
@@ -201,7 +203,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			--indentation;
 			indent(out);
 			(*out) << "};\n\n";
-			
+
 			if (stage == EShLangVertex) {
 				indent(out);
 				(*out) << "struct " << name << "_out {\n";
@@ -210,10 +212,10 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 				for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 					unsigned id = v->first;
 					Variable& variable = v->second;
-				
+
 					Type t = types[variable.type];
 					Name n = names[id];
-				
+
 					if (variable.storage == StorageClassOutput) {
 						if (variable.builtin && stage == EShLangVertex) {
 							positionName = n.name;
@@ -235,7 +237,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 				indent(out);
 				(*out) << "};\n\n";
 			}
-			
+
 			indent(out);
 			if (stage == EShLangVertex) {
 				(*out) << "vertex " << name << "_out " << name << "_main(device " << name << "_in* vertices [[buffer(0)]]"
@@ -245,15 +247,15 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			else {
 				(*out) << "fragment float4 " << name << "_main(constant " << name << "_uniforms& uniforms [[buffer(0)]]"
 					<< ", " << name << "_in input [[stage_in]]";
-				
+
 				int texindex = 0;
 				for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 					unsigned id = v->first;
 					Variable& variable = v->second;
-					
+
 					Type t = types[variable.type];
 					Name n = names[id];
-					
+
 					if (variable.storage == StorageClassUniformConstant) {
 						if (strcmp(t.name, "sampler2D") == 0) {
 							indent(out);
@@ -263,7 +265,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 						}
 					}
 				}
-				
+
 				(*out) << ") {\n";
 			}
 			++indentation;

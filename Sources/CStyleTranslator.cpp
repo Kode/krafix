@@ -1,4 +1,6 @@
 #include "CStyleTranslator.h"
+#include <stdio.h>
+#include <string.h>
 
 using namespace krafix;
 
@@ -369,7 +371,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id vector1length = types[vector1].length;
 		id vector2 = inst.operands[3];
 		id vector2length = types[vector2].length;
-		
+
 		std::stringstream str;
 		str << resultType.name << "(";
 		for (unsigned i = 4; i < inst.length; ++i) {
