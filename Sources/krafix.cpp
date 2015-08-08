@@ -34,17 +34,18 @@
 //POSSIBILITY OF SUCH DAMAGE.
 //
 
-#include "GlslTranslator.h"
-#include "HlslTranslator.h"
-#include "AgalTranslator.h"
-#include "MetalTranslator.h"
-
 #include "../glslang/StandAlone/Worklist.h"
 #include "./../glslang/Include/ShHandle.h"
 #include "./../glslang/Public/ShaderLang.h"
 #include "../SPIRV/GlslangToSpv.h"
 #include "../SPIRV/doc.h"
 #include "../SPIRV/disassemble.h"
+
+#include "GlslTranslator.h"
+#include "HlslTranslator.h"
+#include "AgalTranslator.h"
+#include "MetalTranslator.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
