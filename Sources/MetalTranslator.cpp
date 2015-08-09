@@ -292,7 +292,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			references[result] = str.str();
 			break;
 		}
-		case OpTextureSample: {
+		case OpImageSampleImplicitLod: {
 			//Type resultType = types[inst.operands[0]];
 			id result = inst.operands[1];
 			id sampler = inst.operands[2];

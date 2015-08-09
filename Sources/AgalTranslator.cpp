@@ -199,7 +199,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			out << "\t" << resultType.name << " _" << result << " = _" << matrix << " * _" << vector << ";\n";
 			break;
 		}
-		case OpTextureSample: {
+		case OpImageSampleImplicitLod: {
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
 			unsigned sampler = inst.operands[2];

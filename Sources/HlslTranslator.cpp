@@ -348,7 +348,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		}
 		break;
 	}
-	case OpTypeSampler: {
+	case OpTypeImage: {
 		Type t;
 		unsigned id = inst.operands[0];
 		t.name = "sampler2D";
@@ -428,7 +428,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		references[result] = str.str();
 		break;
 	}
-	case OpTextureSample: {
+	case OpImageSampleImplicitLod: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;

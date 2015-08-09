@@ -315,7 +315,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		}
 		break;
 	}
-	case OpTypeSampler: {
+	case OpTypeImage: {
 		Type t;
 		unsigned id = inst.operands[0];
 		bool video = inst.length >= 8 && inst.operands[8] == 1;
@@ -326,6 +326,16 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			t.name = "sampler2D";
 		}
 		types[id] = t;
+		break;
+	}
+	case OpTypeSampler: {
+		break;
+	}
+	case OpTypeSampledImage: {
+		Type t;
+		unsigned id = inst.operands[0];
+		unsigned image = inst.operands[1];
+		types[id] = types[image];
 		break;
 	}
 	case OpVariable: {
@@ -802,7 +812,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
-	case OpTextureSample: {
+	case OpImageSampleImplicitLod: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
@@ -858,6 +868,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpExtInstImport:
 		break;
 	case OpSource:
+		break;
+	case OpCapability:
 		break;
 	default:
 		output(out);

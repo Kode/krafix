@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SPIRV/spirv.h>
+#include <SPIRV/spirv.hpp>
 #include "../glslang/glslang/Public/ShaderLang.h"
 #include <map>
 #include <string>
