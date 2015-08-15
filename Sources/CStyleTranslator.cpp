@@ -54,23 +54,22 @@ void CStyleTranslator::endFunction() {
 	out = tempout;
 }
 
-void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSL_STD_450::Entrypoints entrypoint) {
-	using namespace GLSL_STD_450;
+void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSLstd450 entrypoint) {
 	id result = inst.operands[1];
 	switch (entrypoint) {
-	case Abs: {
+	case GLSLstd450FAbs: {
 		std::stringstream str;
 		str << "abs(" << getReference(inst.operands[4]) << ")";
 		references[result] = str.str();
 		break;
 	}
-	case Normalize: {
+	case GLSLstd450Normalize: {
 		std::stringstream str;
 		str << "normalize(" << getReference(inst.operands[4]) << ")";
 		references[result] = str.str();
 		break;
 	}
-	case Clamp: {
+	case GLSLstd450FClamp: {
 		id x = inst.operands[4];
 		id minVal = inst.operands[5];
 		id maxVal = inst.operands[6];
@@ -79,7 +78,7 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
-	case Pow: {
+	case GLSLstd450Pow: {
 		id x = inst.operands[4];
 		id y = inst.operands[5];
 		std::stringstream str;
@@ -87,20 +86,20 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
-	case InverseSqrt: {
+	case GLSLstd450InverseSqrt: {
 		id x = inst.operands[4];
 		std::stringstream str;
 		str << "inversesqrt(" << getReference(x) << ")";
 		references[result] = str.str();
 		break;
 	}
-	case Min: {
+	case GLSLstd450FMin: {
 		std::stringstream str;
 		str << "min(" << getReference(inst.operands[4]) << ", " << getReference(inst.operands[5]) << ")";
 		references[result] = str.str();
 		break;
 	}
-	case Cross: {
+	case GLSLstd450Cross: {
 		id x = inst.operands[4];
 		id y = inst.operands[5];
 		std::stringstream str;
@@ -108,52 +107,59 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
-	case Sin: {
+	case GLSLstd450Sin: {
 		id x = inst.operands[4];
 		std::stringstream str;
 		str << "sin(" << getReference(x) << ")";
 		references[result] = str.str();
 		break;
 	}
-	case Cos: {
+	case GLSLstd450Cos: {
 		id x = inst.operands[4];
 		std::stringstream str;
 		str << "cos(" << getReference(x)  << ")";
 		references[result] = str.str();
 		break;
 	}
-	case Asin: {
+	case GLSLstd450Asin: {
 		id x = inst.operands[4];
 		std::stringstream str;
 		str << "asin(" << getReference(x) << ")";
 		references[result] = str.str();
 		break;
 	}
-	case Sqrt: {
+	case GLSLstd450Sqrt: {
 		id x = inst.operands[4];
 		std::stringstream str;
 		str << "sqrt(" << getReference(x) << ")";
 		references[result] = str.str();
 		break;
 	}
-	case Length: {
+	case GLSLstd450Length: {
 		id x = inst.operands[4];
 		std::stringstream str;
 		str << "length(" << getReference(x) << ")"; //TODO
 		references[result] = str.str();
 		break;
 	}
-	case Exp2: {
+	case GLSLstd450Exp2: {
 		std::stringstream str;
 		str << "exp2(" << getReference(inst.operands[4]) << ")";
 		references[result] = str.str();
 		break;
 	}
-	case Distance: {
+	case GLSLstd450Distance: {
 		std::stringstream str;
 		id p0 = inst.operands[4];
 		id p1 = inst.operands[5];
 		str << "distance(" << getReference(p0) << ", " << getReference(p1) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case GLSLstd450Floor: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "floor(" << getReference(x) << ")";
 		references[result] = str.str();
 		break;
 	}
@@ -583,8 +589,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		types[result] = resultType;
 		id set = inst.operands[2];
 		{
-			using namespace GLSL_STD_450;
-			Entrypoints instruction = (Entrypoints)inst.operands[3];
+			GLSLstd450 instruction = (GLSLstd450)inst.operands[3];
 			outputLibraryInstruction(target, attributes, inst, instruction);
 		}
 		break;

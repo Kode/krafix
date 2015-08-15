@@ -579,7 +579,7 @@ CompileShaders(void*)
     return 0;
 }
 
-const char* GlslStd450DebugNames[GLSL_STD_450::Count];
+//const char* GlslStd450DebugNames[GLSL_STD_450::Count];
 
 void executeSync(const char* command);
 int compileHLSLToD3D9(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage);
@@ -726,7 +726,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
                     //glslang::OutputSpv(spirv, name);
                     if (Options & EOptionHumanReadableSpv) {
                         spv::Parameterize();
-                        GLSL_STD_450::GetDebugNames(GlslStd450DebugNames);
+                        //GLSL_STD_450::GetDebugNames(GlslStd450DebugNames);
                         spv::Disassemble(std::cout, spirv);
                     }
                 }
