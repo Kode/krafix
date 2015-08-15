@@ -27,8 +27,6 @@ if (platform === Platform.Windows) {
 	project.addIncludeDir('glslang/glslang/OSDependent/Windows');
 
 	project.addIncludeDir("Libraries/DirectX/Include");
-	project.addLibFor("Win32", "Libraries/DirectX/Lib/dxguid");
-	project.addLibFor("Win32", "Libraries/DirectX/Lib/d3dx9");
 	project.addLibFor("Win32", "d3d11");
 	project.addLibFor("Win32", "d3dcompiler");
 }

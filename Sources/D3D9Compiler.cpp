@@ -3,25 +3,40 @@
 #include <string>
 
 #ifdef SYS_WINDOWS
+
 #include <Windows.h>
 #include <d3d9.h>
 #include <d3dx9.h>
 #include <fstream>
 #include <iostream>
+
+typedef HRESULT (WINAPI *D3DXCompileShaderFromFileAType)(LPCSTR pSrcFile, CONST D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile,
+	DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable);
+
+static D3DXCompileShaderFromFileAType CompileShaderFromFileA = nullptr;
+
 #endif
 
 int compileHLSLToD3D9(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage) {
 #ifdef SYS_WINDOWS
+	HMODULE lib = LoadLibraryA("d3dx9_43.dll");
+	if (lib != nullptr) CompileShaderFromFileA = (D3DXCompileShaderFromFileAType)GetProcAddress(lib, "D3DXCompileShaderFromFileA");
+
+	if (CompileShaderFromFileA == nullptr) {
+		std::cerr << "d3dx9_43.dll could not be loaded, please install dxwebsetup." << std::endl;
+		return 1;
+	}
+
 	LPD3DXBUFFER errors;
 	LPD3DXBUFFER shader;
 	LPD3DXCONSTANTTABLE table;
-	HRESULT hr = D3DXCompileShaderFromFileA(from, nullptr, nullptr, "main", stage == EShLangVertex ? "vs_2_0" : "ps_2_0", 0, &shader, &errors, &table);
-	if (FAILED(hr)) hr = D3DXCompileShaderFromFileA(from, nullptr, nullptr, "main", stage == EShLangVertex ? "vs_3_0" : "ps_3_0", 0, &shader, &errors, &table);
+	HRESULT hr = CompileShaderFromFileA(from, nullptr, nullptr, "main", stage == EShLangVertex ? "vs_2_0" : "ps_2_0", 0, &shader, &errors, &table);
+	if (FAILED(hr)) hr = CompileShaderFromFileA(from, nullptr, nullptr, "main", stage == EShLangVertex ? "vs_3_0" : "ps_3_0", 0, &shader, &errors, &table);
 	if (errors != nullptr) std::cerr << (char*)errors->GetBufferPointer();
 	if (!FAILED(hr)) {
 		std::ofstream file(to, std::ios_base::binary);
 
-		file.put(attributes.size());
+		file.put((char)attributes.size());
 		for (std::map<std::string, int>::const_iterator attribute = attributes.begin(); attribute != attributes.end(); ++attribute) {
 			file << attribute->first.c_str();
 			file.put(0);
