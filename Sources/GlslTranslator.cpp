@@ -77,7 +77,12 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
-							(*out) << "uniform " << t.name << " " << n.name << ";\n";
+							if (t.isarray) {
+								(*out) << "uniform " << t.name << " " << n.name << "[" << t.length << "];\n";
+							}
+							else {
+								(*out) << "uniform " << t.name << " " << n.name << ";\n";
+							}
 						}
 						else {
 							(*out) << t.name << " " << n.name << ";\n";
@@ -93,7 +98,12 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
-							(*out) << "uniform " << t.name << " " << n.name << ";\n";
+							if (t.isarray) {
+								(*out) << "uniform " << t.name << " " << n.name << "[" << t.length << "];\n";
+							}
+							else {
+								(*out) << "uniform " << t.name << " " << n.name << ";\n";
+							}
 						}
 						else {
 							(*out) << t.name << " " << n.name << ";\n";
@@ -109,7 +119,12 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							(*out) << "out " << t.name << " " << n.name << ";\n";
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
-							(*out) << "uniform " << t.name << " " << n.name << ";\n";
+							if (t.isarray) {
+								(*out) << "uniform " << t.name << " " << n.name << "[" << t.length << "];\n";
+							}
+							else {
+								(*out) << "uniform " << t.name << " " << n.name << ";\n";
+							}
 						}
 						else {
 							(*out) << t.name << " " << n.name << ";\n";

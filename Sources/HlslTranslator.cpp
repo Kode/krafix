@@ -84,10 +84,20 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					if (variable.storage == StorageClassUniformConstant) {
 						indent(out);
-						(*out) << "uniform " << t.name << " " << n.name << ";\n";
+						if (t.isarray) {
+							(*out) << "uniform " << t.name << " " << n.name << "[" << t.length << "];\n";
+						}
+						else {
+							(*out) << "uniform " << t.name << " " << n.name << ";\n";
+						}
 					}
 					else if (variable.storage != StorageClassInput && variable.storage != StorageClassOutput) {
-						(*out) << "static " << t.name << " " << n.name << ";\n";
+						if (t.isarray) {
+							(*out) << "static " << t.name << " " << n.name << "[" << t.length << "];\n";
+						}
+						else {
+							(*out) << "static " << t.name << " " << n.name << ";\n";
+						}
 					}
 				}
 				(*out) << "\n";
@@ -290,21 +300,26 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		break;
 	case OpTypeArray: {
 		Type t;
+		t.isarray = true;
 		unsigned id = inst.operands[0];
-		t.name = "?[]";
+		t.name = "unknownarray";
 		Type subtype = types[inst.operands[1]];
+		t.length = atoi(references[inst.operands[2]].c_str());
 		if (subtype.name != NULL) {
 			if (strcmp(subtype.name, "float") == 0) {
-				t.name = "float[]";
-				t.length = 2;
-				types[id] = t;
+				t.name = "float";
 			}
-			if (strcmp(subtype.name, "float3") == 0) {
-				t.name = "float3[]";
-				t.length = 2;
-				types[id] = t;
+			else if (strcmp(subtype.name, "float2") == 0) {
+				t.name = "float2";
+			}
+			else if (strcmp(subtype.name, "float3") == 0) {
+				t.name = "float3";
+			}
+			else if (strcmp(subtype.name, "float4") == 0) {
+				t.name = "float4";
 			}
 		}
+		types[id] = t;
 		break;
 	}
 	case OpTypeVector: {
@@ -377,7 +392,13 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		}
 		if (v.storage == StorageClassFunction && getReference(result) != "param") {
 			output(out);
-			(*out) << types[v.type].name << " " << getReference(result) << ";";
+			Type t = types[v.type];
+			if (t.isarray) {
+				(*out) << t.name << " " << getReference(result) << "[" << t.length << "];\n";
+			}
+			else {
+				(*out) << t.name << " " << getReference(result) << ";";
+			}
 		}
 		break;
 	}

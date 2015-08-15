@@ -180,6 +180,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		unsigned id = inst.operands[0];
 		Type subtype = types[inst.operands[2]];
 		t.name = subtype.name;
+		t.isarray = subtype.isarray;
+		t.length = subtype.length;
 		types[id] = t;
 		break;
 	}
@@ -257,21 +259,26 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	}
 	case OpTypeArray: {
 		Type t;
+		t.name = "unknownarray";
+		t.isarray = true;
 		unsigned id = inst.operands[0];
-		t.name = "?[]";
 		Type subtype = types[inst.operands[1]];
+		t.length = atoi(references[inst.operands[2]].c_str());
 		if (subtype.name != NULL) {
 			if (strcmp(subtype.name, "float") == 0) {
-				t.name = "float[]";
-				t.length = 2;
-				types[id] = t;
+				t.name = "float";
 			}
-			if (strcmp(subtype.name, "vec3") == 0) {
-				t.name = "vec3[]";
-				t.length = 2;
-				types[id] = t;
+			else if (strcmp(subtype.name, "vec2") == 0) {
+				t.name = "vec2";
+			}
+			else if (strcmp(subtype.name, "vec3") == 0) {
+				t.name = "vec3";
+			}
+			else if (strcmp(subtype.name, "vec4") == 0) {
+				t.name = "vec4";
 			}
 		}
+		types[id] = t;
 		break;
 	}
 	case OpTypeVector: {
@@ -355,7 +362,13 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		}
 		if (v.storage == StorageClassFunction && getReference(result) != "param") {
 			output(out);
-			(*out) << types[v.type].name << " " << getReference(result) << ";";
+			Type t = types[v.type];
+			if (t.isarray) {
+				(*out) << t.name << " " << getReference(result) << "[" << t.length << "];";
+			}
+			else {
+				(*out) << t.name << " " << getReference(result) << ";";
+			}
 		}
 		break;
 	}

@@ -19,8 +19,9 @@ namespace krafix {
 	struct Type {
 		const char* name;
 		unsigned length;
+		bool isarray;
 
-		Type() : name("unknown"), length(1) {}
+		Type() : name("unknown"), length(1), isarray(false) {}
 	};
 
 	struct Name {
