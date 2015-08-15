@@ -63,6 +63,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		if (firstLabel) {
 			output(out);
 			if (firstFunction) {
+				(*out) << "float mod(float x, float y) {\n";
+				(*out) << "\treturn x - y * floor(x / y);\n";
+				(*out) << "}\n\n";
+
 				if (stage == EShLangVertex && target.version == 9) {
 					(*out) << "uniform float4 dx_ViewAdjust;";
 				}

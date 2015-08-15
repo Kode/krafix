@@ -770,6 +770,49 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = getReference(inst.operands[2]);
 		break;
 	}
+	case OpFMod: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		unsigned operand1 = inst.operands[2];
+		unsigned operand2 = inst.operands[3];
+		std::stringstream str;
+		str << "mod(" << getReference(operand1) << ", " << getReference(operand2) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpISub: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		unsigned operand1 = inst.operands[2];
+		unsigned operand2 = inst.operands[3];
+		std::stringstream str;
+		str << getReference(operand1) << " - " << getReference(operand2);
+		references[result] = str.str();
+		break;
+	}
+	case OpLogicalOr: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		unsigned operand1 = inst.operands[2];
+		unsigned operand2 = inst.operands[3];
+		std::stringstream str;
+		str << getReference(operand1) << " || " << getReference(operand2);
+		references[result] = str.str();
+		break;
+	}
+	case OpConvertFToS: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		unsigned value = inst.operands[2];
+		std::stringstream str;
+		str << "int(" << getReference(value) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case OpEmitVertex:
 		output(out);
 		(*out) << "EmitVertex();";
