@@ -156,10 +156,26 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450Mix: {
+		std::stringstream str;
+		id x = inst.operands[4];
+		id y = inst.operands[5];
+		id a = inst.operands[6];
+		str << "mix(" << getReference(x) << ", " << getReference(y) << ", " << getReference(a) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case GLSLstd450Floor: {
 		id x = inst.operands[4];
 		std::stringstream str;
 		str << "floor(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case GLSLstd450Exp: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "exp(" << getReference(x) << ")";
 		references[result] = str.str();
 		break;
 	}
@@ -785,6 +801,28 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = getReference(inst.operands[2]);
 		break;
 	}
+	case OpFOrdEqual: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		unsigned operand1 = inst.operands[2];
+		unsigned operand2 = inst.operands[3];
+		std::stringstream str;
+		str << getReference(operand1) << " == " << getReference(operand2);
+		references[result] = str.str();
+		break;
+	}
+	case OpFOrdGreaterThanEqual: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		unsigned operand1 = inst.operands[2];
+		unsigned operand2 = inst.operands[3];
+		std::stringstream str;
+		str << getReference(operand1) << " >= " << getReference(operand2);
+		references[result] = str.str();
+		break;
+	}
 	case OpFMod: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
@@ -826,6 +864,17 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		std::stringstream str;
 		str << "int(" << getReference(value) << ")";
 		references[result] = str.str();
+		break;
+	}
+	case OpLogicalNot: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		unsigned value = inst.operands[2];
+		std::stringstream str;
+		str << "!" << getReference(value);
+		references[result] = str.str();
+		break;
 		break;
 	}
 	case OpEmitVertex:

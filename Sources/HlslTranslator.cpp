@@ -56,6 +56,15 @@ void HlslTranslator::outputLibraryInstruction(const Target& target, std::map<std
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450Mix: {
+		std::stringstream str;
+		id x = inst.operands[4];
+		id y = inst.operands[5];
+		id a = inst.operands[6];
+		str << "lerp(" << getReference(x) << ", " << getReference(y) << ", " << getReference(a) << ")";
+		references[result] = str.str();
+		break;
+	}
 	default:
 		CStyleTranslator::outputLibraryInstruction(target, attributes, inst, entrypoint);
 		break;
