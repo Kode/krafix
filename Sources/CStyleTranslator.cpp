@@ -163,6 +163,21 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450Fract: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "fract(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case GLSLstd450FMax: {
+		std::stringstream str;
+		id p0 = inst.operands[4];
+		id p1 = inst.operands[5];
+		str << "max(" << getReference(p0) << ", " << getReference(p1) << ")";
+		references[result] = str.str();
+		break;
+	}
 	default:
 		output(out);
 		(*out) << "// Unknown GLSL instruction " << entrypoint;

@@ -49,6 +49,13 @@ void HlslTranslator::outputLibraryInstruction(const Target& target, std::map<std
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450Fract: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "frac(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
 	default:
 		CStyleTranslator::outputLibraryInstruction(target, attributes, inst, entrypoint);
 		break;
