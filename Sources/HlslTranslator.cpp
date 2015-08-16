@@ -110,7 +110,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							(*out) << "uniform " << t.name << " " << n.name << ";\n";
 						}
 					}
-					else if (variable.storage != StorageClassInput && variable.storage != StorageClassOutput) {
+					else {
 						if (t.isarray) {
 							(*out) << "static " << t.name << " " << n.name << "[" << t.length << "];\n";
 						}
@@ -240,21 +240,14 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				--indentation;
 				indent(out);
 				(*out) << "};\n\n";
-				firstFunction = false;
-			}
 
-			if (funcName != "main") {
-				(*out) << funcType << " " << funcName << "(";
-				for (unsigned i = 0; i < parameters.size(); ++i) {
-					(*out) << parameters[i].type.name << " " << getReference(parameters[i].id);
-					if (i < parameters.size() - 1) (*out) << ", ";
+				if (stage == EShLangFragment) {
+					(*out) << "void frag_main();\n\n";
 				}
-				(*out) << ");\n";
-			}
+				else {
+					(*out) << "void vert_main();\n\n";
+				}
 
-			startFunction(funcName);
-
-			if (funcName == "main") {
 				if (target.system == Unknown) {
 					if (stage == EShLangFragment) {
 						(*out) << "Output2 frag(Input2 input)\n";
@@ -271,6 +264,87 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						(*out) << "Output main(Input input)\n";
 					}
 				}
+
+				indent(out);
+				(*out) << "{\n";
+				++indentation;
+
+				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
+					Variable variable = sortedVariables[i];
+
+					Type t = types[variable.type];
+					Name n = names[variable.id];
+
+					if (variable.storage == StorageClassInput) {
+						indent(out);
+						(*out) << n.name << " = input." << n.name << ";\n";
+					}
+				}
+
+				indent(out);
+				if (stage == EShLangFragment) {
+					(*out) << "frag_main();\n";
+				}
+				else {
+					(*out) << "vert_main();\n";
+				}
+				indent(out);
+				if (stage == EShLangFragment) {
+					(*out) << "Output2 output;\n";
+				}
+				else {
+					(*out) << "Output output;\n";
+				}
+
+				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
+					Variable variable = sortedVariables[i];
+
+					Type t = types[variable.type];
+					Name n = names[variable.id];
+
+					if (variable.storage == StorageClassOutput) {
+						indent(out);
+						(*out) << "output." << n.name << " = " << n.name << ";\n";
+					}
+				}
+
+				indent(out);
+				if (stage == EShLangVertex) {
+					if (target.version == 9 && target.system != Unknown) {
+						(*out) << "output." << positionName << ".x = output." << positionName << ".x - dx_ViewAdjust.x * output." << positionName << ".w;\n";
+						indent(out);
+						(*out) << "output." << positionName << ".y = output." << positionName << ".y + dx_ViewAdjust.y * output." << positionName << ".w;\n";
+						indent(out);
+					}
+					(*out) << "output." << positionName << ".z = (output." << positionName << ".z + output." << positionName << ".w) * 0.5;\n";
+					indent(out);
+				}
+				(*out) << "return output;\n";
+
+				--indentation;
+				(*out) << "}\n\n";
+
+				firstFunction = false;
+			}
+
+			if (funcName != "main") {
+				(*out) << funcType << " " << funcName << "(";
+				for (unsigned i = 0; i < parameters.size(); ++i) {
+					(*out) << parameters[i].type.name << " " << getReference(parameters[i].id);
+					if (i < parameters.size() - 1) (*out) << ", ";
+				}
+				(*out) << ");\n";
+			}
+
+			startFunction(funcName);
+
+			if (funcName == "main") {
+				if (stage == EShLangFragment) {
+					(*out) << "void frag_main()\n";
+				}
+				else {
+					(*out) << "void vert_main()\n";
+				}
 			}
 			else {
 				(*out) << funcType << " " << funcName << "(";
@@ -283,30 +357,6 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			indent(out);
 			(*out) << "{";
 			++indentation;
-
-			if (funcName == "main") {
-				(*out) << "\n";
-				indent(out);
-				if (stage == EShLangFragment) {
-					(*out) << "Output2 output;\n";
-				}
-				else {
-					(*out) << "Output output;\n";
-				}
-				for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
-					Variable variable = v->second;
-					if (variable.storage == StorageClassOutput) {
-						Type t = types[variable.type];
-						Name n = names[variable.id];
-						indent(out);
-						(*out) << "output." << n.name << " = ";
-						if (t.name == "float") (*out) << "0.0;\n";
-						if (t.name == "float2") (*out) << "float2(0.0, 0.0);\n";
-						if (t.name == "float3") (*out) << "float3(0.0, 0.0, 0.0);\n";
-						if (t.name == "float4") (*out) << "float4(0.0, 0.0, 0.0, 0.0);\n";
-					}
-				}
-			}
 
 			firstLabel = false;
 		}
@@ -399,15 +449,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		v.storage = (StorageClass)inst.operands[2];
 		v.declared = true; // v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
 		if (names.find(result) != names.end()) {
-			if (v.storage == StorageClassInput) {
-				references[result] = std::string("input.") + names[result].name;
-			}
-			else if (v.storage == StorageClassOutput) {
-				references[result] = std::string("output.") + names[result].name;
-			}
-			else {
-				references[result] = names[result].name;
-			}
+			references[result] = names[result].name;
 		}
 		if (v.storage == StorageClassFunction && getReference(result) != "param") {
 			output(out);
@@ -486,17 +528,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	}
 	case OpReturn:
 		output(out);
-		if (stage == EShLangVertex) {
-			if (target.version == 9 && target.system != Unknown) {
-				(*out) << "output." << positionName << ".x = output." << positionName << ".x - dx_ViewAdjust.x * output." << positionName << ".w;\n";
-				indent(out);
-				(*out) << "output." << positionName << ".y = output." << positionName << ".y + dx_ViewAdjust.y * output." << positionName << ".w;\n";
-				indent(out);
-			}
-			(*out) << "output." << positionName << ".z = (output." << positionName << ".z + output." << positionName << ".w) * 0.5;\n";
-			indent(out);
-		}
-		(*out) << "return output;";
+		(*out) << "return;";
 		break;
 	case OpStore: {
 		Variable& v = variables[inst.operands[0]];
