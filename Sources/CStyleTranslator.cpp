@@ -194,6 +194,23 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450Step: {
+		std::stringstream str;
+		id edge = inst.operands[4];
+		id x = inst.operands[5];
+		str << "step(" << getReference(edge) << ", " << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case GLSLstd450SmoothStep: {
+		std::stringstream str;
+		id edge0 = inst.operands[4];
+		id edge1 = inst.operands[5];
+		id x = inst.operands[6];
+		str << "step(" << getReference(edge0) << ", " << getReference(edge1) << ", " << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
 	default:
 		output(out);
 		(*out) << "// Unknown GLSL instruction " << entrypoint;
