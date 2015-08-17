@@ -514,6 +514,17 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
+	case OpFOrdNotEqual: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		id op1 = inst.operands[2];
+		id op2 = inst.operands[3];
+		std::stringstream str;
+		str << "(" << getReference(op1) << " != " << getReference(op2) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case OpLogicalAnd: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
