@@ -97,6 +97,9 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								(*out) << "in " << t.name << " " << n.name << ";\n";
 							}
 						}
+						else if (variable.storage == StorageClassOutput) {
+
+						}
 						else if (variable.storage == StorageClassUniformConstant) {
 							if (t.isarray) {
 								(*out) << "uniform " << t.name << " " << n.name << "[" << t.length << "];\n";

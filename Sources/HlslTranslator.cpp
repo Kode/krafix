@@ -209,7 +209,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								(*out) << t.name << " " << n.name << " : SV_POSITION;\n";
 							}
 						}
-						else if (variable.builtin && stage == EShLangFragment) {
+						else if (stage == EShLangFragment) {
 							indent(out);
 							(*out) << t.name << " " << n.name << " : COLOR;\n";
 						}
@@ -226,7 +226,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						if (variable.builtin && stage == EShLangVertex) {
 
 						}
-						else if (variable.builtin && stage == EShLangFragment) {
+						else if (stage == EShLangFragment) {
 
 						}
 						else {
