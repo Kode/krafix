@@ -52,7 +52,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Variable& variable = v->second;
 
 					Type t = types[variable.type];
-					Name n = names[id];
+					std::string name = getReference(id);
 
 					if (variable.builtin) {
 						continue;
@@ -62,39 +62,39 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					case EShLangVertex:
 						if (variable.storage == StorageClassInput) {
 							if (target.version < 300) {
-								(*out) << "attribute " << t.name << " " << n.name << ";\n";
+								(*out) << "attribute " << t.name << " " << name << ";\n";
 							}
 							else {
-								(*out) << "in " << t.name << " " << n.name << ";\n";
+								(*out) << "in " << t.name << " " << name << ";\n";
 							}
 						}
 						else if (variable.storage == StorageClassOutput) {
 							if (target.version < 300) {
-								(*out) << "varying " << t.name << " " << n.name << ";\n";
+								(*out) << "varying " << t.name << " " << name << ";\n";
 							}
 							else {
-								(*out) << "out " << t.name << " " << n.name << ";\n";
+								(*out) << "out " << t.name << " " << name << ";\n";
 							}
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
 							if (t.isarray) {
-								(*out) << "uniform " << t.name << " " << n.name << "[" << t.length << "];\n";
+								(*out) << "uniform " << t.name << " " << name << "[" << t.length << "];\n";
 							}
 							else {
-								(*out) << "uniform " << t.name << " " << n.name << ";\n";
+								(*out) << "uniform " << t.name << " " << name << ";\n";
 							}
 						}
 						else {
-							(*out) << t.name << " " << n.name << ";\n";
+							(*out) << t.name << " " << name << ";\n";
 						}
 						break;
 					case EShLangFragment:
 						if (variable.storage == StorageClassInput) {
 							if (target.version < 300) {
-								(*out) << "varying " << t.name << " " << n.name << ";\n";
+								(*out) << "varying " << t.name << " " << name << ";\n";
 							}
 							else {
-								(*out) << "in " << t.name << " " << n.name << ";\n";
+								(*out) << "in " << t.name << " " << name << ";\n";
 							}
 						}
 						else if (variable.storage == StorageClassOutput) {
@@ -102,35 +102,35 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
 							if (t.isarray) {
-								(*out) << "uniform " << t.name << " " << n.name << "[" << t.length << "];\n";
+								(*out) << "uniform " << t.name << " " << name << "[" << t.length << "];\n";
 							}
 							else {
-								(*out) << "uniform " << t.name << " " << n.name << ";\n";
+								(*out) << "uniform " << t.name << " " << name << ";\n";
 							}
 						}
 						else {
-							(*out) << t.name << " " << n.name << ";\n";
+							(*out) << t.name << " " << name << ";\n";
 						}
 						break;
 					case EShLangGeometry:
 					case EShLangTessControl:
 					case EShLangTessEvaluation:
 						if (variable.storage == StorageClassInput) {
-							(*out) << "in " << t.name << " " << n.name << ";\n";
+							(*out) << "in " << t.name << " " << name << ";\n";
 						}
 						else if (variable.storage == StorageClassOutput) {
-							(*out) << "out " << t.name << " " << n.name << ";\n";
+							(*out) << "out " << t.name << " " << name << ";\n";
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
 							if (t.isarray) {
-								(*out) << "uniform " << t.name << " " << n.name << "[" << t.length << "];\n";
+								(*out) << "uniform " << t.name << " " << name << "[" << t.length << "];\n";
 							}
 							else {
-								(*out) << "uniform " << t.name << " " << n.name << ";\n";
+								(*out) << "uniform " << t.name << " " << name << ";\n";
 							}
 						}
 						else {
-							(*out) << t.name << " " << n.name << ";\n";
+							(*out) << t.name << " " << name << ";\n";
 						}
 						break;
 					}

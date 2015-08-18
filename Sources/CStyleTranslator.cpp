@@ -223,10 +223,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 
 	switch (inst.opcode) {
 	case OpName: {
-		Name n;
 		unsigned id = inst.operands[0];
-		n.name = inst.string;
-		names[id] = n;
+		if (strcmp(inst.string, "") != 0) {
+			Name n; 
+			n.name = inst.string;
+			names[id] = n;
+		}
 		break;
 	}
 	case OpTypePointer: {
@@ -257,6 +259,15 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type t;
 		unsigned id = inst.operands[0];
 		t.name = "bool";
+		types[id] = t;
+		break;
+	}
+	case OpTypeStruct: {
+		Type t;
+		unsigned id = inst.operands[0];
+		// TODO: members
+		Name n = names[id];
+		t.name = n.name;
 		types[id] = t;
 		break;
 	}
