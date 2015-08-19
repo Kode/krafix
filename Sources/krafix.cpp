@@ -695,13 +695,42 @@ std::string removeExtension(std::string filename) {
 	else return filename.substr(0, i);
 }
 
+class KrafixIncluder : public glslang::TShader::Includer {
+public:
+	KrafixIncluder(std::string from) {
+		dir = from;
+		for (int i = from.size() - 1; i >= 0; --i) {
+			if (dir[i] == '/' || dir[i] == '\\') {
+				dir = dir.substr(0, i + 1);
+				break;
+			}
+		}
+	}
+
+	std::pair<std::string, std::string> include(const char* filename) const override {
+		std::string realfilename = dir + filename;
+		std::stringstream content;
+		std::string line;
+		std::ifstream file(realfilename);
+		if (file.is_open()) {
+			while (getline(file, line)) {
+				content << line << '\n';
+			}
+			file.close();
+		}
+		return std::make_pair<std::string, std::string>(std::move(realfilename), content.str());
+	}
+private:
+	std::string dir;
+};
+
 //
 // For linking mode: Will independently parse each item in the worklist, but then put them
 // in the same program and link them together.
 //
 // Uses the new C++ interface instead of the old handle-based interface.
 //
-void CompileAndLinkShaders(krafix::Target target, const char* filename, const char* tempdir, const char* kfx)
+void CompileAndLinkShaders(krafix::Target target, const char* filename, const char* tempdir, const char* kfx, const glslang::TShader::Includer& includer)
 {
     // keep track of what to free
     std::list<glslang::TShader*> shaders;
@@ -733,7 +762,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
         if (Options & EOptionOutputPreprocessed) {
             std::string str;
             if (shader->preprocess(&Resources, defaultVersion, ENoProfile, false, false,
-                                   messages, &str, glslang::TShader::ForbidInclude())) {
+                                   messages, &str, includer)) {
                 PutsIfNonEmpty(str.c_str());
             } else {
                 CompileFailed = true;
@@ -743,13 +772,13 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
             FreeFileData(shaderStrings);
             continue;
         }
-        if (! shader->parse(&Resources, defaultVersion, false, messages))
+		if (! shader->parse(&Resources, defaultVersion, ENoProfile, false, false, messages, includer))
             CompileFailed = true;
 
         program.addShader(shader);
 
         if (! (Options & EOptionSuppressInfolog)) {
-            PutsIfNonEmpty(workItem->name.c_str());
+            //PutsIfNonEmpty(workItem->name.c_str());
             PutsIfNonEmpty(shader->getInfoLog());
             PutsIfNonEmpty(shader->getInfoDebugLog());
         }
@@ -874,7 +903,7 @@ int C_DECL main(int argc, char* argv[]) {
 	//Options |= EOptionHumanReadableSpv;
 	Options |= EOptionSpv;
 	Options |= EOptionLinkProgram;
-	Options |= EOptionSuppressInfolog;
+	//Options |= EOptionSuppressInfolog;
 
 	NumWorkItems = 1;
 	Work = new glslang::TWorkItem*[NumWorkItems];
@@ -890,6 +919,7 @@ int C_DECL main(int argc, char* argv[]) {
 
 	glslang::InitializeProcess();
 	
+	KrafixIncluder includer(name);
 	krafix::Target target;
 	target.system = getSystem(argv[5]);
 	target.es = false;
@@ -897,36 +927,36 @@ int C_DECL main(int argc, char* argv[]) {
 	if (strcmp(argv[1], "d3d9") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 9;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
 	}
 	else if (strcmp(argv[1], "d3d11") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 11;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
 	}
 	else if (strcmp(argv[1], "glsl") == 0) {
 		target.lang = krafix::GLSL;
 		if (target.system == krafix::Linux) target.version = 100;
 		else target.version = 330;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
 	}
 	else if (strcmp(argv[1], "essl") == 0) {
 		target.lang = krafix::GLSL;
 		target.version = 100;
 		target.es = true;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
 	}
 	else if (strcmp(argv[1], "agal") == 0) {
 		target.lang = krafix::GLSL;
 		target.version = 100;
 		target.es = true;
 		target.kore = true;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
 	}
 	else if (strcmp(argv[1], "metal") == 0) {
 		target.lang = krafix::Metal;
 		target.version = 1;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx);
+		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
 	}
 	else {
 		std::cout << "Unknown profile " << argv[1] << std::endl;
@@ -1117,7 +1147,9 @@ void CompileFile(const char* fileName, ShHandle compiler)
 //
 void usage()
 {
-    printf("Usage: glslangValidator [option]... [file]...\n"
+	printf("Usage: krafix profile in out tempdir system\n");
+
+    /*printf("Usage: glslangValidator [option]... [file]...\n"
            "\n"
            "Where: each 'file' ends in .<stage>, where <stage> is one of\n"
            "    .conf   to provide an optional config file that replaces the default configuration\n"
@@ -1156,7 +1188,7 @@ void usage()
            "  -t          multi-threaded mode\n"
            "  -v          print version strings\n"
            "  -w          suppress warnings (except as required by #extension : warn)\n"
-           );
+           );*/
 
     exit(EFailUsage);
 }
