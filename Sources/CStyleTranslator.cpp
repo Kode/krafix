@@ -207,7 +207,7 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		id edge0 = inst.operands[4];
 		id edge1 = inst.operands[5];
 		id x = inst.operands[6];
-		str << "step(" << getReference(edge0) << ", " << getReference(edge1) << ", " << getReference(x) << ")";
+		str << "smoothstep(" << getReference(edge0) << ", " << getReference(edge1) << ", " << getReference(x) << ")";
 		references[result] = str.str();
 		break;
 	}
