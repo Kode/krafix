@@ -16,12 +16,14 @@ namespace krafix {
 
 	enum TargetSystem {
 		Windows,
+		WindowsApp,
 		OSX,
 		Linux,
 		iOS,
 		Android,
 		HTML5,
 		Flash,
+		Unity,
 		Unknown
 	};
 

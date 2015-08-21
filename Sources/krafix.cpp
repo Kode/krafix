@@ -35,7 +35,6 @@
 //
 
 // this only applies to the standalone wrapper, not the front end in general
-#define _CRT_SECURE_NO_WARNINGS
 
 #include "../glslang/StandAlone/Worklist.h"
 #include "./../glslang/Include/ShHandle.h"
@@ -828,7 +827,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
 						break;
 					}
 					
-					if (target.lang == krafix::HLSL && target.system != krafix::Unknown) {
+					if (target.lang == krafix::HLSL && target.system != krafix::Unity) {
 						std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(filename)) + ".hlsl";
 						translator->outputCode(target, temp.c_str(), attributes);
 						if (target.version == 9) {
@@ -879,12 +878,14 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
 
 krafix::TargetSystem getSystem(const char* system) {
 	if (strcmp(system, "windows") == 0) return krafix::Windows;
+	if (strcmp(system, "windowsapp") == 0) return krafix::WindowsApp;
 	if (strcmp(system, "osx") == 0) return krafix::OSX;
 	if (strcmp(system, "linux") == 0) return krafix::Linux;
 	if (strcmp(system, "ios") == 0) return krafix::iOS;
 	if (strcmp(system, "android") == 0) return krafix::Android;
 	if (strcmp(system, "html5") == 0) return krafix::HTML5;
 	if (strcmp(system, "flash") == 0) return krafix::Flash;
+	if (strcmp(system, "unity") == 0) return krafix::Unity;
 	return krafix::Unknown;
 }
 

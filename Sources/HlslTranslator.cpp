@@ -132,7 +132,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					indent(out);
 					(*out) << "float4 gl_Position : SV_POSITION;\n";
 				}
-				else if (stage == EShLangFragment && target.version == 9 && target.system == Unknown) {
+				else if (stage == EShLangFragment && target.version == 9 && target.system == Unity) {
 					indent(out);
 					(*out) << "float4 gl_Position : POSITION;\n";
 				}
@@ -147,7 +147,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					if (variable.storage == StorageClassInput) {
 						indent(out);
-						if (stage == EShLangVertex && target.system == Unknown) {
+						if (stage == EShLangVertex && target.system == Unity) {
 							if (t.name == "float") {
 								(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
 								++uvindex;
@@ -248,7 +248,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "void vert_main();\n\n";
 				}
 
-				if (target.system == Unknown) {
+				if (target.system == Unity) {
 					if (stage == EShLangFragment) {
 						(*out) << "Output2 frag(Input2 input)\n";
 					}
@@ -310,7 +310,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 				indent(out);
 				if (stage == EShLangVertex) {
-					if (target.version == 9 && target.system != Unknown) {
+					if (target.version == 9 && target.system != Unity) {
 						(*out) << "output." << positionName << ".x = output." << positionName << ".x - dx_ViewAdjust.x * output." << positionName << ".w;\n";
 						indent(out);
 						(*out) << "output." << positionName << ".y = output." << positionName << ".y + dx_ViewAdjust.y * output." << positionName << ".w;\n";
@@ -517,7 +517,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		id sampler = inst.operands[2];
 		id coordinate = inst.operands[3];
 		std::stringstream str;
-		if (target.system == Unknown) {
+		if (target.system == Unity) {
 			str << "tex2D(" << getReference(sampler) << ", float2(" << getReference(coordinate) << ".x, 1.0 - " << getReference(coordinate) << ".y))";
 		}
 		else {
