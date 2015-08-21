@@ -79,9 +79,11 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		if (firstLabel) {
 			output(out);
 			if (firstFunction) {
-				(*out) << "float mod(float x, float y) {\n";
-				(*out) << "\treturn x - y * floor(x / y);\n";
-				(*out) << "}\n\n";
+				if (target.system != Unity) {
+					(*out) << "float mod(float x, float y) {\n";
+					(*out) << "\treturn x - y * floor(x / y);\n";
+					(*out) << "}\n\n";
+				}
 
 				if (stage == EShLangVertex && target.version == 9) {
 					(*out) << "uniform float4 dx_ViewAdjust;";
@@ -111,11 +113,21 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						}
 					}
 					else {
-						if (t.isarray) {
-							(*out) << "static " << t.name << " " << n.name << "[" << t.length << "];\n";
+						if (stage == EShLangVertex) {
+							if (t.isarray) {
+								(*out) << "static " << t.name << " v_" << n.name << "[" << t.length << "];\n";
+							}
+							else {
+								(*out) << "static " << t.name << " v_" << n.name << ";\n";
+							}
 						}
 						else {
-							(*out) << "static " << t.name << " " << n.name << ";\n";
+							if (t.isarray) {
+								(*out) << "static " << t.name << " f_" << n.name << "[" << t.length << "];\n";
+							}
+							else {
+								(*out) << "static " << t.name << " f_" << n.name << ";\n";
+							}
 						}
 					}
 				}
@@ -277,7 +289,12 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					if (variable.storage == StorageClassInput) {
 						indent(out);
-						(*out) << n.name << " = input." << n.name << ";\n";
+						if (stage == EShLangVertex) {
+							(*out) << "v_" << n.name << " = input." << n.name << ";\n";
+						}
+						else {
+							(*out) << "f_" << n.name << " = input." << n.name << ";\n";
+						}
 					}
 				}
 
@@ -304,7 +321,12 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					if (variable.storage == StorageClassOutput) {
 						indent(out);
-						(*out) << "output." << n.name << " = " << n.name << ";\n";
+						if (stage == EShLangVertex) {
+							(*out) << "output." << n.name << " = v_" << n.name << ";\n";
+						}
+						else {
+							(*out) << "output." << n.name << " = f_" << n.name << ";\n";
+						}
 					}
 				}
 
@@ -449,7 +471,17 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		v.storage = (StorageClass)inst.operands[2];
 		v.declared = true; // v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
 		if (names.find(result) != names.end()) {
-			references[result] = names[result].name;
+			if (v.storage == StorageClassInput || v.storage == StorageClassOutput) {
+				if (stage == EShLangVertex) {
+					references[result] = std::string("v_") + names[result].name;
+				}
+				else {
+					references[result] = std::string("f_") + names[result].name;
+				}
+			}
+			else {
+				references[result] = names[result].name;
+			}
 		}
 		if (v.storage == StorageClassFunction && getReference(result) != "param") {
 			output(out);
