@@ -828,7 +828,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
 					}
 					
 					if (target.lang == krafix::HLSL && target.system != krafix::Unity) {
-						std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(filename)) + ".hlsl";
+						std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(workItem->name)) + ".hlsl";
 						translator->outputCode(target, temp.c_str(), attributes);
 						if (target.version == 9) {
 							compileHLSLToD3D9(temp.c_str(), filename, attributes, (EShLanguage)stage);
@@ -839,7 +839,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
 					}
 					else if (target.system == krafix::Flash) {
 						if (kfx != NULL) {
-							std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(filename)) + ".glsl";
+							std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(workItem->name)) + ".glsl";
 							translator->outputCode(target, temp.c_str(), attributes);
 							std::stringstream command;
 							command << "\"" << kfx << "\" " << "agal" << " " << temp << " " << filename << " " << tempdir;
