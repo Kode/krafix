@@ -948,7 +948,7 @@ int C_DECL main(int argc, char* argv[]) {
 		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
 	}
 	else if (strcmp(argv[1], "agal") == 0) {
-		target.lang = krafix::GLSL;
+		target.lang = krafix::AGAL;
 		target.version = 100;
 		target.es = true;
 		target.kore = true;

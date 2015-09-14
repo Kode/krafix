@@ -14,6 +14,71 @@ namespace {
 		Variable() : builtin(false) {}
 	};
 
+	std::map<unsigned, Variable> variables;
+
+	enum Opcode {
+		add,
+		mov,
+		m44,
+		unknown
+	};
+
+	enum RegisterType {
+		Attribute,
+		Constant,
+		Temporary,
+		VertexOutput,
+		FragmentOutput,
+		Varying,
+		Sampler,
+		Unused
+	};
+
+	struct Register {
+		RegisterType type;
+		int number;
+		unsigned spirIndex;
+
+		Register() : type(Unused), number(-1), spirIndex(0) { }
+
+		Register(unsigned spirIndex) : number(-1), spirIndex(spirIndex) {
+			if (variables.find(spirIndex) == variables.end()) {
+				type = Temporary;
+			}
+			else {
+				Variable variable = variables[spirIndex];
+				switch (variable.storage) {
+				case spv::StorageClassUniformConstant:
+					type = Constant;
+					break;
+				case spv::StorageClassInput:
+					type = Attribute;
+					break;
+				case spv::StorageClassUniform:
+					type = Constant;
+					break;
+				case spv::StorageClassOutput:
+					type = Varying;
+					break;
+				case spv::StorageClassFunction:
+					type = Temporary;
+					break;
+				}
+			}
+		}
+	};
+
+	struct Agal {
+		Opcode opcode;
+		Register destination;
+		Register source1;
+		Register source2;
+
+		Agal(Opcode opcode, Register destination, Register source1) : opcode(opcode), destination(destination), source1(source1) { }
+
+		Agal(Opcode opcode, Register destination, Register source1, Register source2) : opcode(opcode), destination(destination), source1(source1), source2(source2) { }
+	};
+
 	struct Type {
 		const char* name;
 		unsigned length;
@@ -38,6 +103,85 @@ namespace {
 			return "w";
 		}
 	}
+
+	void assignRegisterNumber(Register& reg, std::map<unsigned, int>& assigned, int& nextTemporary, int& nextAttribute, int& nextVarying, int& nextConstant) {
+		if (reg.type == Unused) return;
+
+		if (assigned.find(reg.spirIndex) != assigned.end()) {
+			reg.number = assigned[reg.spirIndex];
+		}
+		else {
+			switch (reg.type) {
+			case Temporary:
+				reg.number = nextTemporary;
+				assigned[reg.spirIndex] = nextTemporary;
+				++nextTemporary;
+				break;
+			case Attribute:
+				reg.number = nextAttribute;
+				assigned[reg.spirIndex] = nextAttribute;
+				++nextAttribute;
+				break;
+			case Varying:
+				reg.number = nextVarying;
+				assigned[reg.spirIndex] = nextVarying;
+				++nextVarying;
+				break;
+			case Constant:
+				reg.number = nextConstant;
+				assigned[reg.spirIndex] = nextConstant;
+				++nextConstant;
+				break;
+			}
+		}
+	}
+
+	void assignRegisterNumbers(std::vector<Agal>& agal) {
+		std::map<unsigned, int> assigned;
+		int nextTemporary = 0;
+		int nextAttribute = 0;
+		int nextVarying = 0;
+		int nextConstant = 0;
+
+		for (unsigned i = 0; i < agal.size(); ++i) {
+			Agal& instruction = agal[i];
+			assignRegisterNumber(instruction.destination, assigned, nextTemporary, nextAttribute, nextVarying, nextConstant);
+			assignRegisterNumber(instruction.source1, assigned, nextTemporary, nextAttribute, nextVarying, nextConstant);
+			assignRegisterNumber(instruction.source2, assigned, nextTemporary, nextAttribute, nextVarying, nextConstant);
+		}
+	}
+
+	void outputRegister(std::ostream& out, Register reg) {
+		switch (reg.type) {
+		case Attribute:
+			out << "va";
+			break;
+		case Constant:
+			out << "vc";
+			break;
+		case Temporary:
+			out << "vt";
+			break;
+		case VertexOutput:
+			out << "op";
+			break;
+		case FragmentOutput:
+			out << "oc";
+			break;
+		case Varying:
+			out << "v";
+			break;
+		case Sampler:
+			out << "fs";
+			break;
+		case Unused:
+			out << "unused";
+			break;
+		}
+		if (reg.type != VertexOutput && reg.type != FragmentOutput) {
+			out << reg.number;
+		}
+	}
 }
 
 void AgalTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
@@ -45,10 +189,9 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 
 	std::map<unsigned, Name> names;
 	std::map<unsigned, Type> types;
-	std::map<unsigned, Variable> variables;
+	variables.clear();
 
-	std::ofstream out;
-	out.open(filename, std::ios::binary | std::ios::out);
+	std::vector<Agal> agal;
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
@@ -130,7 +273,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		case OpConstant: {
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
-			out << "const " << resultType.name << " _" << result << " = " << *(float*)&inst.operands[2] << ";\n";
+			//out << "const " << resultType.name << " _" << result << " = " << *(float*)&inst.operands[2] << ";\n";
 			break;
 		}
 		case OpVariable: {
@@ -141,54 +284,24 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			break;
 		}
 		case OpFunction:
-			for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
-				unsigned id = v->first;
-				Variable& variable = v->second;
 
-				if (variable.builtin) continue;
-
-				Type t = types[variable.type];
-				Name n = names[id];
-
-				switch (stage) {
-				case EShLangVertex:
-					if (variable.storage == StorageClassInput) {
-						out << "attribute " << t.name << " " << n.name << ";\n";
-					}
-					else if (variable.storage == StorageClassOutput) {
-						out << "varying " << t.name << " " << n.name << ";\n";
-					}
-					else if (variable.storage == StorageClassUniformConstant) {
-						out << "uniform " << t.name << " " << n.name << ";\n";
-					}
-					break;
-				case EShLangFragment:
-					if (variable.storage == StorageClassInput) {
-						out << "varying " << t.name << " " << n.name << ";\n";
-					}
-					else if (variable.storage == StorageClassUniformConstant) {
-						out << "uniform " << t.name << " " << n.name << ";\n";
-					}
-					break;
-				}
-			}
 			break;
 		case OpFunctionEnd:
 			break;
 		case OpCompositeConstruct: {
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
-			out << "\t" << resultType.name << " _" << result << " = vec4(_"
-				<< inst.operands[2] << ", _" << inst.operands[3] << ", _"
-				<< inst.operands[4] << ", _" << inst.operands[5] << ");\n";
+			//out << "\t" << resultType.name << " _" << result << " = vec4(_"
+			//	<< inst.operands[2] << ", _" << inst.operands[3] << ", _"
+			//	<< inst.operands[4] << ", _" << inst.operands[5] << ");\n";
 			break;
 		}
 		case OpCompositeExtract: {
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
 			unsigned composite = inst.operands[2];
-			out << "\t" << resultType.name << " _" << result << " = _"
-				<< composite << "." << indexName(inst.operands[3]) << ";\n";
+			//out << "\t" << resultType.name << " _" << result << " = _"
+			//	<< composite << "." << indexName(inst.operands[3]) << ";\n";
 			break;
 		}
 		case OpMatrixTimesVector: {
@@ -196,7 +309,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned result = inst.operands[1];
 			unsigned matrix = inst.operands[2];
 			unsigned vector = inst.operands[3];
-			out << "\t" << resultType.name << " _" << result << " = _" << matrix << " * _" << vector << ";\n";
+			agal.push_back(Agal(m44, Register(result), Register(matrix), Register(vector)));
 			break;
 		}
 		case OpImageSampleImplicitLod: {
@@ -204,7 +317,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned result = inst.operands[1];
 			unsigned sampler = inst.operands[2];
 			unsigned coordinate = inst.operands[3];
-			out << "\t" << resultType.name << " _" << result << " = texture2D(_" << sampler << ", _" << coordinate << ");\n";
+			//out << "\t" << resultType.name << " _" << result << " = texture2D(_" << sampler << ", _" << coordinate << ");\n";
 			break;
 		}
 		case OpVectorShuffle: {
@@ -215,14 +328,14 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned vector2 = inst.operands[3];
 			unsigned vector2length = 4; // types[variables[inst.operands[3]].type].length;
 
-			out << "\t" << resultType.name << " _" << result << " = " << resultType.name << "(";
-			for (unsigned i = 4; i < inst.length; ++i) {
-				unsigned index = inst.operands[i];
-				if (index < vector1length) out << "_" << vector1 << "." << indexName(index);
-				else out << "_" << vector2 << "." << indexName(index - vector1length);
-				if (i < inst.length - 1) out << ", ";
-			}
-			out << ");\n";
+			//out << "\t" << resultType.name << " _" << result << " = " << resultType.name << "(";
+			//for (unsigned i = 4; i < inst.length; ++i) {
+			//	unsigned index = inst.operands[i];
+			//	if (index < vector1length) out << "_" << vector1 << "." << indexName(index);
+			//	else out << "_" << vector2 << "." << indexName(index - vector1length);
+			//	if (i < inst.length - 1) out << ", ";
+			//}
+			//out << ");\n";*/
 			break;
 		}
 		case OpFMul: {
@@ -230,8 +343,8 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned result = inst.operands[1];
 			unsigned operand1 = inst.operands[2];
 			unsigned operand2 = inst.operands[3];
-			out << "\t" << resultType.name << " _" << result << " = _"
-				<< operand1 << " * _" << operand2 << ";\n";
+			//out << "\t" << resultType.name << " _" << result << " = _"
+			//	<< operand1 << " * _" << operand2 << ";\n";
 			break;
 		}
 		case OpVectorTimesScalar: {
@@ -239,8 +352,8 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned result = inst.operands[1];
 			unsigned vector = inst.operands[2];
 			unsigned scalar = inst.operands[3];
-			out << "\t" << resultType.name << " _" << result << " = _"
-				<< vector << " * _" << scalar << ";\n";
+			//out << "\t" << resultType.name << " _" << result << " = _"
+			//	<< vector << " * _" << scalar << ";\n";
 			break;
 		}
 		case OpReturn:
@@ -274,33 +387,61 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			break;
 		case OpSource:
 			break;
+		case OpCapability:
+			break;
 		case OpLoad: {
-			Type t = types[inst.operands[0]];
-			Variable& v = variables[inst.operands[2]];
-			if (names.find(inst.operands[2]) != names.end()) {
-				Name n = names[inst.operands[2]];
-				out << "mov " << inst.operands[1] << ", " << inst.operands[2] << "\n";
-			}
-			else {
-				out << "mov " << inst.operands[1] << ", " << inst.operands[2] << "\n";
-			}
+			agal.push_back(Agal(mov, Register(inst.operands[1]), Register(inst.operands[2])));
 			break;
 		}
 		case OpStore: {
 			Variable v = variables[inst.operands[0]];
 			if (v.builtin && stage == EShLangFragment) {
-				out << "mov oc, " << inst.operands[1] << "\n";
+				Register oc;
+				oc.type = FragmentOutput;
+				oc.number = 0;
+				agal.push_back(Agal(mov, oc, Register(inst.operands[1])));
 			}
 			else {
-				out << "mov " << inst.operands[0] << ", " << inst.operands[1] << "\n";
+				agal.push_back(Agal(mov, Register(inst.operands[0]), Register(inst.operands[1])));
 			}
 			break;
 		}
 		default:
-			out << "Unknown operation " << inst.opcode << ".\n";
+			Agal instruction(unknown, Register(), Register());
+			instruction.destination.number = inst.opcode;
+			agal.push_back(instruction);
 			break;
 		}
 	}
 
+	assignRegisterNumbers(agal);
+
+	std::ofstream out;
+	out.open(filename, std::ios::binary | std::ios::out);
+	for (unsigned i = 0; i < agal.size(); ++i) {
+		Agal instruction = agal[i];
+		switch (instruction.opcode) {
+		case mov:
+			out << "mov";
+			break;
+		case add:
+			out << "add";
+			break;
+		case m44:
+			out << "m44";
+			break;
+		case unknown:
+			out << "unknown";
+		}
+		out << " ";
+		outputRegister(out, instruction.destination);
+		out << ", ";
+		outputRegister(out, instruction.source1);
+		if (instruction.source2.type != Unused) {
+			out << ", ";
+			outputRegister(out, instruction.source2);
+		}
+		out << "\n";
+	}
 	out.close();
 }
