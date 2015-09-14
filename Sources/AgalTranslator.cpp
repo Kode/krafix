@@ -2,15 +2,19 @@
 #include <fstream>
 #include <map>
 #include <string.h>
+#include <sstream>
 
 using namespace krafix;
 
 namespace {
+	typedef unsigned id;
+
 	struct Variable {
+		unsigned id;
 		unsigned type;
 		spv::StorageClass storage;
 		bool builtin;
-
+		
 		Variable() : builtin(false) {}
 	};
 
@@ -37,11 +41,12 @@ namespace {
 	struct Register {
 		RegisterType type;
 		int number;
+		int size;
 		unsigned spirIndex;
 
-		Register() : type(Unused), number(-1), spirIndex(0) { }
+		Register() : type(Unused), number(-1), size(1), spirIndex(0) { }
 
-		Register(unsigned spirIndex) : number(-1), spirIndex(spirIndex) {
+		Register(unsigned spirIndex, int size = 1) : number(-1), size(size), spirIndex(spirIndex) {
 			if (variables.find(spirIndex) == variables.end()) {
 				type = Temporary;
 			}
@@ -82,8 +87,9 @@ namespace {
 	struct Type {
 		const char* name;
 		unsigned length;
+		bool isarray;
 
-		Type() : name("unknown"), length(1) {}
+		Type() : name("unknown"), length(1), isarray(false) {}
 	};
 
 	struct Name {
@@ -115,22 +121,22 @@ namespace {
 			case Temporary:
 				reg.number = nextTemporary;
 				assigned[reg.spirIndex] = nextTemporary;
-				++nextTemporary;
+				nextTemporary += reg.size;
 				break;
 			case Attribute:
 				reg.number = nextAttribute;
 				assigned[reg.spirIndex] = nextAttribute;
-				++nextAttribute;
+				nextAttribute += reg.size;
 				break;
 			case Varying:
 				reg.number = nextVarying;
 				assigned[reg.spirIndex] = nextVarying;
-				++nextVarying;
+				nextVarying += reg.size;
 				break;
 			case Constant:
 				reg.number = nextConstant;
 				assigned[reg.spirIndex] = nextConstant;
-				++nextConstant;
+				nextConstant += reg.size;
 				break;
 			}
 		}
@@ -197,10 +203,12 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		Instruction& inst = instructions[i];
 		switch (inst.opcode) {
 		case OpName: {
-			Name n;
 			unsigned id = inst.operands[0];
-			n.name = inst.string;
-			names[id] = n;
+			if (strcmp(inst.string, "") != 0) {
+				Name n;
+				n.name = inst.string;
+				names[id] = n;
+			}
 			break;
 		}
 		case OpTypePointer: {
@@ -208,6 +216,8 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned id = inst.operands[0];
 			Type subtype = types[inst.operands[2]];
 			t.name = subtype.name;
+			t.isarray = subtype.isarray;
+			t.length = subtype.length;
 			types[id] = t;
 			break;
 		}
@@ -225,6 +235,59 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			types[id] = t;
 			break;
 		}
+		case OpTypeBool: {
+			Type t;
+			unsigned id = inst.operands[0];
+			t.name = "bool";
+			types[id] = t;
+			break;
+		}
+		case OpTypeStruct: {
+			Type t;
+			unsigned id = inst.operands[0];
+			// TODO: members
+			Name n = names[id];
+			t.name = n.name;
+			types[id] = t;
+			break;
+		}
+		case OpConstant: {
+			Type resultType = types[inst.operands[0]];
+			id result = inst.operands[1];
+			types[result] = resultType;
+			break;
+		}
+		case OpConstantComposite: {
+			Type resultType = types[inst.operands[0]];
+			id result = inst.operands[1];
+			types[result] = resultType;
+
+			break;
+		}
+		case OpTypeArray: {
+			Type t;
+			t.name = "unknownarray";
+			t.isarray = true;
+			unsigned id = inst.operands[0];
+			Type subtype = types[inst.operands[1]];
+			//t.length = atoi(references[inst.operands[2]].c_str());
+			if (subtype.name != NULL) {
+				if (strcmp(subtype.name, "float") == 0) {
+					t.name = "float";
+				}
+				else if (strcmp(subtype.name, "vec2") == 0) {
+					t.name = "vec2";
+				}
+				else if (strcmp(subtype.name, "vec3") == 0) {
+					t.name = "vec3";
+				}
+				else if (strcmp(subtype.name, "vec4") == 0) {
+					t.name = "vec4";
+				}
+			}
+			types[id] = t;
+			break;
+		}
 		case OpTypeVector: {
 			Type t;
 			unsigned id = inst.operands[0];
@@ -233,20 +296,18 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 2) {
 					t.name = "vec2";
-					t.length = 2;
-					types[id] = t;
+					t.length = 1;
 				}
 				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 3) {
 					t.name = "vec3";
-					t.length = 3;
-					types[id] = t;
+					t.length = 1;
 				}
 				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 4) {
 					t.name = "vec4";
-					t.length = 4;
-					types[id] = t;
+					t.length = 1;
 				}
 			}
+			types[id] = t;
 			break;
 		}
 		case OpTypeMatrix: {
@@ -255,7 +316,12 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			t.name = "mat?";
 			Type subtype = types[inst.operands[1]];
 			if (subtype.name != NULL) {
-				if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
+				if (strcmp(subtype.name, "vec3") == 0 && inst.operands[2] == 3) {
+					t.name = "mat3";
+					t.length = 4;
+					types[id] = t;
+				}
+				else if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
 					t.name = "mat4";
 					t.length = 4;
 					types[id] = t;
@@ -263,22 +329,35 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			}
 			break;
 		}
-		case OpTypeSampler: {
+		case OpTypeImage: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "sampler2D";
+			bool video = inst.length >= 8 && inst.operands[8] == 1;
+			if (video && target.system == Android) {
+				t.name = "samplerExternalOES";
+			}
+			else {
+				t.name = "sampler2D";
+			}
 			types[id] = t;
 			break;
 		}
-		case OpConstant: {
-			Type resultType = types[inst.operands[0]];
-			unsigned result = inst.operands[1];
-			//out << "const " << resultType.name << " _" << result << " = " << *(float*)&inst.operands[2] << ";\n";
+		case OpTypeSampler: {
+			break;
+		}
+		case OpTypeSampledImage: {
+			Type t;
+			unsigned id = inst.operands[0];
+			unsigned image = inst.operands[1];
+			types[id] = types[image];
 			break;
 		}
 		case OpVariable: {
-			unsigned id = inst.operands[1];
-			Variable& v = variables[id];
+			Type resultType = types[inst.operands[0]];
+			id result = inst.operands[1];
+			types[result] = resultType;
+			Variable& v = variables[result];
+			v.id = result;
 			v.type = inst.operands[0];
 			v.storage = (StorageClass)inst.operands[2];
 			break;
@@ -309,7 +388,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned result = inst.operands[1];
 			unsigned matrix = inst.operands[2];
 			unsigned vector = inst.operands[3];
-			agal.push_back(Agal(m44, Register(result), Register(matrix), Register(vector)));
+			agal.push_back(Agal(m44, Register(result), Register(vector), Register(matrix, 4)));
 			break;
 		}
 		case OpImageSampleImplicitLod: {
@@ -390,7 +469,16 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		case OpCapability:
 			break;
 		case OpLoad: {
-			agal.push_back(Agal(mov, Register(inst.operands[1]), Register(inst.operands[2])));
+			Type resultType = types[inst.operands[0]];
+			id result = inst.operands[1];
+			types[result] = resultType;
+
+			Register r1(result);
+			r1.size = resultType.length;
+			Register r2(inst.operands[2]);
+			r2.size = types[inst.operands[2]].length;
+
+			agal.push_back(Agal(mov, r1, r2));
 			break;
 		}
 		case OpStore: {
@@ -402,7 +490,17 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 				agal.push_back(Agal(mov, oc, Register(inst.operands[1])));
 			}
 			else {
-				agal.push_back(Agal(mov, Register(inst.operands[0]), Register(inst.operands[1])));
+				Type t1 = types[inst.operands[0]];
+				Type t2 = types[inst.operands[1]];
+				Register r1(inst.operands[0]);
+				if (strcmp(t1.name, "mat4") == 0) {
+					r1.size = 4;
+				}
+				Register r2(inst.operands[1]);
+				if (strcmp(t2.name, "mat4") == 0) {
+					r2.size = 4;
+				}
+				agal.push_back(Agal(mov, r1, r2));
 			}
 			break;
 		}
