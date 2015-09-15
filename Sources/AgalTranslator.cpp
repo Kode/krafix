@@ -74,6 +74,11 @@ namespace {
 		}
 	};
 
+	struct Const {
+		int number;
+		std::string value;
+	};
+
 	struct Agal {
 		Opcode opcode;
 		Register destination;
@@ -157,12 +162,11 @@ namespace {
 		}
 	}
 
-	void assignRegisterNumbers(std::vector<Agal>& agal) {
+	void assignRegisterNumbers(std::vector<Agal>& agal, int nextConstant) {
 		std::map<unsigned, int> assigned;
 		int nextTemporary = 0;
 		int nextAttribute = 0;
 		int nextVarying = 0;
-		int nextConstant = 0;
 
 		for (unsigned i = 0; i < agal.size(); ++i) {
 			Agal& instruction = agal[i];
@@ -211,6 +215,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 
 	std::map<unsigned, Name> names;
 	std::map<unsigned, Type> types;
+	std::vector<Const> constants;
 	variables.clear();
 
 	std::vector<Agal> agal;
@@ -271,6 +276,26 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			Type resultType = types[inst.operands[0]];
 			id result = inst.operands[1];
 			types[result] = resultType;
+
+			std::string value = "unknown";
+			if (strcmp(resultType.name, "float") == 0) {
+				float f = *(float*)&inst.operands[2];
+				std::stringstream strvalue;
+				strvalue << f;
+				if (strvalue.str().find('.') == std::string::npos) strvalue << ".0";
+				value = strvalue.str();
+			}
+			if (strcmp(resultType.name, "int") == 0) {
+				std::stringstream strvalue;
+				strvalue << *(int*)&inst.operands[2];
+				value = strvalue.str();
+			}
+
+			Const constant;
+			constant.value = value;
+			constant.number = constants.size();
+			constants.push_back(constant);
+
 			break;
 		}
 		case OpConstantComposite: {
@@ -528,7 +553,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		}
 	}
 
-	assignRegisterNumbers(agal);
+	assignRegisterNumbers(agal, constants.size());
 
 	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
@@ -540,7 +565,12 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	out << "\t},\n";
 	
 	out << "\t\"consts\": {\n";
-	out << "\t\t\"vc0\": [1.000000, 0.500000, 0.000000, 0.000000]\n";
+	for (unsigned i = 0; i < constants.size(); ++i) {
+		Const constant = constants[i];
+		out << "\t\t\"vc" << constant.number << "\": [" << constant.value << ", " << constant.value << ", " << constant.value << ", " << constant.value << "]";
+		if (i < constants.size() - 1) out << ",";
+		out << "\n";
+	}
 	out << "\t},\n";
 	
 	out << "\t\"agalasm\": \"";
