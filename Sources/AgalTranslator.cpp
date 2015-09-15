@@ -42,11 +42,12 @@ namespace {
 		RegisterType type;
 		int number;
 		int size;
+		const char* swizzle;
 		unsigned spirIndex;
 
 		Register() : type(Unused), number(-1), size(1), spirIndex(0) { }
 
-		Register(unsigned spirIndex, int size = 1) : number(-1), size(size), spirIndex(spirIndex) {
+		Register(unsigned spirIndex, const char* swizzle = "xyzw", int size = 1) : number(-1), swizzle(swizzle), size(size), spirIndex(spirIndex) {
 			if (variables.find(spirIndex) == variables.end()) {
 				type = Temporary;
 			}
@@ -107,6 +108,20 @@ namespace {
 		case 3:
 		default:
 			return "w";
+		}
+	}
+
+	const char* indexName4(unsigned index) {
+		switch (index) {
+		case 0:
+			return "xxxx";
+		case 1:
+			return "yyyy";
+		case 2:
+			return "zzzz";
+		case 3:
+		default:
+			return "wwww";
 		}
 	}
 
@@ -187,6 +202,7 @@ namespace {
 		if (reg.type != VertexOutput && reg.type != FragmentOutput) {
 			out << reg.number + registerOffset;
 		}
+		out << "." << reg.swizzle;
 	}
 }
 
@@ -370,17 +386,17 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		case OpCompositeConstruct: {
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
-			//out << "\t" << resultType.name << " _" << result << " = vec4(_"
-			//	<< inst.operands[2] << ", _" << inst.operands[3] << ", _"
-			//	<< inst.operands[4] << ", _" << inst.operands[5] << ");\n";
+			agal.push_back(Agal(mov, Register(result, "x"), Register(inst.operands[2], "x")));
+			agal.push_back(Agal(mov, Register(result, "y"), Register(inst.operands[3], "y")));
+			agal.push_back(Agal(mov, Register(result, "z"), Register(inst.operands[4], "z")));
+			agal.push_back(Agal(mov, Register(result, "w"), Register(inst.operands[5], "w")));
 			break;
 		}
 		case OpCompositeExtract: {
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
 			unsigned composite = inst.operands[2];
-			//out << "\t" << resultType.name << " _" << result << " = _"
-			//	<< composite << "." << indexName(inst.operands[3]) << ";\n";
+			agal.push_back(Agal(mov, Register(result, indexName4(inst.operands[3])), Register(composite, indexName(inst.operands[3]))));
 			break;
 		}
 		case OpMatrixTimesVector: {
@@ -388,7 +404,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned result = inst.operands[1];
 			unsigned matrix = inst.operands[2];
 			unsigned vector = inst.operands[3];
-			agal.push_back(Agal(m44, Register(result), Register(vector), Register(matrix, 4)));
+			agal.push_back(Agal(m44, Register(result), Register(vector), Register(matrix, "xyzw", 4)));
 			break;
 		}
 		case OpImageSampleImplicitLod: {
