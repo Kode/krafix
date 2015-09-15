@@ -157,7 +157,7 @@ namespace {
 		}
 	}
 
-	void outputRegister(std::ostream& out, Register reg) {
+	void outputRegister(std::ostream& out, Register reg, int registerOffset) {
 		switch (reg.type) {
 		case Attribute:
 			out << "va";
@@ -185,7 +185,7 @@ namespace {
 			break;
 		}
 		if (reg.type != VertexOutput && reg.type != FragmentOutput) {
-			out << reg.number;
+			out << reg.number + registerOffset;
 		}
 	}
 }
@@ -516,30 +516,49 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 
 	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
+
+	out << "{\n";
+	
+	out << "\t\"varnames\": {\n";
+	out << "\t\t\"vertexColor\": \"va1\"\n";
+	out << "\t},\n";
+	
+	out << "\t\"consts\": {\n";
+	out << "\t\t\"vc0\": [1.000000, 0.500000, 0.000000, 0.000000]\n";
+	out << "\t},\n";
+	
+	out << "\t\"agalasm\": \"";
 	for (unsigned i = 0; i < agal.size(); ++i) {
 		Agal instruction = agal[i];
-		switch (instruction.opcode) {
-		case mov:
-			out << "mov";
-			break;
-		case add:
-			out << "add";
-			break;
-		case m44:
-			out << "m44";
-			break;
-		case unknown:
-			out << "unknown";
-		}
-		out << " ";
-		outputRegister(out, instruction.destination);
-		out << ", ";
-		outputRegister(out, instruction.source1);
-		if (instruction.source2.type != Unused) {
+		for (int i2 = 0; i2 < instruction.destination.size; ++i2) {
+			switch (instruction.opcode) {
+			case mov:
+				out << "mov";
+				break;
+			case add:
+				out << "add";
+				break;
+			case m44:
+				out << "m44";
+				break;
+			case unknown:
+				out << "unknown";
+				break;
+			}
+			out << " ";
+			outputRegister(out, instruction.destination, i2);
 			out << ", ";
-			outputRegister(out, instruction.source2);
+			outputRegister(out, instruction.source1, i2);
+			if (instruction.source2.type != Unused) {
+				out << ", ";
+				outputRegister(out, instruction.source2, i2);
+			}
+			out << "\\n";
 		}
-		out << "\n";
 	}
+	out << "\"\n";
+
+	out << "}\n";
+
 	out.close();
 }
