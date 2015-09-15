@@ -159,8 +159,7 @@ namespace {
 		}
 	}
 
-	void assignRegisterNumbers(std::vector<Agal>& agal) {
-		std::map<unsigned, Register> assigned;
+	void assignRegisterNumbers(std::vector<Agal>& agal, std::map<unsigned, Register>& assigned) {
 		int nextTemporary = 0;
 		int nextAttribute = 0;
 		int nextVarying = 0;
@@ -204,7 +203,9 @@ namespace {
 		if (reg.type != VertexOutput && reg.type != FragmentOutput) {
 			out << reg.number + registerOffset;
 		}
-		out << "." << reg.swizzle;
+		if (strcmp(reg.swizzle, "xyzw") != 0) {
+			out << "." << reg.swizzle;
+		}
 	}
 }
 
@@ -552,7 +553,8 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		}
 	}
 
-	assignRegisterNumbers(agal);
+	std::map<unsigned, Register> assigned;
+	assignRegisterNumbers(agal, assigned);
 
 	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
@@ -560,8 +562,20 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	out << "{\n";
 	
 	out << "\t\"varnames\": {\n";
-	out << "\t\t\"vertexColor\": \"va1\"\n";
-	out << "\t},\n";
+	bool first = true;
+	for (auto it = assigned.begin(); it != assigned.end(); ++it) {
+		if (names.find(it->first) != names.end()) {
+			if (!first) {
+				out << ",\n";
+			}
+			first = false;
+			Name name = names[it->first];
+			out << "\t\t\"" << name.name << "\": \"";
+			outputRegister(out, it->second, 0);
+			out << "\"";
+		}
+	}
+	out << "\n\t},\n";
 	
 	out << "\t\"consts\": {\n";
 	for (unsigned i = 0; i < constants.size(); ++i) {
