@@ -21,6 +21,7 @@ namespace {
 	std::map<unsigned, Variable> variables;
 
 	enum Opcode {
+		con, // pseudo instruction for constants
 		add,
 		mov,
 		m44,
@@ -45,7 +46,7 @@ namespace {
 		const char* swizzle;
 		unsigned spirIndex;
 
-		Register() : type(Unused), number(-1), size(1), spirIndex(0) { }
+		Register() : type(Unused), number(-1), swizzle("xyzw"), size(1), spirIndex(0) { }
 
 		Register(unsigned spirIndex, const char* swizzle = "xyzw", int size = 1) : number(-1), swizzle(swizzle), size(size), spirIndex(spirIndex) {
 			if (variables.find(spirIndex) == variables.end()) {
@@ -72,11 +73,6 @@ namespace {
 				}
 			}
 		}
-	};
-
-	struct Const {
-		int number;
-		std::string value;
 	};
 
 	struct Agal {
@@ -130,43 +126,45 @@ namespace {
 		}
 	}
 
-	void assignRegisterNumber(Register& reg, std::map<unsigned, int>& assigned, int& nextTemporary, int& nextAttribute, int& nextVarying, int& nextConstant) {
+	void assignRegisterNumber(Register& reg, std::map<unsigned, Register>& assigned, int& nextTemporary, int& nextAttribute, int& nextVarying, int& nextConstant) {
 		if (reg.type == Unused) return;
 
 		if (assigned.find(reg.spirIndex) != assigned.end()) {
-			reg.number = assigned[reg.spirIndex];
+			reg.number = assigned[reg.spirIndex].number;
+			reg.type = assigned[reg.spirIndex].type;
 		}
 		else {
 			switch (reg.type) {
 			case Temporary:
 				reg.number = nextTemporary;
-				assigned[reg.spirIndex] = nextTemporary;
+				assigned[reg.spirIndex] = reg;
 				nextTemporary += reg.size;
 				break;
 			case Attribute:
 				reg.number = nextAttribute;
-				assigned[reg.spirIndex] = nextAttribute;
+				assigned[reg.spirIndex] = reg;
 				nextAttribute += reg.size;
 				break;
 			case Varying:
 				reg.number = nextVarying;
-				assigned[reg.spirIndex] = nextVarying;
+				assigned[reg.spirIndex] = reg;
 				nextVarying += reg.size;
 				break;
 			case Constant:
 				reg.number = nextConstant;
-				assigned[reg.spirIndex] = nextConstant;
+				assigned[reg.spirIndex] = reg;
 				nextConstant += reg.size;
 				break;
 			}
 		}
 	}
 
-	void assignRegisterNumbers(std::vector<Agal>& agal, int nextConstant) {
-		std::map<unsigned, int> assigned;
+	void assignRegisterNumbers(std::vector<Agal>& agal) {
+		std::map<unsigned, Register> assigned;
 		int nextTemporary = 0;
 		int nextAttribute = 0;
 		int nextVarying = 0;
+		int nextConstant = 0;
 
 		for (unsigned i = 0; i < agal.size(); ++i) {
 			Agal& instruction = agal[i];
@@ -215,7 +213,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 
 	std::map<unsigned, Name> names;
 	std::map<unsigned, Type> types;
-	std::vector<Const> constants;
+	std::vector<std::string> constants;
 	variables.clear();
 
 	std::vector<Agal> agal;
@@ -291,10 +289,11 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 				value = strvalue.str();
 			}
 
-			Const constant;
-			constant.value = value;
-			constant.number = constants.size();
-			constants.push_back(constant);
+			constants.push_back(value);
+
+			Register reg(result);
+			reg.type = Constant;
+			agal.push_back(Agal(con, reg, Register()));
 
 			break;
 		}
@@ -553,7 +552,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		}
 	}
 
-	assignRegisterNumbers(agal, constants.size());
+	assignRegisterNumbers(agal);
 
 	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
@@ -566,8 +565,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	
 	out << "\t\"consts\": {\n";
 	for (unsigned i = 0; i < constants.size(); ++i) {
-		Const constant = constants[i];
-		out << "\t\t\"vc" << constant.number << "\": [" << constant.value << ", " << constant.value << ", " << constant.value << ", " << constant.value << "]";
+		out << "\t\t\"vc" << i << "\": [" << constants[i] << ", " << constants[i] << ", " << constants[i] << ", " << constants[i] << "]";
 		if (i < constants.size() - 1) out << ",";
 		out << "\n";
 	}
@@ -577,6 +575,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	for (unsigned i = 0; i < agal.size(); ++i) {
 		Agal instruction = agal[i];
 		for (int i2 = 0; i2 < instruction.destination.size; ++i2) {
+			if (instruction.opcode == con) continue;
 			switch (instruction.opcode) {
 			case mov:
 				out << "mov";
