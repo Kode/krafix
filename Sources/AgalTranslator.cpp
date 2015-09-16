@@ -421,7 +421,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
 			unsigned composite = inst.operands[2];
-			agal.push_back(Agal(mov, Register(result, indexName4(inst.operands[3])), Register(composite, indexName(inst.operands[3]))));
+			agal.push_back(Agal(mov, Register(result, "xyzw"), Register(composite, indexName4(inst.operands[3]))));
 			break;
 		}
 		case OpMatrixTimesVector: {
@@ -525,10 +525,16 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		case OpStore: {
 			Variable v = variables[inst.operands[0]];
 			if (v.builtin && stage == EShLangFragment) {
-				Register oc;
+				Register oc(inst.operands[0]);
 				oc.type = FragmentOutput;
 				oc.number = 0;
 				agal.push_back(Agal(mov, oc, Register(inst.operands[1])));
+			}
+			else if (v.builtin && stage == EShLangVertex) {
+				Register op(inst.operands[0]);
+				op.type = VertexOutput;
+				op.number = 0;
+				agal.push_back(Agal(mov, op, Register(inst.operands[1])));
 			}
 			else {
 				Type t1 = types[inst.operands[0]];
