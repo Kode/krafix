@@ -34,8 +34,7 @@ namespace {
 		Attribute,
 		Constant,
 		Temporary,
-		VertexOutput,
-		FragmentOutput,
+		Output,
 		Varying,
 		Sampler,
 		Unused
@@ -50,7 +49,7 @@ namespace {
 
 		Register() : type(Unused), number(-1), swizzle("xyzw"), size(1), spirIndex(0) { }
 
-		Register(unsigned spirIndex, const char* swizzle = "xyzw", int size = 1) : number(-1), swizzle(swizzle), size(size), spirIndex(spirIndex) {
+		Register(EShLanguage stage, unsigned spirIndex, const char* swizzle = "xyzw", int size = 1) : number(-1), swizzle(swizzle), size(size), spirIndex(spirIndex) {
 			if (variables.find(spirIndex) == variables.end()) {
 				type = Temporary;
 			}
@@ -61,13 +60,15 @@ namespace {
 					type = Constant;
 					break;
 				case spv::StorageClassInput:
-					type = Attribute;
+					if (stage == EShLangVertex) type = Attribute;
+					else type = Varying;
 					break;
 				case spv::StorageClassUniform:
 					type = Constant;
 					break;
 				case spv::StorageClassOutput:
-					type = Varying;
+					if (stage == EShLangVertex) type = Varying;
+					else type = Output;
 					break;
 				case spv::StorageClassFunction:
 					type = Temporary;
@@ -219,22 +220,22 @@ namespace {
 		}
 	}
 
-	void outputRegister(std::ostream& out, Register reg, int registerOffset) {
+	void outputRegister(std::ostream& out, Register reg, EShLanguage stage, int registerOffset) {
 		switch (reg.type) {
 		case Attribute:
 			out << "va";
 			break;
 		case Constant:
-			out << "vc";
+			if (stage == EShLangVertex) out << "vc";
+			else out << "fc";
 			break;
 		case Temporary:
-			out << "vt";
+			if (stage == EShLangVertex) out << "vt";
+			else out << "ft";
 			break;
-		case VertexOutput:
-			out << "op";
-			break;
-		case FragmentOutput:
-			out << "oc";
+		case Output:
+			if (stage == EShLangVertex) out << "op";
+			else out << "oc";
 			break;
 		case Varying:
 			out << "v";
@@ -246,7 +247,7 @@ namespace {
 			out << "unused";
 			break;
 		}
-		if (reg.type != VertexOutput && reg.type != FragmentOutput) {
+		if (reg.type != Output) {
 			out << reg.number + registerOffset;
 		}
 		if (strcmp(reg.swizzle, "xyzw") != 0) {
@@ -266,8 +267,9 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 
 	std::vector<Agal> agal;
 
+	if (stage == EShLangVertex)
 	{
-		Register reg(99999);
+		Register reg(stage, 99999);
 		reg.type = Constant;
 		agal.push_back(Agal(con, reg, Register()));
 		constants.push_back("0.5");
@@ -346,7 +348,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 
 			constants.push_back(value);
 
-			Register reg(result);
+			Register reg(stage, result);
 			reg.type = Constant;
 			agal.push_back(Agal(con, reg, Register()));
 
@@ -465,17 +467,17 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		case OpCompositeConstruct: {
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
-			agal.push_back(Agal(mov, Register(result, "x"), Register(inst.operands[2], "x")));
-			agal.push_back(Agal(mov, Register(result, "y"), Register(inst.operands[3], "y")));
-			agal.push_back(Agal(mov, Register(result, "z"), Register(inst.operands[4], "z")));
-			agal.push_back(Agal(mov, Register(result, "w"), Register(inst.operands[5], "w")));
+			agal.push_back(Agal(mov, Register(stage, result, "x"), Register(stage, inst.operands[2], "x")));
+			agal.push_back(Agal(mov, Register(stage, result, "y"), Register(stage, inst.operands[3], "y")));
+			agal.push_back(Agal(mov, Register(stage, result, "z"), Register(stage, inst.operands[4], "z")));
+			agal.push_back(Agal(mov, Register(stage, result, "w"), Register(stage, inst.operands[5], "w")));
 			break;
 		}
 		case OpCompositeExtract: {
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
 			unsigned composite = inst.operands[2];
-			agal.push_back(Agal(mov, Register(result, "xyzw"), Register(composite, indexName4(inst.operands[3]))));
+			agal.push_back(Agal(mov, Register(stage, result, "xyzw"), Register(stage, composite, indexName4(inst.operands[3]))));
 			break;
 		}
 		case OpMatrixTimesVector: {
@@ -483,7 +485,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned result = inst.operands[1];
 			unsigned matrix = inst.operands[2];
 			unsigned vector = inst.operands[3];
-			agal.push_back(Agal(m44, Register(result), Register(vector), Register(matrix, "xyzw", 4)));
+			agal.push_back(Agal(m44, Register(stage, result), Register(stage, vector), Register(stage, matrix, "xyzw", 4)));
 			break;
 		}
 		case OpImageSampleImplicitLod: {
@@ -530,6 +532,8 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			//	<< vector << " * _" << scalar << ";\n";
 			break;
 		}
+		case OpExecutionMode:
+			break;
 		case OpReturn:
 			break;
 		case OpLabel:
@@ -568,9 +572,9 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			id result = inst.operands[1];
 			types[result] = resultType;
 
-			Register r1(result);
+			Register r1(stage, result);
 			r1.size = resultType.length;
-			Register r2(inst.operands[2]);
+			Register r2(stage, inst.operands[2]);
 			r2.size = types[inst.operands[2]].length;
 
 			agal.push_back(Agal(mov, r1, r2));
@@ -579,25 +583,25 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		case OpStore: {
 			Variable v = variables[inst.operands[0]];
 			if (v.builtin && stage == EShLangFragment) {
-				Register oc(inst.operands[0]);
-				oc.type = FragmentOutput;
+				Register oc(stage, inst.operands[0]);
+				oc.type = Output;
 				oc.number = 0;
-				agal.push_back(Agal(mov, oc, Register(inst.operands[1])));
+				agal.push_back(Agal(mov, oc, Register(stage, inst.operands[1])));
 			}
 			else if (v.builtin && stage == EShLangVertex) {
 				vertexOutput = inst.operands[0];
-				Register tempop(inst.operands[0]);
+				Register tempop(stage, inst.operands[0]);
 				tempop.type = Temporary;
-				agal.push_back(Agal(mov, tempop, Register(inst.operands[1])));
+				agal.push_back(Agal(mov, tempop, Register(stage, inst.operands[1])));
 			}
 			else {
 				Type t1 = types[inst.operands[0]];
 				Type t2 = types[inst.operands[1]];
-				Register r1(inst.operands[0]);
+				Register r1(stage, inst.operands[0]);
 				if (strcmp(t1.name, "mat4") == 0) {
 					r1.size = 4;
 				}
-				Register r2(inst.operands[1]);
+				Register r2(stage, inst.operands[1]);
 				if (strcmp(t2.name, "mat4") == 0) {
 					r2.size = 4;
 				}
@@ -614,23 +618,24 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	}
 
 	//adjust clip space
+	if (stage == EShLangVertex)
 	{
-		Register poszzzz(vertexOutput, "zzzz");
+		Register poszzzz(stage, vertexOutput, "zzzz");
 		poszzzz.type = Temporary;
-		Register poswwww(vertexOutput, "wwww");
+		Register poswwww(stage, vertexOutput, "wwww");
 		poswwww.type = Temporary;
-		agal.push_back(Agal(add, Register(99998, "xxxx"), poszzzz, poswwww));
-		Register posz(vertexOutput, "z");
+		agal.push_back(Agal(add, Register(stage, 99998, "xxxx"), poszzzz, poswwww));
+		Register posz(stage, vertexOutput, "z");
 		posz.type = Temporary;
-		Register reg(99999);
+		Register reg(stage, 99999);
 		reg.type = Constant;
 		reg.swizzle = "x";
-		agal.push_back(Agal(mul, posz, reg, Register(99998, "x")));
+		agal.push_back(Agal(mul, posz, reg, Register(stage, 99998, "x")));
 		
-		Register op(0);
-		op.type = VertexOutput;
+		Register op(stage, 0);
+		op.type = Output;
 		op.number = 0;
-		Register pos(vertexOutput);
+		Register pos(stage, vertexOutput);
 		pos.type = Temporary;
 		agal.push_back(Agal(mov, op, pos));
 	}
@@ -653,7 +658,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			first = false;
 			Name name = names[it->first];
 			out << "\t\t\"" << name.name << "\": \"";
-			outputRegister(out, it->second, 0);
+			outputRegister(out, it->second, stage, 0);
 			out << "\"";
 		}
 	}
@@ -690,12 +695,12 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 				break;
 			}
 			out << " ";
-			outputRegister(out, instruction.destination, i2);
+			outputRegister(out, instruction.destination, stage, i2);
 			out << ", ";
-			outputRegister(out, instruction.source1, i2);
+			outputRegister(out, instruction.source1, stage, i2);
 			if (instruction.source2.type != Unused) {
 				out << ", ";
-				outputRegister(out, instruction.source2, i2);
+				outputRegister(out, instruction.source2, stage, i2);
 			}
 			out << "\\n";
 		}
