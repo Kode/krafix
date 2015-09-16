@@ -1,4 +1,5 @@
 #include "AgalTranslator.h"
+#include <algorithm>
 #include <fstream>
 #include <map>
 #include <string.h>
@@ -127,7 +128,7 @@ namespace {
 		}
 	}
 
-	void assignRegisterNumber(Register& reg, std::map<unsigned, Register>& assigned, int& nextTemporary, int& nextAttribute, int& nextVarying, int& nextConstant) {
+	void assignRegisterNumber(Register& reg, std::map<unsigned, Register>& assigned, int& nextTemporary, int& nextAttribute, int& nextConstant) {
 		if (reg.type == Unused) return;
 
 		if (reg.spirIndex != 0 && assigned.find(reg.spirIndex) != assigned.end()) {
@@ -147,9 +148,6 @@ namespace {
 				nextAttribute += reg.size;
 				break;
 			case Varying:
-				reg.number = nextVarying;
-				if (reg.spirIndex != 0) assigned[reg.spirIndex] = reg;
-				nextVarying += reg.size;
 				break;
 			case Constant:
 				reg.number = nextConstant;
@@ -160,17 +158,64 @@ namespace {
 		}
 	}
 
-	void assignRegisterNumbers(std::vector<Agal>& agal, std::map<unsigned, Register>& assigned) {
+	bool includes(const std::vector<std::string>& array, const std::string& value) {
+		for (auto s : array) {
+			if (s == value) return true;
+		}
+		return false;
+	}
+
+	void assignRegisterNumbers(std::vector<Agal>& agal, std::map<unsigned, Register>& assigned, std::map<unsigned, Name>& names) {
 		int nextTemporary = 0;
 		int nextAttribute = 0;
-		int nextVarying = 0;
 		int nextConstant = 0;
+
+		std::vector<std::string> varyings;
+		for (unsigned i = 0; i < agal.size(); ++i) {
+			Agal& instruction = agal[i];
+			if (instruction.destination.type == Varying) {
+				std::string name = names[instruction.destination.spirIndex].name;
+				if (!includes(varyings, name)) varyings.push_back(name);
+			}
+			else if (instruction.source1.type == Varying) {
+				std::string name = names[instruction.source1.spirIndex].name;
+				if (!includes(varyings, name)) varyings.push_back(name);
+			}
+			else if (instruction.source2.type == Varying) {
+				std::string name = names[instruction.source2.spirIndex].name;
+				if (!includes(varyings, name)) varyings.push_back(name);
+			}
+		}
+		std::sort(varyings.begin(), varyings.end());
+		std::map<std::string, int> varyingNumbers;
+		for (unsigned i = 0; i < varyings.size(); ++i) {
+			varyingNumbers[varyings[i]] = i;
+		}
 
 		for (unsigned i = 0; i < agal.size(); ++i) {
 			Agal& instruction = agal[i];
-			assignRegisterNumber(instruction.destination, assigned, nextTemporary, nextAttribute, nextVarying, nextConstant);
-			assignRegisterNumber(instruction.source1, assigned, nextTemporary, nextAttribute, nextVarying, nextConstant);
-			assignRegisterNumber(instruction.source2, assigned, nextTemporary, nextAttribute, nextVarying, nextConstant);
+			if (instruction.destination.type == Varying) {
+				std::string name = names[instruction.destination.spirIndex].name;
+				instruction.destination.number = varyingNumbers[name];
+				assigned[instruction.destination.spirIndex] = instruction.destination;
+			}
+			else if (instruction.source1.type == Varying) {
+				std::string name = names[instruction.source1.spirIndex].name;
+				instruction.source1.number = varyingNumbers[name];
+				assigned[instruction.source1.spirIndex] = instruction.source1;
+			}
+			else if (instruction.source2.type == Varying) {
+				std::string name = names[instruction.source2.spirIndex].name;
+				instruction.source2.number = varyingNumbers[name];
+				assigned[instruction.source2.spirIndex] = instruction.source2;
+			}
+		}
+
+		for (unsigned i = 0; i < agal.size(); ++i) {
+			Agal& instruction = agal[i];
+			assignRegisterNumber(instruction.destination, assigned, nextTemporary, nextAttribute, nextConstant);
+			assignRegisterNumber(instruction.source1, assigned, nextTemporary, nextAttribute, nextConstant);
+			assignRegisterNumber(instruction.source2, assigned, nextTemporary, nextAttribute, nextConstant);
 		}
 	}
 
@@ -571,9 +616,12 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	//adjust clip space
 	{
 		Register poszzzz(vertexOutput, "zzzz");
+		poszzzz.type = Temporary;
 		Register poswwww(vertexOutput, "wwww");
+		poswwww.type = Temporary;
 		agal.push_back(Agal(add, Register(99998, "xxxx"), poszzzz, poswwww));
 		Register posz(vertexOutput, "z");
+		posz.type = Temporary;
 		Register reg(99999);
 		reg.type = Constant;
 		reg.swizzle = "x";
@@ -582,11 +630,13 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		Register op(0);
 		op.type = VertexOutput;
 		op.number = 0;
-		agal.push_back(Agal(mov, op, Register(vertexOutput)));
+		Register pos(vertexOutput);
+		pos.type = Temporary;
+		agal.push_back(Agal(mov, op, pos));
 	}
 
 	std::map<unsigned, Register> assigned;
-	assignRegisterNumbers(agal, assigned);
+	assignRegisterNumbers(agal, assigned, names);
 
 	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
