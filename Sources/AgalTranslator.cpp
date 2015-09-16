@@ -23,6 +23,7 @@ namespace {
 	enum Opcode {
 		con, // pseudo instruction for constants
 		add,
+		mul,
 		mov,
 		m44,
 		unknown
@@ -129,7 +130,7 @@ namespace {
 	void assignRegisterNumber(Register& reg, std::map<unsigned, Register>& assigned, int& nextTemporary, int& nextAttribute, int& nextVarying, int& nextConstant) {
 		if (reg.type == Unused) return;
 
-		if (assigned.find(reg.spirIndex) != assigned.end()) {
+		if (reg.spirIndex != 0 && assigned.find(reg.spirIndex) != assigned.end()) {
 			reg.number = assigned[reg.spirIndex].number;
 			reg.type = assigned[reg.spirIndex].type;
 		}
@@ -137,22 +138,22 @@ namespace {
 			switch (reg.type) {
 			case Temporary:
 				reg.number = nextTemporary;
-				assigned[reg.spirIndex] = reg;
+				if (reg.spirIndex != 0) assigned[reg.spirIndex] = reg;
 				nextTemporary += reg.size;
 				break;
 			case Attribute:
 				reg.number = nextAttribute;
-				assigned[reg.spirIndex] = reg;
+				if (reg.spirIndex != 0) assigned[reg.spirIndex] = reg;
 				nextAttribute += reg.size;
 				break;
 			case Varying:
 				reg.number = nextVarying;
-				assigned[reg.spirIndex] = reg;
+				if (reg.spirIndex != 0) assigned[reg.spirIndex] = reg;
 				nextVarying += reg.size;
 				break;
 			case Constant:
 				reg.number = nextConstant;
-				assigned[reg.spirIndex] = reg;
+				if (reg.spirIndex != 0) assigned[reg.spirIndex] = reg;
 				nextConstant += reg.size;
 				break;
 			}
@@ -216,8 +217,16 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	std::map<unsigned, Type> types;
 	std::vector<std::string> constants;
 	variables.clear();
+	unsigned vertexOutput = 0;
 
 	std::vector<Agal> agal;
+
+	{
+		Register reg(99999);
+		reg.type = Constant;
+		agal.push_back(Agal(con, reg, Register()));
+		constants.push_back("0.5");
+	}
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
@@ -531,10 +540,10 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 				agal.push_back(Agal(mov, oc, Register(inst.operands[1])));
 			}
 			else if (v.builtin && stage == EShLangVertex) {
-				Register op(inst.operands[0]);
-				op.type = VertexOutput;
-				op.number = 0;
-				agal.push_back(Agal(mov, op, Register(inst.operands[1])));
+				vertexOutput = inst.operands[0];
+				Register tempop(inst.operands[0]);
+				tempop.type = Temporary;
+				agal.push_back(Agal(mov, tempop, Register(inst.operands[1])));
 			}
 			else {
 				Type t1 = types[inst.operands[0]];
@@ -557,6 +566,23 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			agal.push_back(instruction);
 			break;
 		}
+	}
+
+	//adjust clip space
+	{
+		Register poszzzz(vertexOutput, "zzzz");
+		Register poswwww(vertexOutput, "wwww");
+		agal.push_back(Agal(add, Register(99998, "xxxx"), poszzzz, poswwww));
+		Register posz(vertexOutput, "z");
+		Register reg(99999);
+		reg.type = Constant;
+		reg.swizzle = "x";
+		agal.push_back(Agal(mul, posz, reg, Register(99998, "x")));
+		
+		Register op(0);
+		op.type = VertexOutput;
+		op.number = 0;
+		agal.push_back(Agal(mov, op, Register(vertexOutput)));
 	}
 
 	std::map<unsigned, Register> assigned;
@@ -602,6 +628,9 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 				break;
 			case add:
 				out << "add";
+				break;
+			case mul:
+				out << "mul";
 				break;
 			case m44:
 				out << "m44";
