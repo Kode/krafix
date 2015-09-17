@@ -931,16 +931,9 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id result = inst.operands[1];
 		types[result] = resultType;
 		if (result == entryPoint) {
-			if (target.kore) {
-				references[result] = "kore";
-				funcName = "kore";
-				funcType = "void";
-			}
-			else {
-				references[result] = "main";
-				funcName = "main";
-				funcType = "void";
-			}
+			references[result] = "main";
+			funcName = "main";
+			funcType = "void";
 		}
 		else if (names.find(result) != names.end()) {
 			std::string name = names[result].name;

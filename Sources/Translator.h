@@ -31,7 +31,6 @@ namespace krafix {
 		TargetLanguage lang;
 		int version;
 		bool es;
-		bool kore;
 		TargetSystem system;
 	};
 

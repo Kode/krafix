@@ -908,7 +908,6 @@ int C_DECL main(int argc, char* argv[]) {
 	krafix::Target target;
 	target.system = getSystem(argv[5]);
 	target.es = false;
-	target.kore = false;
 	if (strcmp(argv[1], "d3d9") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 9;
@@ -935,7 +934,6 @@ int C_DECL main(int argc, char* argv[]) {
 		target.lang = krafix::AGAL;
 		target.version = 100;
 		target.es = true;
-		target.kore = true;
 		CompileAndLinkShaders(target, argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "metal") == 0) {
