@@ -19,7 +19,16 @@ namespace {
 		Variable() : builtin(false) {}
 	};
 
+	struct Type {
+		const char* name;
+		unsigned length;
+		bool isarray;
+
+		Type() : name("unknown"), length(1), isarray(false) {}
+	};
+
 	std::map<unsigned, Variable> variables;
+	std::map<unsigned, Type> types;
 
 	enum Opcode {
 		con, // pseudo instruction for constants
@@ -27,6 +36,7 @@ namespace {
 		mul,
 		mov,
 		m44,
+		tex,
 		unknown
 	};
 
@@ -56,9 +66,16 @@ namespace {
 			else {
 				Variable variable = variables[spirIndex];
 				switch (variable.storage) {
-				case spv::StorageClassUniformConstant:
-					type = Constant;
+				case spv::StorageClassUniformConstant: {
+					Type t = types[variable.type];
+					if (strcmp(t.name, "sampler2D") == 0) {
+						type = Sampler;
+					}
+					else {
+						type = Constant;
+					}
 					break;
+				}
 				case spv::StorageClassInput:
 					if (stage == EShLangVertex) type = Attribute;
 					else type = Varying;
@@ -87,14 +104,6 @@ namespace {
 		Agal(Opcode opcode, Register destination, Register source1) : opcode(opcode), destination(destination), source1(source1) { }
 
 		Agal(Opcode opcode, Register destination, Register source1, Register source2) : opcode(opcode), destination(destination), source1(source1), source2(source2) { }
-	};
-
-	struct Type {
-		const char* name;
-		unsigned length;
-		bool isarray;
-
-		Type() : name("unknown"), length(1), isarray(false) {}
 	};
 
 	struct Name {
@@ -129,7 +138,7 @@ namespace {
 		}
 	}
 
-	void assignRegisterNumber(Register& reg, std::map<unsigned, Register>& assigned, int& nextTemporary, int& nextAttribute, int& nextConstant) {
+	void assignRegisterNumber(Register& reg, std::map<unsigned, Register>& assigned, int& nextTemporary, int& nextAttribute, int& nextConstant, int& nextSampler) {
 		if (reg.type == Unused) return;
 
 		if (reg.spirIndex != 0 && assigned.find(reg.spirIndex) != assigned.end()) {
@@ -155,6 +164,11 @@ namespace {
 				if (reg.spirIndex != 0) assigned[reg.spirIndex] = reg;
 				nextConstant += reg.size;
 				break;
+			case Sampler:
+				reg.number = nextSampler;
+				if (reg.spirIndex != 0) assigned[reg.spirIndex] = reg;
+				nextSampler += reg.size;
+				break;
 			}
 		}
 	}
@@ -170,6 +184,7 @@ namespace {
 		int nextTemporary = 0;
 		int nextAttribute = 0;
 		int nextConstant = 0;
+		int nextSampler = 0;
 
 		std::vector<std::string> varyings;
 		for (unsigned i = 0; i < agal.size(); ++i) {
@@ -214,9 +229,9 @@ namespace {
 
 		for (unsigned i = 0; i < agal.size(); ++i) {
 			Agal& instruction = agal[i];
-			assignRegisterNumber(instruction.destination, assigned, nextTemporary, nextAttribute, nextConstant);
-			assignRegisterNumber(instruction.source1, assigned, nextTemporary, nextAttribute, nextConstant);
-			assignRegisterNumber(instruction.source2, assigned, nextTemporary, nextAttribute, nextConstant);
+			assignRegisterNumber(instruction.destination, assigned, nextTemporary, nextAttribute, nextConstant, nextSampler);
+			assignRegisterNumber(instruction.source1, assigned, nextTemporary, nextAttribute, nextConstant, nextSampler);
+			assignRegisterNumber(instruction.source2, assigned, nextTemporary, nextAttribute, nextConstant, nextSampler);
 		}
 	}
 
@@ -260,8 +275,8 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	using namespace spv;
 
 	std::map<unsigned, Name> names;
-	std::map<unsigned, Type> types;
 	std::vector<std::string> constants;
+	types.clear();
 	variables.clear();
 	unsigned vertexOutput = 0;
 
@@ -430,12 +445,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			Type t;
 			unsigned id = inst.operands[0];
 			bool video = inst.length >= 8 && inst.operands[8] == 1;
-			if (video && target.system == Android) {
-				t.name = "samplerExternalOES";
-			}
-			else {
-				t.name = "sampler2D";
-			}
+			t.name = "sampler2D";
 			types[id] = t;
 			break;
 		}
@@ -493,7 +503,9 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned result = inst.operands[1];
 			unsigned sampler = inst.operands[2];
 			unsigned coordinate = inst.operands[3];
-			//out << "\t" << resultType.name << " _" << result << " = texture2D(_" << sampler << ", _" << coordinate << ");\n";
+			Register samplerReg(stage, sampler);
+			samplerReg.type = Sampler;
+			agal.push_back(Agal(tex, Register(stage, result), Register(stage, coordinate), samplerReg));
 			break;
 		}
 		case OpVectorShuffle: {
@@ -577,7 +589,12 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			Register r2(stage, inst.operands[2]);
 			r2.size = types[inst.operands[2]].length;
 
-			agal.push_back(Agal(mov, r1, r2));
+			if (strcmp(types[inst.operands[2]].name, "sampler2D") == 0) {
+
+			}
+			else {
+				agal.push_back(Agal(mov, r1, r2));
+			}
 			break;
 		}
 		case OpStore: {
@@ -690,6 +707,9 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			case m44:
 				out << "m44";
 				break;
+			case tex:
+				out << "tex";
+				break;
 			case unknown:
 				out << "unknown";
 				break;
@@ -701,6 +721,9 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			if (instruction.source2.type != Unused) {
 				out << ", ";
 				outputRegister(out, instruction.source2, stage, i2);
+				if (instruction.source2.type == Sampler) {
+					out << " <2d, wrap, linear>";
+				}
 			}
 			out << "\\n";
 		}
