@@ -729,7 +729,7 @@ private:
 //
 // Uses the new C++ interface instead of the old handle-based interface.
 //
-void CompileAndLinkShaders(krafix::Target target, const char* filename, const char* tempdir, const char* kfx, const glslang::TShader::Includer& includer)
+void CompileAndLinkShaders(krafix::Target target, const char* filename, const char* tempdir, const glslang::TShader::Includer& includer)
 {
     // keep track of what to free
     std::list<glslang::TShader*> shaders;
@@ -837,18 +837,6 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
 							compileHLSLToD3D11(temp.c_str(), filename, attributes, (EShLanguage)stage);
 						}
 					}
-					else if (target.system == krafix::Flash) {
-						if (kfx != NULL) {
-							std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(workItem->name)) + ".glsl";
-							translator->outputCode(target, temp.c_str(), attributes);
-							std::stringstream command;
-							command << "\"" << kfx << "\" " << "agal" << " " << temp << " " << filename << " " << tempdir;
-							executeSync(command.str().c_str());
-						}
-						else {
-							printf("kfx not found.\n");
-						}
-					}
 					else {
 						translator->outputCode(target, filename, attributes);
 					}
@@ -896,10 +884,6 @@ int C_DECL main(int argc, char* argv[]) {
 	}
 
 	const char* tempdir = argv[4];
-	const char* kfx = NULL;
-	if (argc >= 7) {
-		kfx = argv[6];
-	}
 	
 	//Options |= EOptionHumanReadableSpv;
 	Options |= EOptionSpv;
@@ -928,36 +912,36 @@ int C_DECL main(int argc, char* argv[]) {
 	if (strcmp(argv[1], "d3d9") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 9;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
+		CompileAndLinkShaders(target, argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "d3d11") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 11;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
+		CompileAndLinkShaders(target, argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "glsl") == 0) {
 		target.lang = krafix::GLSL;
 		if (target.system == krafix::Linux) target.version = 100;
 		else target.version = 330;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
+		CompileAndLinkShaders(target, argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "essl") == 0) {
 		target.lang = krafix::GLSL;
 		target.version = 100;
 		target.es = true;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
+		CompileAndLinkShaders(target, argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "agal") == 0) {
 		target.lang = krafix::AGAL;
 		target.version = 100;
 		target.es = true;
 		target.kore = true;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
+		CompileAndLinkShaders(target, argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "metal") == 0) {
 		target.lang = krafix::Metal;
 		target.version = 1;
-		CompileAndLinkShaders(target, argv[3], tempdir, kfx, includer);
+		CompileAndLinkShaders(target, argv[3], tempdir, includer);
 	}
 	else {
 		std::cout << "Unknown profile " << argv[1] << std::endl;
