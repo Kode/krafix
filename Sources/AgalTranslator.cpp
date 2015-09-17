@@ -512,9 +512,11 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
 			unsigned vector1 = inst.operands[2];
-			unsigned vector1length = types[variables[inst.operands[2]].type].length;
+			auto t1 = types[inst.operands[2]];
+			unsigned vector1length = types[inst.operands[2]].length;
 			unsigned vector2 = inst.operands[3];
-			unsigned vector2length = types[variables[inst.operands[3]].type].length;
+			auto t2 = types[inst.operands[3]];
+			unsigned vector2length = types[inst.operands[3]].length;
 
 			std::string r1swizzle;
 			std::string r2swizzle;
@@ -531,8 +533,9 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 					v2swizzle += indexName(index - vector1length);
 				}
 			}
+			agal.push_back(Agal(mov, Register(stage, result), Register(stage, vector1)));
 			agal.push_back(Agal(mov, Register(stage, result, r1swizzle), Register(stage, vector1, v1swizzle)));
-			agal.push_back(Agal(mov, Register(stage, result, r2swizzle), Register(stage, vector2, v2swizzle)));
+			if (r2swizzle.size() > 0) agal.push_back(Agal(mov, Register(stage, result, r2swizzle), Register(stage, vector2, v2swizzle)));
 			break;
 		}
 		case OpFMul: {
