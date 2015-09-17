@@ -600,7 +600,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			r2.size = (types[inst.operands[2]].length + 3) / 4;
 
 			if (strcmp(types[inst.operands[2]].name, "sampler2D") == 0) {
-
+				names[result] = names[inst.operands[2]];
 			}
 			else {
 				agal.push_back(Agal(mov, r1, r2));
