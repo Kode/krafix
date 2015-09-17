@@ -54,12 +54,12 @@ namespace {
 		RegisterType type;
 		int number;
 		int size;
-		const char* swizzle;
+		std::string swizzle;
 		unsigned spirIndex;
 
 		Register() : type(Unused), number(-1), swizzle("xyzw"), size(1), spirIndex(0) { }
 
-		Register(EShLanguage stage, unsigned spirIndex, const char* swizzle = "xyzw", int size = 1) : number(-1), swizzle(swizzle), size(size), spirIndex(spirIndex) {
+		Register(EShLanguage stage, unsigned spirIndex, const std::string& swizzle = "xyzw", int size = 1) : number(-1), swizzle(swizzle), size(size), spirIndex(spirIndex) {
 			if (variables.find(spirIndex) == variables.end()) {
 				type = Temporary;
 			}
@@ -265,7 +265,7 @@ namespace {
 		if (reg.type != Output) {
 			out << reg.number + registerOffset;
 		}
-		if (strcmp(reg.swizzle, "xyzw") != 0) {
+		if (reg.swizzle != "xyzw") {
 			out << "." << reg.swizzle;
 		}
 	}
@@ -408,15 +408,15 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 2) {
 					t.name = "vec2";
-					t.length = 1;
+					t.length = 2;
 				}
 				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 3) {
 					t.name = "vec3";
-					t.length = 1;
+					t.length = 3;
 				}
 				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 4) {
 					t.name = "vec4";
-					t.length = 1;
+					t.length = 4;
 				}
 			}
 			types[id] = t;
@@ -430,12 +430,12 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "vec3") == 0 && inst.operands[2] == 3) {
 					t.name = "mat3";
-					t.length = 4;
+					t.length = 9;
 					types[id] = t;
 				}
 				else if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
 					t.name = "mat4";
-					t.length = 4;
+					t.length = 16;
 					types[id] = t;
 				}
 			}
@@ -512,18 +512,27 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
 			unsigned vector1 = inst.operands[2];
-			unsigned vector1length = 4; // types[variables[inst.operands[2]].type].length;
+			unsigned vector1length = types[variables[inst.operands[2]].type].length;
 			unsigned vector2 = inst.operands[3];
-			unsigned vector2length = 4; // types[variables[inst.operands[3]].type].length;
+			unsigned vector2length = types[variables[inst.operands[3]].type].length;
 
-			//out << "\t" << resultType.name << " _" << result << " = " << resultType.name << "(";
-			//for (unsigned i = 4; i < inst.length; ++i) {
-			//	unsigned index = inst.operands[i];
-			//	if (index < vector1length) out << "_" << vector1 << "." << indexName(index);
-			//	else out << "_" << vector2 << "." << indexName(index - vector1length);
-			//	if (i < inst.length - 1) out << ", ";
-			//}
-			//out << ");\n";*/
+			std::string r1swizzle;
+			std::string r2swizzle;
+			std::string v1swizzle;
+			std::string v2swizzle;
+			for (unsigned i = 4; i < inst.length; ++i) {
+				unsigned index = inst.operands[i];
+				if (index < vector1length) {
+					r1swizzle += indexName(i - 4);
+					v1swizzle += indexName(index);
+				}
+				else {
+					r2swizzle += indexName(i - 4);
+					v2swizzle += indexName(index - vector1length);
+				}
+			}
+			agal.push_back(Agal(mov, Register(stage, result, r1swizzle), Register(stage, vector1, v1swizzle)));
+			agal.push_back(Agal(mov, Register(stage, result, r2swizzle), Register(stage, vector2, v2swizzle)));
 			break;
 		}
 		case OpFMul: {
@@ -531,8 +540,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned result = inst.operands[1];
 			unsigned operand1 = inst.operands[2];
 			unsigned operand2 = inst.operands[3];
-			//out << "\t" << resultType.name << " _" << result << " = _"
-			//	<< operand1 << " * _" << operand2 << ";\n";
+			agal.push_back(Agal(mul, Register(stage, result), Register(stage, operand1), Register(stage, operand2)));
 			break;
 		}
 		case OpVectorTimesScalar: {
@@ -540,8 +548,7 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			unsigned result = inst.operands[1];
 			unsigned vector = inst.operands[2];
 			unsigned scalar = inst.operands[3];
-			//out << "\t" << resultType.name << " _" << result << " = _"
-			//	<< vector << " * _" << scalar << ";\n";
+			agal.push_back(Agal(mul, Register(stage, result), Register(stage, vector), Register(stage, scalar)));
 			break;
 		}
 		case OpExecutionMode:
@@ -585,9 +592,9 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			types[result] = resultType;
 
 			Register r1(stage, result);
-			r1.size = resultType.length;
+			r1.size = (resultType.length + 3) / 4;
 			Register r2(stage, inst.operands[2]);
-			r2.size = types[inst.operands[2]].length;
+			r2.size = (types[inst.operands[2]].length + 3) / 4;
 
 			if (strcmp(types[inst.operands[2]].name, "sampler2D") == 0) {
 
