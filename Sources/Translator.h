@@ -11,7 +11,8 @@ namespace krafix {
 		GLSL,
 		HLSL,
 		Metal,
-		AGAL
+		AGAL,
+		VarList
 	};
 
 	enum TargetSystem {

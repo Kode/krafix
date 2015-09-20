@@ -49,6 +49,7 @@
 #include "HlslTranslator.h"
 #include "AgalTranslator.h"
 #include "MetalTranslator.h"
+#include "VarListTranslator.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -825,6 +826,9 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
 					case krafix::AGAL:
 						translator = new krafix::AgalTranslator(spirv, (EShLanguage)stage);
 						break;
+					case krafix::VarList:
+						translator = new krafix::VarListTranslator(spirv, (EShLanguage)stage);
+						break;
 					}
 					
 					if (target.lang == krafix::HLSL && target.system != krafix::Unity) {
@@ -938,6 +942,11 @@ int C_DECL main(int argc, char* argv[]) {
 	}
 	else if (strcmp(argv[1], "metal") == 0) {
 		target.lang = krafix::Metal;
+		target.version = 1;
+		CompileAndLinkShaders(target, argv[3], tempdir, includer);
+	}
+	else if (strcmp(argv[1], "varlist") == 0) {
+		target.lang = krafix::VarList;
 		target.version = 1;
 		CompileAndLinkShaders(target, argv[3], tempdir, includer);
 	}
