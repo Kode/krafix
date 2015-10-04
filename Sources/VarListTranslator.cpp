@@ -1,5 +1,6 @@
 #include "VarListTranslator.h"
 #include <fstream>
+#include <string.h>
 
 using namespace krafix;
 
