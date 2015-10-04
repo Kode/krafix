@@ -14,7 +14,6 @@ void GlslTranslator::outputCode(const Target& target, const char* filename, std:
 	out = &file;
 
 	(*out) << "#version " << target.version << "\n";
-	if (target.es) (*out) << "precision mediump float;\n";
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		outputting = false;
@@ -46,6 +45,8 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				if (target.version >= 300 && stage == EShLangFragment) {
 					(*out) << "out vec4 krafix_FragColor;\n";
 				}
+
+				if (target.es) (*out) << "precision mediump float;\n";
 
 				for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 					unsigned id = v->first;
