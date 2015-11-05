@@ -1,6 +1,7 @@
 #include "VarListTranslator.h"
 #include <fstream>
 #include <string.h>
+#include <iostream>
 
 using namespace krafix;
 
@@ -36,8 +37,18 @@ void VarListTranslator::outputCode(const Target& target, const char* filename, s
 	std::map<unsigned, Variable> variables;
 	std::map<unsigned, Type> types;
 
-	std::ofstream out;
-	out.open(filename, std::ios::binary | std::ios::out);
+	std::streambuf * buf;
+	std::ofstream of;
+
+	if (filename != "--") {
+		of.open(filename, std::ios::binary | std::ios::out);
+		buf = of.rdbuf();
+	}
+	else {
+		buf = std::cout.rdbuf();
+	}
+
+	std::ostream out(buf);
 
 	switch (stage) {
 	case EShLangVertex:
@@ -230,5 +241,7 @@ void VarListTranslator::outputCode(const Target& target, const char* filename, s
 		}
 	}
 
-	out.close();
+	if (filename != "--") {
+		of.close();
+	}
 }
