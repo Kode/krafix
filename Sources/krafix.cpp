@@ -924,7 +924,7 @@ int C_DECL main(int argc, char* argv[]) {
 	}
 	else if (strcmp(argv[1], "glsl") == 0) {
 		target.lang = krafix::GLSL;
-		if (target.system == krafix::Linux) target.version = 100;
+		if (target.system == krafix::Linux) target.version = 110;
 		else target.version = 330;
 		CompileAndLinkShaders(target, argv[3], tempdir, includer);
 	}
