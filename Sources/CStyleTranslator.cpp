@@ -156,7 +156,7 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
-	case GLSLstd450Mix: {
+	case GLSLstd450FMix: {
 		std::stringstream str;
 		id x = inst.operands[4];
 		id y = inst.operands[5];
