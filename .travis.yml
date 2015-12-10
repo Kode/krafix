@@ -1,3 +1,7 @@
+sudo: false
+os:
+  - linux
+  - osx
 language: cpp
 compiler:
   - gcc
@@ -5,4 +9,5 @@ compiler:
 before_script:
   - git clone https://github.com/ktxsoftware/koremake.git
   - git clone https://github.com/ktxsoftware/nodejs_bin.git
-script: nodejs_bin/node-linux64 koremake/koremake.js --compile
+  - nodejs_bin/copysysbin.sh
+script: nodejs_bin/node koremake/koremake.js --compile
