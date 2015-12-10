@@ -31,8 +31,8 @@ if (platform === Platform.Windows) {
 	project.addLibFor("Win32", "d3dcompiler");
 }
 else {
-	project.addFile('glslang/glslang/OSDependent/Linux/**');
-	project.addIncludeDir('glslang/glslang/OSDependent/Linux');
+	project.addFile('glslang/glslang/OSDependent/Unix/**');
+	project.addIncludeDir('glslang/glslang/OSDependent/Unix');
 }
 
 solution.addProject(project);
