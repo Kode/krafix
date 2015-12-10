@@ -615,8 +615,8 @@ void SetMessageOptions(EShMessages& messages)
         messages = (EShMessages)(messages | EShMsgAST);
     if (Options & EOptionSuppressWarnings)
         messages = (EShMessages)(messages | EShMsgSuppressWarnings);
-    if (Options & EOptionSpv)
-        messages = (EShMessages)(messages | EShMsgSpvRules);
+    //if (Options & EOptionSpv) // Deactivated because this sets spv to 100 which disables lots of glsl functions in Initialize.cpp
+    //    messages = (EShMessages)(messages | EShMsgSpvRules);
     if (Options & EOptionVulkanRules)
         messages = (EShMessages)(messages | EShMsgVulkanRules);
     if (Options & EOptionOutputPreprocessed)
