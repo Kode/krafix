@@ -233,6 +233,20 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450MatrixInverse: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "inverse(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case GLSLstd450Determinant: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "determinant(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
 	default:
 		output(out);
 		(*out) << "// Unknown GLSL instruction " << entrypoint;
@@ -632,6 +646,16 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id matrix = inst.operands[3];
 		std::stringstream str;
 		str << "(" << getReference(vector) << " * " << getReference(matrix) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpTranspose: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		id matrix = inst.operands[2];
+		std::stringstream str;
+		str << "transpose(" << getReference(matrix) << ")";
 		references[result] = str.str();
 		break;
 	}
