@@ -211,6 +211,28 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450Reflect: {
+		std::stringstream str;
+		id I = inst.operands[4];
+		id N = inst.operands[5];
+		str << "reflect(" << getReference(I) << ", " << getReference(I) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case GLSLstd450Acos: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "acos(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case GLSLstd450Atan: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "atan(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
 	default:
 		output(out);
 		(*out) << "// Unknown GLSL instruction " << entrypoint;
@@ -374,6 +396,11 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		t.name = "mat?";
 		Type subtype = types[inst.operands[1]];
 		if (subtype.name != NULL) {
+			if (strcmp(subtype.name, "vec2") == 0 && inst.operands[2] == 2) {
+				t.name = "mat2";
+				t.length = 4;
+				types[id] = t;
+			}
 			if (strcmp(subtype.name, "vec3") == 0 && inst.operands[2] == 3) {
 				t.name = "mat3";
 				t.length = 4;
