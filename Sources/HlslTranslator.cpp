@@ -9,6 +9,10 @@ using namespace krafix;
 
 typedef unsigned id;
 
+#ifdef SYS_WINDOWS
+#define itoa _itoa
+#endif
+
 namespace {
 	std::string positionName = "gl_Position";
 	std::map<unsigned, Name> currentNames;
@@ -182,9 +186,28 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else {
-							(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
-							if (stage == EShLangVertex) {
-								attributes[n.name] = index;
+							if (t.name == "float4x4" && stage == EShLangVertex) {
+								for (int i = 0; i < 4; ++i) {
+									char name[101];
+									strcpy(name, n.name);
+									strcat(name, "_");
+									size_t length = strlen(name);
+									itoa(i, &name[length], 10);
+									name[length + 1] = 0;
+									(*out) << "float4 " << name << " : TEXCOORD" << index << ";\n";
+									if (stage == EShLangVertex) {
+										attributes[name] = index;
+									}
+									if (i != 3) indent(out);
+									++index;
+								}
+								--index;
+							}
+							else {
+								(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
+								if (stage == EShLangVertex) {
+									attributes[n.name] = index;
+								}
 							}
 						}
 						++index;
@@ -290,7 +313,15 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					if (variable.storage == StorageClassInput) {
 						indent(out);
 						if (stage == EShLangVertex) {
-							(*out) << "v_" << n.name << " = input." << n.name << ";\n";
+							if (t.name == "float4x4") {
+								(*out) << "v_" << n.name << "[0] = input." << n.name << "_0;\n"; indent(out);
+								(*out) << "v_" << n.name << "[1] = input." << n.name << "_1;\n"; indent(out);
+								(*out) << "v_" << n.name << "[2] = input." << n.name << "_2;\n"; indent(out);
+								(*out) << "v_" << n.name << "[3] = input." << n.name << "_3;\n";
+							}
+							else {
+								(*out) << "v_" << n.name << " = input." << n.name << ";\n";
+							}
 						}
 						else {
 							(*out) << "f_" << n.name << " = input." << n.name << ";\n";
