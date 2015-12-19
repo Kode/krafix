@@ -472,6 +472,11 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		t.name = "float4x?";
 		Type subtype = types[inst.operands[1]];
 		if (subtype.name != NULL) {
+			if (strcmp(subtype.name, "float2") == 0 && inst.operands[2] == 3) {
+				t.name = "float2x2";
+				t.length = 4;
+				types[id] = t;
+			}
 			if (strcmp(subtype.name, "float3") == 0 && inst.operands[2] == 3) {
 				t.name = "float3x3";
 				t.length = 4;
