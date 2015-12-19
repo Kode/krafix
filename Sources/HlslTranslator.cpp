@@ -3,14 +3,17 @@
 #include <fstream>
 #include <map>
 #include <sstream>
+#include <stdlib.h>
 #include <string.h>
 
 using namespace krafix;
 
 typedef unsigned id;
 
-#ifdef SYS_WINDOWS
-#define itoa _itoa
+#ifndef SYS_WINDOWS
+void _itoa(int value, char * str, int base) {
+	sprintf(str, "%d", value);
+}
 #endif
 
 namespace {
@@ -164,15 +167,15 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					if (variable.storage == StorageClassInput) {
 						indent(out);
 						if (stage == EShLangVertex && target.system == Unity) {
-							if (t.name == "float") {
+							if (strcmp(t.name, "float") == 0) {
 								(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
 								++uvindex;
 							}
-							else if (t.name == "float2") {
+							else if (strcmp(t.name, "float2") == 0) {
 								(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
 								++uvindex;
 							}
-							else if (t.name == "float3") {
+							else if (strcmp(t.name, "float3") == 0) {
 								if (threeindex == 0) {
 									(*out) << t.name << " " << n.name << " : POSITION;\n";
 								}
@@ -181,18 +184,18 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								}
 								++threeindex;
 							}
-							else if (t.name == "float4") {
+							else if (strcmp(t.name, "float4") == 0) {
 								(*out) << t.name << " " << n.name << " : TANGENT;\n";
 							}
 						}
 						else {
-							if (t.name == "float4x4" && stage == EShLangVertex) {
+							if (strcmp(t.name, "float4x4") == 0 && stage == EShLangVertex) {
 								for (int i = 0; i < 4; ++i) {
 									char name[101];
 									strcpy(name, n.name);
 									strcat(name, "_");
 									size_t length = strlen(name);
-									itoa(i, &name[length], 10);
+									_itoa(i, &name[length], 10);
 									name[length + 1] = 0;
 									(*out) << "float4 " << name << " : TEXCOORD" << index << ";\n";
 									if (stage == EShLangVertex) {
@@ -313,7 +316,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					if (variable.storage == StorageClassInput) {
 						indent(out);
 						if (stage == EShLangVertex) {
-							if (t.name == "float4x4") {
+							if (strcmp(t.name, "float4x4") == 0) {
 								(*out) << "v_" << n.name << "[0] = input." << n.name << "_0;\n"; indent(out);
 								(*out) << "v_" << n.name << "[1] = input." << n.name << "_1;\n"; indent(out);
 								(*out) << "v_" << n.name << "[2] = input." << n.name << "_2;\n"; indent(out);

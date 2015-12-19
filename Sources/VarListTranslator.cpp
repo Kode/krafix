@@ -40,7 +40,7 @@ void VarListTranslator::outputCode(const Target& target, const char* filename, s
 	std::streambuf * buf;
 	std::ofstream of;
 
-	if (filename != "--") {
+	if (strcmp(filename, "--") != 0) {
 		of.open(filename, std::ios::binary | std::ios::out);
 		buf = of.rdbuf();
 	}
@@ -241,7 +241,7 @@ void VarListTranslator::outputCode(const Target& target, const char* filename, s
 		}
 	}
 
-	if (filename != "--") {
+	if (strcmp(filename, "--") != 0) {
 		of.close();
 	}
 }
