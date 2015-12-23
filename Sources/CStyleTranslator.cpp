@@ -900,9 +900,11 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id base = inst.operands[2];
-		id index = inst.operands[3];
 		std::stringstream str;
-		str << getReference(base) << "[" << getReference(index) << "]";
+		str << getReference(base);
+		for (unsigned i = 3; i < inst.length; ++i) {
+			str << "[" << getReference(inst.operands[i]) << "]";
+		}
 		references[result] = str.str();
 		break;
 	}
