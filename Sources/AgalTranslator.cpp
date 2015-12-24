@@ -210,6 +210,7 @@ namespace {
 
 		for (unsigned i = 0; i < agal.size(); ++i) {
 			Agal& instruction = agal[i];
+			if (instruction.opcode == unknown) continue;
 			if (instruction.destination.type == Varying) {
 				std::string name = names[instruction.destination.spirIndex].name;
 				instruction.destination.number = varyingNumbers[name];
@@ -636,8 +637,16 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			}
 			break;
 		}
+		case OpAccessChain: {
+			std::stringstream swizzle;
+			for (unsigned i = 3; i < inst.length; ++i) {
+				swizzle << indexName(inst.operands[3]);
+			}
+			agal.push_back(Agal(mov, Register(stage, inst.operands[1]), Register(stage, inst.operands[2], swizzle.str())));
+			break;
+		}
 		default:
-			Agal instruction(unknown, Register(), Register());
+			Agal instruction(unknown, Register(stage, inst.opcode), Register(stage, inst.opcode));
 			instruction.destination.number = inst.opcode;
 			agal.push_back(instruction);
 			break;
@@ -702,6 +711,10 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	out << "\t\"agalasm\": \"";
 	for (unsigned i = 0; i < agal.size(); ++i) {
 		Agal instruction = agal[i];
+		if (instruction.opcode == unknown) {
+			out << "Unknown instruction " << instruction.destination.spirIndex << "\\n";
+			continue;
+		}
 		for (int i2 = 0; i2 < instruction.destination.size; ++i2) {
 			if (instruction.opcode == con) continue;
 			switch (instruction.opcode) {
