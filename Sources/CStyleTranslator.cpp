@@ -464,7 +464,10 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			if (target.version >= 300 && v.storage == StorageClassOutput && stage == EShLangFragment) {
 				names[result].name = "krafix_FragColor";
 			}
-			references[result] = names[result].name;
+			std::stringstream name;
+			name << names[result].name;
+			if (v.storage == StorageClassFunction && getReference(result) != "param") name << "_" << result;
+			references[result] = name.str();
 		}
 		if (v.storage == StorageClassFunction && getReference(result) != "param") {
 			output(out);
