@@ -9,8 +9,6 @@ using namespace krafix;
 typedef unsigned id;
 
 namespace {
-	std::string positionName = "position";
-
 	std::string extractFilename(std::string path) {
 		int i = (int)path.size() - 1;
 		for (; i > 0; --i) {
