@@ -186,6 +186,13 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450FSign: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "sign(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case GLSLstd450Ceil: {
 		id x = inst.operands[4];
 		std::stringstream str;
