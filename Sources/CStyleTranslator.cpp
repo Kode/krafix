@@ -179,6 +179,20 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450Log2: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "log2(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case GLSLstd450Ceil: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "ceil(" << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case GLSLstd450Fract: {
 		id x = inst.operands[4];
 		std::stringstream str;
