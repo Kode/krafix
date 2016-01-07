@@ -236,7 +236,7 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		std::stringstream str;
 		id I = inst.operands[4];
 		id N = inst.operands[5];
-		str << "reflect(" << getReference(I) << ", " << getReference(I) << ")";
+		str << "reflect(" << getReference(I) << ", " << getReference(N) << ")";
 		references[result] = str.str();
 		break;
 	}
