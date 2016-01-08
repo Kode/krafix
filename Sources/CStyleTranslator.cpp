@@ -10,12 +10,18 @@ CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage sta
 
 }
 
-std::string CStyleTranslator::indexName(const std::vector<unsigned>& indices) {
+std::string CStyleTranslator::indexName(Type& type, const std::vector<unsigned>& indices) {
 	std::stringstream str;
 	for (unsigned i = 0; i < indices.size(); ++i) {
-		str << "[";
-		str << indices[i];
-		str << "]";
+		if (type.members.find(indices[i]) != type.members.end()) {
+			if (strncmp(type.name, "gl_", 3) != 0) str << ".";
+			str << type.members[indices[i]];
+		}
+		else {
+			str << "[";
+			str << indices[i];
+			str << "]";
+		}
 	}
 	return str.str();
 }
@@ -291,10 +297,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpTypePointer: {
 		Type t;
 		unsigned id = inst.operands[0];
-		Type subtype = types[inst.operands[2]];
+		Type& subtype = types[inst.operands[2]];
 		t.name = subtype.name;
 		t.isarray = subtype.isarray;
 		t.length = subtype.length;
+		t.members = subtype.members;
+		t.ispointer = true;
 		types[id] = t;
 		break;
 	}
@@ -320,12 +328,10 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeStruct: {
-		Type t;
 		unsigned id = inst.operands[0];
-		// TODO: members
+		Type& t = types[id];
 		Name n = names[id];
 		t.name = n.name;
-		types[id] = t;
 		break;
 	}
 	case OpConstant: {
@@ -472,6 +478,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		types[id] = types[image];
 		break;
 	}
+	case OpMemberName: {
+		Type& type = types[inst.operands[0]];
+		id number = inst.operands[1];
+		type.members[number] = (char*)&inst.operands[2];
+		break;
+	}
 	case OpVariable: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
@@ -555,7 +567,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		for (unsigned i = 3; i < inst.length; ++i) {
 			indices.push_back(inst.operands[i]);
 		}
-		str << getReference(composite) << indexName(indices);
+		str << getReference(composite) << indexName(types[composite], indices);
 		references[result] = str.str();
 		break;
 	}
@@ -576,8 +588,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			indices1.push_back(index);
 			std::vector<unsigned> indices2;
 			indices2.push_back(index - vector1length);
-			if (index < vector1length) str << getReference(vector1) << indexName(indices1);
-			else str << getReference(vector2) << indexName(indices2);
+			if (index < vector1length) str << getReference(vector1) << indexName(types[vector1], indices1);
+			else str << getReference(vector2) << indexName(types[vector2], indices2);
 			if (i < inst.length - 1) str << ", ";
 		}
 		str << ")";
@@ -988,9 +1000,11 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		types[result] = resultType;
 		id base = inst.operands[2];
 		std::stringstream str;
-		str << getReference(base);
+		if (strncmp(types[base].name, "gl_", 3) != 0) str << getReference(base);
 		for (unsigned i = 3; i < inst.length; ++i) {
-			str << "[" << getReference(inst.operands[i]) << "]";
+			std::vector<unsigned> indices;
+			indices.push_back(atoi(getReference(inst.operands[i]).c_str()));
+			str << indexName(types[base], indices);
 		}
 		references[result] = str.str();
 		break;
@@ -1160,7 +1174,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		else if (stage == EShLangFragment && v.storage == StorageClassOutput && target.version < 300) {
 			output(out);
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
-				(*out) << "gl_FragColor" << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+				Type type;
+				(*out) << "gl_FragColor" << indexName(type, compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 			else {
 				(*out) << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
@@ -1169,7 +1184,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		else {
 			output(out);
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
-				(*out) << getReference(inst.operands[0]) << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << getReference(inst.operands[0]) << indexName(types[inst.operands[0]], compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 			else {
 				(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";

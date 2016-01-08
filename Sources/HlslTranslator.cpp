@@ -609,7 +609,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		else {
 			output(out);
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
-				(*out) << getReference(inst.operands[0]) << indexName(compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << getReference(inst.operands[0]) << indexName(types[inst.operands[0]], compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 			else {
 				(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";

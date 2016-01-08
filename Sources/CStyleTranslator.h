@@ -20,8 +20,10 @@ namespace krafix {
 		const char* name;
 		unsigned length;
 		bool isarray;
+		bool ispointer;
+		std::map<unsigned, std::string> members;
 
-		Type() : name("unknown"), length(1), isarray(false) {}
+		Type() : name("unknown"), length(1), isarray(false), ispointer(false) {}
 	};
 
 	struct Name {
@@ -71,7 +73,7 @@ namespace krafix {
 		std::vector<Function*> functions;
 		std::ostream* tempout = NULL;
 		
-		virtual std::string indexName(const std::vector<unsigned>& indices);
+		virtual std::string indexName(Type& type, const std::vector<unsigned>& indices);
 		void indent(std::ostream* out);
 		void output(std::ostream* out);
 		std::string getReference(unsigned _id);
