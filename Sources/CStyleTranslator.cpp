@@ -502,6 +502,49 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		}
 		break;
 	}
+	case OpPhi: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		output(out);
+		(*out) << resultType.name << " " << getReference(result) << ";\n";
+
+		bool first = true;
+		
+		for (unsigned i = 2; i < inst.length; i += 2) {
+			id variable = inst.operands[i];
+			id parent = inst.operands[i + 1];
+		
+			if (labelStarts.find(parent) != labelStarts.end()) {
+				indent(out);
+				if (!first) (*out) << "else ";
+				(*out) << labelStarts[parent] << "\n";
+				++indentation;
+				indent(out);
+				(*out) << getReference(result) << " = " << getReference(variable) << ";\n";
+				--indentation;
+
+				first = false;
+			}
+		}
+
+		for (unsigned i = 2; i < inst.length; i += 2) {
+			id variable = inst.operands[i];
+			id parent = inst.operands[i + 1];
+			
+			if (labelStarts.find(parent) == labelStarts.end()) {
+				indent(out);
+				(*out) << "else\n";
+				++indentation;
+				indent(out);
+				(*out) << getReference(result) << " = " << getReference(variable) << ";\n";
+				--indentation;
+			}
+		}
+
+		references[result] = getReference(result);
+		break;
+	}
 	case OpCompositeExtract: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
