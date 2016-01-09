@@ -15,7 +15,7 @@ std::string CStyleTranslator::indexName(Type& type, const std::vector<unsigned>&
 	for (unsigned i = 0; i < indices.size(); ++i) {
 		if (type.members.find(indices[i]) != type.members.end()) {
 			if (strncmp(type.name, "gl_", 3) != 0) str << ".";
-			str << type.members[indices[i]];
+			str << std::get<0>(type.members[indices[i]]);
 		}
 		else {
 			str << "[";
@@ -332,6 +332,10 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type& t = types[id];
 		Name n = names[id];
 		t.name = n.name;
+		for (unsigned i = 1; i < inst.length; ++i) {
+			Type& membertype = types[inst.operands[i]];
+			std::get<1>(t.members[i - 1]) = membertype;
+		}
 		break;
 	}
 	case OpConstant: {
@@ -481,7 +485,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpMemberName: {
 		Type& type = types[inst.operands[0]];
 		id number = inst.operands[1];
-		type.members[number] = (char*)&inst.operands[2];
+		std::get<0>(type.members[number]) = (char*)&inst.operands[2];
 		break;
 	}
 	case OpVariable: {

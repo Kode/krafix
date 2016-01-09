@@ -21,7 +21,7 @@ namespace krafix {
 		unsigned length;
 		bool isarray;
 		bool ispointer;
-		std::map<unsigned, std::string> members;
+		std::map<unsigned, std::pair<std::string, Type>> members;
 
 		Type() : name("unknown"), length(1), isarray(false), ispointer(false) {}
 	};

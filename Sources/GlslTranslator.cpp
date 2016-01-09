@@ -47,12 +47,13 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					if (type.ispointer) continue;
 					if (type.members.size() == 0) continue;
 					if (strncmp(type.name, "gl_", 3) == 0) continue;
-					(*out) << "struct " << type.name << "{\n";
-					for (std::map<unsigned, std::string>::iterator it2 = type.members.begin(); it2 != type.members.end(); ++it2) {
-						std::string& name = it2->second;
-						(*out) << "\t" << name << ";\n";
+					(*out) << "struct " << type.name << " {\n";
+					for (std::map<unsigned, std::pair<std::string, Type>>::iterator it2 = type.members.begin(); it2 != type.members.end(); ++it2) {
+						std::string& name = std::get<0>(it2->second);
+						std::string type_name = std::get<1>(it2->second).name;
+						(*out) << "\t" << type_name << " " << name << ";\n";
 					}
-					(*out) << "}\n";
+					(*out) << "};\n";
 				}
 
 				if (target.version >= 300 && stage == EShLangFragment) {
