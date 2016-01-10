@@ -829,8 +829,22 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpDecorate: {
 		unsigned target = inst.operands[0];
 		Decoration decoration = (Decoration)inst.operands[1];
-		if (decoration == DecorationBuiltIn) {
-			variables[target].builtin = true;
+		switch (decoration) {
+			case DecorationBuiltIn:
+				variables[target].builtin = true;
+				variables[target].builtinType = inst.operands[2];
+				break;
+			case DecorationLocation:
+				variables[target].location = inst.operands[2];
+				break;
+			case DecorationDescriptorSet:
+				variables[target].descriptorSet = inst.operands[2];
+				break;
+			case DecorationBinding:
+				variables[target].binding = inst.operands[2];
+				break;
+			default:
+				break;
 		}
 		break;
 	}

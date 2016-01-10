@@ -9,7 +9,7 @@ namespace krafix {
 		void outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes);
 		void outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst);
 	protected:
-		std::string name = "main";
+		std::string name;
 		std::string positionName = "position";
 	};
 }

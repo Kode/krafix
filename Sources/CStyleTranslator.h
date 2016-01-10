@@ -9,11 +9,15 @@ namespace krafix {
 	struct Variable {
 		unsigned id;
 		unsigned type;
+		unsigned builtinType;
+		unsigned location;
+		unsigned descriptorSet;
+		unsigned binding;
 		spv::StorageClass storage;
 		bool builtin;
 		bool declared;
 
-		Variable() : builtin(false) {}
+		Variable() : builtin(false), location(0), descriptorSet(0), binding(0) {}
 	};
 
 	struct Type {
