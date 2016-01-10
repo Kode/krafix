@@ -488,6 +488,9 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		std::get<0>(type.members[number]) = (char*)&inst.operands[2];
 		break;
 	}
+	case OpMemberDecorate: {
+		break;
+	}
 	case OpVariable: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
