@@ -381,11 +381,34 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpExecutionMode: {
 		output(out);
 		switch (inst.operands[1]) {
+		case ExecutionModeInvocations:
+
+			break;
+		case ExecutionModeTriangles:
+			(*out) << "layout(triangles) in;";
+			break;
+		case ExecutionModeOutputTriangleStrip:
+			if (stage == EShLangGeometry) {
+				(*out) << "layout(triangle_strip, max_vertices = 3) out;";
+			}
+			break;
+		case ExecutionModeSpacingEqual:
+			if (stage == EShLangTessEvaluation) {
+				(*out) << "layout(equal_spacing) in;";
+			}
+			break;
+		case ExecutionModeVertexOrderCw:
+			if (stage == EShLangTessEvaluation) {
+				(*out) << "layout(cw) in;";
+			}
+			break;
 		case ExecutionModeOutputVertices:
-			(*out) << "layout(vertices = " << inst.operands[2] << ") out;";
+			if (stage == EShLangTessControl) {
+				(*out) << "layout(vertices = " << inst.operands[2] << ") out;";
+			}
 			break;
 		default:
-			(*out) << "// Unknown execution mode";
+			(*out) << "// Unknown execution mode " << inst.operands[1];
 		}
 		break;
 	}
