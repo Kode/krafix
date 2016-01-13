@@ -56,7 +56,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 		case OpExecutionMode:
 			break;
 		case OpTypeArray: {
-			Type t;
+			Type t(inst.opcode);
 			unsigned id = inst.operands[0];
 			t.name = "?[]";
 			Type subtype = types[inst.operands[1]];
@@ -75,7 +75,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			break;
 		}
 		case OpTypeVector: {
-			Type t;
+			Type t(inst.opcode);
 			unsigned id = inst.operands[0];
 			t.name = "float?";
 			Type subtype = types[inst.operands[1]];
@@ -97,7 +97,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			break;
 		}
 		case OpTypeMatrix: {
-			Type t;
+			Type t(inst.opcode);
 			unsigned id = inst.operands[0];
 			t.name = "matrix_float4x?";
 			Type subtype = types[inst.operands[1]];
@@ -110,8 +110,50 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			}
 			break;
 		}
+		case OpTypeImage: {
+			Type t(inst.opcode);
+			unsigned id = inst.operands[0];
+			t.imageDim = (spv::Dim)inst.operands[2];
+			t.isDepthImage = (inst.operands[3] == 1);
+			t.isarray = !!(inst.operands[4]);
+			t.isMultiSampledImage = !!(inst.operands[5]);
+			t.sampledImage = (SampledImage)inst.operands[6];
+
+			if (t.isDepthImage) {
+				switch (t.imageDim) {
+					case spv::Dim2D:
+						t.name = t.isMultiSampledImage ? "depth2d_ms" : (t.isarray ? "depth2d_array" : "depth2d");
+						break;
+					case spv::DimCube:
+						t.name = t.isarray ? "depthcube_array" : "depthcube";
+						break;
+					default:
+						break;
+				}
+			} else {
+				switch (t.imageDim) {
+					case spv::Dim1D:
+						t.name = t.isarray ? "texture1d_array" : "texture1d";
+						break;
+					case spv::Dim2D:
+						t.name = t.isMultiSampledImage ? "texture2d_ms" : (t.isarray ? "texture2d_array" : "texture2d");
+						break;
+					case spv::Dim3D:
+						t.name = "texture3D";
+						break;
+					case spv::DimCube:
+						t.name = t.isarray ? "texturecube_array" : "texturecube";
+						break;
+					default:
+						break;
+				}
+			}
+
+			types[id] = t;
+			break;
+		}
 		case OpTypeSampler: {
-			Type t;
+			Type t(inst.opcode);
 			unsigned id = inst.operands[0];
 			t.name = "sampler2D";
 			types[id] = t;

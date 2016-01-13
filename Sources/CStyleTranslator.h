@@ -6,6 +6,13 @@
 #include <sstream>
 
 namespace krafix {
+
+	typedef enum {
+		kSampledImageUnknown = 0,
+		kSampledImageYes = 1,
+		kSampledImageNo = 2,
+	} SampledImage;
+
 	struct Variable {
 		unsigned id;
 		unsigned type;
@@ -21,11 +28,25 @@ namespace krafix {
 	};
 
 	struct Type {
+		spv::Op opcode;
 		const char* name;
 		unsigned length;
+		SampledImage sampledImage;
+		spv::Dim imageDim;
+		bool isDepthImage;
+		bool isMultiSampledImage;
 		bool isarray;
 
-		Type() : name("unknown"), length(1), isarray(false) {}
+		Type(spv::Op opcode) : opcode(opcode)  {
+			name = "unknown";
+			length = 1;
+			isarray = false;
+			sampledImage = kSampledImageUnknown;
+			imageDim = spv::Dim2D;
+			isDepthImage = false;
+			isMultiSampledImage = false;
+		}
+		Type() : Type(spv::OpNop) {}
 	};
 
 	struct Name {

@@ -268,38 +268,34 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypePointer: {
-		Type t;
 		unsigned id = inst.operands[0];
-		Type subtype = types[inst.operands[2]];
-		t.name = subtype.name;
-		t.isarray = subtype.isarray;
-		t.length = subtype.length;
-		types[id] = t;
+		unsigned reftype = inst.operands[2];
+		types[id] = types[reftype];	// Pass through referenced type
 		break;
 	}
 	case OpTypeFloat: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "float";
 		types[id] = t;
 		break;
 	}
 	case OpTypeInt: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "int";
 		types[id] = t;
 		break;
 	}
 	case OpTypeBool: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "bool";
 		types[id] = t;
 		break;
 	}
 	case OpTypeStruct: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		// TODO: members
 		Name n = names[id];
@@ -359,7 +355,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeArray: {
-		Type t;
+		Type t(inst.opcode);
 		t.name = "unknownarray";
 		t.isarray = true;
 		unsigned id = inst.operands[0];
@@ -383,7 +379,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeVector: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "vec?";
 		Type subtype = types[inst.operands[1]];
@@ -405,7 +401,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeMatrix: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "mat?";
 		Type subtype = types[inst.operands[1]];
@@ -429,7 +425,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeImage: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		bool video = inst.length >= 8 && inst.operands[8] == 1;
 		if (video && target.system == Android) {
@@ -445,10 +441,11 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeSampledImage: {
-		Type t;
 		unsigned id = inst.operands[0];
 		unsigned image = inst.operands[1];
-		types[id] = types[image];
+		Type t = types[image];		// Pass through image type...
+		t.opcode = inst.opcode;		// ...except OpCode.
+		types[id] = t;
 		break;
 	}
 	case OpVariable: {
@@ -849,7 +846,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeFunction: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "function";
 		types[id] = t;
