@@ -270,7 +270,10 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpTypePointer: {
 		unsigned id = inst.operands[0];
 		unsigned reftype = inst.operands[2];
-		types[id] = types[reftype];	// Pass through referenced type
+		Type t = types[reftype];	// Pass through referenced type
+		t.opcode = inst.opcode;		// ...except OpCode...
+		t.baseType = reftype;		// ...and base type
+		types[id] = t;
 		break;
 	}
 	case OpTypeFloat: {
@@ -296,11 +299,42 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	}
 	case OpTypeStruct: {
 		Type t(inst.opcode);
-		unsigned id = inst.operands[0];
-		// TODO: members
-		Name n = names[id];
-		t.name = n.name;
-		types[id] = t;
+		unsigned typeId = inst.operands[0];
+		t.name = names[typeId].name;
+		unsigned mbrCnt = inst.length - 1;
+		t.length = mbrCnt;
+		for (unsigned mbrIdx = 0, opIdx = 1; mbrIdx < mbrCnt; mbrIdx++, opIdx++) {
+			unsigned mbrId = getMemberId(typeId, mbrIdx);
+			members[mbrId].type = inst.operands[opIdx];
+		}
+		types[typeId] = t;
+		break;
+	}
+	case OpMemberName: {
+		if (strcmp(inst.string, "") != 0) {
+			unsigned typeId = inst.operands[0];
+			unsigned member = inst.operands[1];
+			unsigned mbrId = getMemberId(typeId, member);
+			members[mbrId].name = inst.string;
+			references[mbrId] = inst.string;
+		}
+		break;
+	}
+	case OpMemberDecorate: {
+		unsigned typeId = inst.operands[0];
+		unsigned member = inst.operands[1];
+		unsigned mbrId = getMemberId(typeId, member);
+		Decoration decoration = (Decoration)inst.operands[2];
+		switch (decoration) {
+			case spv::DecorationColMajor:
+				members[mbrId].isColumnMajor = true;
+				break;
+			case spv::DecorationRowMajor:
+				members[mbrId].isColumnMajor = false;
+				break;
+			default:
+				break;
+		}
 		break;
 	}
 	case OpConstant: {
@@ -444,7 +478,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		unsigned id = inst.operands[0];
 		unsigned image = inst.operands[1];
 		Type t = types[image];		// Pass through image type...
-		t.opcode = inst.opcode;		// ...except OpCode.
+		t.opcode = inst.opcode;		// ...except OpCode...
+		t.baseType = image;			// ...and base type
 		types[id] = t;
 		break;
 	}
@@ -829,7 +864,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		switch (decoration) {
 			case DecorationBuiltIn:
 				variables[target].builtin = true;
-				variables[target].builtinType = inst.operands[2];
+				variables[target].builtinType = (BuiltIn)inst.operands[2];
 				break;
 			case DecorationLocation:
 				variables[target].location = inst.operands[2];

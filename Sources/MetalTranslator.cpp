@@ -55,23 +55,52 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 	switch (inst.opcode) {
 		case OpExecutionMode:
 			break;
-		case OpTypeArray: {
-			Type t(inst.opcode);
-			unsigned id = inst.operands[0];
-			t.name = "?[]";
-			Type subtype = types[inst.operands[1]];
-			if (subtype.name != NULL) {
-				if (strcmp(subtype.name, "float") == 0) {
-					t.name = "float[]";
-					t.length = 2;
-					types[id] = t;
-				}
-				if (strcmp(subtype.name, "float3") == 0) {
-					t.name = "float3[]";
-					t.length = 2;
-					types[id] = t;
+		case OpAccessChain: {
+			Type resultType = types[inst.operands[0]];
+			id result = inst.operands[1];
+			types[result] = resultType;
+			id base = inst.operands[2];
+			std::stringstream str;
+			str << getReference(base);
+
+			unsigned typeId = variables[base].type;
+			Type t = types[typeId];
+			if (t.opcode == OpTypePointer) { typeId = t.baseType; }
+
+			for (unsigned i = 3; i < inst.length; ++i) {
+				t = types[typeId];
+				unsigned elemRef = inst.operands[i];
+				switch (t.opcode) {
+					case OpTypeStruct: {
+						unsigned mbrIdx = atoi(references[elemRef].c_str());
+						unsigned mbrId = getMemberId(typeId, mbrIdx);
+						str << "." << getReference(mbrId);
+						Member mbr = members[mbrId];
+						typeId = mbr.type;
+						break;
+					}
+					case OpTypeArray: {
+						str << "[" << getReference(elemRef) << "]";
+						typeId = t.baseType;
+						break;
+					}
+					default:
+						str << "[" << getReference(elemRef) << "]";
+						break;
 				}
 			}
+			references[result] = str.str();
+			break;
+		}
+		case OpTypeArray: {
+			unsigned id = inst.operands[0];
+			unsigned reftype = inst.operands[1];
+			Type t = types[reftype];		// Pass through referenced type
+			t.opcode = inst.opcode;			// ...except OpCode
+			t.baseType = reftype;			// ...and base type
+			t.length = inst.operands[2];	// ...and length
+			t.isarray = true;				// ...and array marker	
+			types[id] = t;
 			break;
 		}
 		case OpTypeVector: {
@@ -358,14 +387,13 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			break;
 		case OpStore: {
 			output(out);
-			Variable& v = variables[inst.operands[0]];
-			if (!v.declared) {
-				(*out) << types[v.type].name << " " << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+			unsigned refId = inst.operands[0];
+			Variable& v = variables[refId];
+			if (v.type != 0 && !v.declared) {
+				(*out) << types[v.type].name << " ";
 				v.declared = true;
 			}
-			else {
-				(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
-			}
+			(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
 			break;
 		}
 		default:
@@ -373,3 +401,41 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			break;
 	}
 }
+
+const char* MetalTranslator::builtInName(spv::BuiltIn builtin) {
+	using namespace spv;
+	switch (builtin) {
+		// Vertex function in
+		case BuiltInVertexId: return "vertex_id";
+		case BuiltInInstanceId: return "instance_id";
+
+		// Vertex function out
+		case BuiltInClipDistance: return "clip_distance";
+		case BuiltInPointSize: return "point_size";
+		case BuiltInPosition: return "position";
+
+		// Fragment function in
+		case BuiltInFrontFacing: return "front_facing";
+		case BuiltInPointCoord: return "point_coord";
+		case BuiltInSamplePosition: return "position";
+		case BuiltInSampleId: return "sample_id";
+		case BuiltInSampleMask: return "sample_mask";
+
+		// Fragment function out
+		case BuiltInFragDepth: return "depth(any)";
+
+		default: return "unsupported-built-in";
+	}
+}
+
+const char* MetalTranslator::builtInTypeName(spv::BuiltIn builtin, Type& type) {
+	using namespace spv;
+	switch (builtin) {
+			// Vertex function in
+		case BuiltInVertexId: return "uint";
+		case BuiltInInstanceId: return "uint";
+		default: return type.name;
+	}
+}
+
+

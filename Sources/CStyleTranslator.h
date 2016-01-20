@@ -16,7 +16,7 @@ namespace krafix {
 	struct Variable {
 		unsigned id;
 		unsigned type;
-		unsigned builtinType;
+		spv::BuiltIn builtinType;
 		unsigned location;
 		unsigned descriptorSet;
 		unsigned binding;
@@ -24,12 +24,13 @@ namespace krafix {
 		bool builtin;
 		bool declared;
 
-		Variable() : builtin(false), location(0), descriptorSet(0), binding(0) {}
+		Variable() : id(0), type(0), builtin(false), location(0), descriptorSet(0), binding(0) {}
 	};
 
 	struct Type {
 		spv::Op opcode;
 		const char* name;
+		unsigned baseType;
 		unsigned length;
 		SampledImage sampledImage;
 		spv::Dim imageDim;
@@ -39,6 +40,7 @@ namespace krafix {
 
 		Type(spv::Op opcode) : opcode(opcode)  {
 			name = "unknown";
+			baseType = 0;
 			length = 1;
 			isarray = false;
 			sampledImage = kSampledImageUnknown;
@@ -47,6 +49,14 @@ namespace krafix {
 			isMultiSampledImage = false;
 		}
 		Type() : Type(spv::OpNop) {}
+	};
+
+	struct Member {
+		unsigned type;
+		const char* name;
+		bool isColumnMajor;
+
+		Member() : name("unknown"), isColumnMajor(true) {}
 	};
 
 	struct Name {
@@ -80,6 +90,7 @@ namespace krafix {
 		std::map<unsigned, Name> names;
 		std::map<unsigned, Type> types;
 		std::map<unsigned, Variable> variables;
+		std::map<unsigned, Member> members;
 		std::map<unsigned, std::string> labelStarts;
 		std::map<unsigned, Merge> merges;
 		std::map<unsigned, std::string> references;
@@ -100,5 +111,6 @@ namespace krafix {
 		void indent(std::ostream* out);
 		void output(std::ostream* out);
 		std::string getReference(unsigned _id);
+		inline unsigned getMemberId(unsigned typeId, unsigned member) { return (typeId << 16) + member; }
 	};
 }
