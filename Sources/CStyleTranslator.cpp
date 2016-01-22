@@ -358,6 +358,20 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = value;
 		break;
 	}
+	case OpConstantTrue: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		references[result] = "true";
+		break;
+	}
+	case OpConstantFalse: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		references[result] = "false";
+		break;
+	}
 	case OpConstantComposite: {
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
@@ -1186,6 +1200,18 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		else str << "texture";
 		str << "(" << getReference(sampler) << ", " << getReference(coordinate) << ")";
 		references[result] = str.str();
+		break;
+	}
+	case OpUndef: {
+		Type resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		if (strcmp(resultType.name, "bool") == 0) {
+			references[result] = "false";
+		}
+		else {
+			references[result] = "0";
+		}
 		break;
 	}
 	case OpReturn:
