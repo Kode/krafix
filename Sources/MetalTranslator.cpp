@@ -95,11 +95,11 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 		case OpTypeArray: {
 			unsigned id = inst.operands[0];
 			unsigned reftype = inst.operands[1];
-			Type t = types[reftype];		// Pass through referenced type
-			t.opcode = inst.opcode;			// ...except OpCode
-			t.baseType = reftype;			// ...and base type
-			t.length = inst.operands[2];	// ...and length
-			t.isarray = true;				// ...and array marker	
+			Type t = types[reftype];								// Pass through referenced type
+			t.opcode = inst.opcode;									// ...except OpCode
+			t.baseType = reftype;									// ...and base type
+			t.length = atoi(references[inst.operands[2]].c_str());	// ...and length
+			t.isarray = true;										// ...and array marker
 			types[id] = t;
 			break;
 		}

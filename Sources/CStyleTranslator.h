@@ -54,6 +54,8 @@ namespace krafix {
 	struct Member {
 		unsigned type;
 		const char* name;
+		spv::BuiltIn builtinType;
+		bool builtin;
 		bool isColumnMajor;
 
 		Member() : name("unknown"), isColumnMajor(true) {}

@@ -326,6 +326,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		unsigned mbrId = getMemberId(typeId, member);
 		Decoration decoration = (Decoration)inst.operands[2];
 		switch (decoration) {
+			case DecorationBuiltIn: {
+				Member& mbr = members[mbrId];
+				mbr.builtin = true;
+				mbr.builtinType = (BuiltIn)inst.operands[3];
+				break;
+			}
 			case spv::DecorationColMajor:
 				members[mbrId].isColumnMajor = true;
 				break;
@@ -862,10 +868,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		unsigned target = inst.operands[0];
 		Decoration decoration = (Decoration)inst.operands[1];
 		switch (decoration) {
-			case DecorationBuiltIn:
-				variables[target].builtin = true;
-				variables[target].builtinType = (BuiltIn)inst.operands[2];
+			case DecorationBuiltIn: {
+				Variable& var = variables[target];
+				var.builtin = true;
+				var.builtinType = (BuiltIn)inst.operands[2];
 				break;
+			}
 			case DecorationLocation:
 				variables[target].location = inst.operands[2];
 				break;
