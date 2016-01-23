@@ -260,6 +260,14 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450Atan2: {
+		id y = inst.operands[4];
+		id x = inst.operands[5];
+		std::stringstream str;
+		str << "atan2(" << getReference(y) << ", " << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case GLSLstd450MatrixInverse: {
 		id x = inst.operands[4];
 		std::stringstream str;
