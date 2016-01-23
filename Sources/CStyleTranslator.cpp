@@ -314,6 +314,13 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		types[id] = t;
 		break;
 	}
+	case OpTypeVoid: {
+		Type t;
+		unsigned id = inst.operands[0];
+		t.name = "void";
+		types[id] = t;
+		break;
+	}
 	case OpTypeFloat: {
 		Type t;
 		unsigned id = inst.operands[0];
@@ -1256,8 +1263,6 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		}
 		break;
 	}
-	case OpTypeVoid:
-		break;
 	case OpEntryPoint:
 		entryPoint = inst.operands[1];
 		break;
