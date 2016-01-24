@@ -31,6 +31,11 @@ void CStyleTranslator::output(std::ostream* out) {
 	indent(out);
 }
 
+bool CStyleTranslator::argComma(std::ostream* out, bool needsComma) {
+	if (needsComma) { (*out) << ", "; }
+	return true;
+}
+
 std::string CStyleTranslator::getReference(id _id) {
 	if (references.find(_id) == references.end()) {
 		std::stringstream str;

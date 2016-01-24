@@ -53,8 +53,81 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 	using namespace spv;
 
 	switch (inst.opcode) {
-		case OpExecutionMode:
+		case OpExecutionMode: {
+			ExecutionMode execMode = (ExecutionMode)inst.operands[1];
+			switch (execMode) {
+				case ExecutionModeInvocations:
+					executionModes.invocationCount = inst.operands[2];
+					break;
+				case ExecutionModeSpacingEqual:
+				case ExecutionModeSpacingFractionalEven:
+				case ExecutionModeSpacingFractionalOdd:
+					executionModes.spacingType = execMode;
+					break;
+				case ExecutionModeVertexOrderCw:
+				case ExecutionModeVertexOrderCcw:
+					executionModes.vertexOrder = execMode;
+					break;
+				case ExecutionModePixelCenterInteger:
+					executionModes.usePixelCenterInteger = true;
+					break;
+				case ExecutionModeOriginUpperLeft:
+				case ExecutionModeOriginLowerLeft:
+					executionModes.originOrientation = execMode;
+					break;
+				case ExecutionModeEarlyFragmentTests:
+					executionModes.useEarlyFragmentTests = true;
+					break;
+				case ExecutionModePointMode:
+					executionModes.useTessellationPoints = true;
+					break;
+				case ExecutionModeXfb:
+					executionModes.useTransformFeedback = true;
+					break;
+				case ExecutionModeDepthReplacing:
+					executionModes.useDepthModification = true;
+					break;
+				case ExecutionModeDepthGreater:
+				case ExecutionModeDepthLess:
+				case ExecutionModeDepthUnchanged:
+					executionModes.depthModificationType = execMode;
+					break;
+				case ExecutionModeLocalSize:
+					executionModes.localSize[0] = inst.operands[2];
+					executionModes.localSize[1] = inst.operands[3];
+					executionModes.localSize[2] = inst.operands[4];
+					break;
+				case ExecutionModeLocalSizeHint:
+					executionModes.localSizeHint[0] = inst.operands[2];
+					executionModes.localSizeHint[1] = inst.operands[3];
+					executionModes.localSizeHint[2] = inst.operands[4];
+					break;
+				case ExecutionModeInputPoints:
+				case ExecutionModeInputLines:
+				case ExecutionModeInputLinesAdjacency:
+				case ExecutionModeTriangles:
+				case ExecutionModeInputTrianglesAdjacency:
+				case ExecutionModeQuads:
+				case ExecutionModeIsolines:
+					executionModes.primitiveType = execMode;
+					break;
+				case ExecutionModeOutputVertices:
+				case ExecutionModeOutputPoints:
+				case ExecutionModeOutputLineStrip:
+				case ExecutionModeOutputTriangleStrip:
+					executionModes.outputPrimitiveType = execMode;
+					break;
+				case ExecutionModeVecTypeHint:
+					executionModes.vectorTypeHint = inst.operands[2];
+					break;
+				case ExecutionModeContractionOff:
+					executionModes.disallowContractions = true;
+					break;
+				default:
+					(*out) << "// Unknown execution mode";
+			}
 			break;
+		}
 		case OpAccessChain: {
 			Type resultType = types[inst.operands[0]];
 			id result = inst.operands[1];
@@ -422,7 +495,17 @@ const char* MetalTranslator::builtInName(spv::BuiltIn builtin) {
 		case BuiltInSampleMask: return "sample_mask";
 
 		// Fragment function out
-		case BuiltInFragDepth: return "depth(any)";
+		case BuiltInFragDepth: {
+			switch (executionModes.depthModificationType) {
+				case ExecutionModeDepthGreater:
+					return "depth(greater)";
+				case ExecutionModeDepthLess:
+					return "depth(less)";
+				case ExecutionModeDepthUnchanged:
+				default:
+					return "depth(any)";
+			}
+		}
 
 		default: return "unsupported-built-in";
 	}

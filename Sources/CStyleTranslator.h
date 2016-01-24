@@ -79,6 +79,46 @@ namespace krafix {
 		bool loop;
 	};
 
+#define ExecutionModeDefault  ( (spv::ExecutionMode) -1 )
+
+	struct ExecutionModes {
+		unsigned invocationCount;
+		spv::ExecutionMode spacingType;
+		spv::ExecutionMode vertexOrder;
+		spv::ExecutionMode originOrientation;
+		spv::ExecutionMode depthModificationType;
+		spv::ExecutionMode primitiveType;
+		spv::ExecutionMode outputPrimitiveType;
+		unsigned localSize[3];
+		unsigned localSizeHint[3];
+		unsigned maxVertexCount;
+		unsigned vectorTypeHint;
+		bool usePixelCenterInteger;
+		bool useEarlyFragmentTests;
+		bool useTessellationPoints;
+		bool useTransformFeedback;
+		bool useDepthModification;
+		bool disallowContractions;
+
+		ExecutionModes() : localSize{0, 0, 0}, localSizeHint{0, 0, 0} {
+			invocationCount = 1;
+			spacingType = ExecutionModeDefault;
+			vertexOrder = ExecutionModeDefault;
+			originOrientation = ExecutionModeDefault;
+			depthModificationType = ExecutionModeDefault;
+			primitiveType = ExecutionModeDefault;
+			outputPrimitiveType = ExecutionModeDefault;
+			maxVertexCount = 0;
+			vectorTypeHint = 0;
+			usePixelCenterInteger = false;
+			useEarlyFragmentTests = false;
+			useTessellationPoints = false;
+			useTransformFeedback = false;
+			useDepthModification = false;
+			disallowContractions = false;
+		}
+	};
+
 	class CStyleTranslator : public Translator {
 	public:
 		CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage);
@@ -99,6 +139,7 @@ namespace krafix {
 		std::map<unsigned, std::vector<unsigned>> compositeInserts;
 		std::vector<Parameter> parameters;
 		std::vector<unsigned> callParameters;
+		ExecutionModes executionModes;
 		int indentation = 0;
 		bool outputting = false;
 		bool firstFunction = true;
@@ -112,6 +153,7 @@ namespace krafix {
 		virtual std::string indexName(const std::vector<unsigned>& indices);
 		void indent(std::ostream* out);
 		void output(std::ostream* out);
+		bool argComma(std::ostream* out, bool needsComma);
 		std::string getReference(unsigned _id);
 		inline unsigned getMemberId(unsigned typeId, unsigned member) { return (typeId << 16) + member; }
 	};
