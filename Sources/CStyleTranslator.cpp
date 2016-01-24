@@ -263,6 +263,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	using namespace spv;
 
 	switch (inst.opcode) {
+
 	case OpName: {
 		unsigned id = inst.operands[0];
 		if (strcmp(inst.string, "") != 0) {
@@ -1161,6 +1162,10 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpSource:
 		break;
 	case OpCapability:
+		break;
+	case OpString:
+		break;
+	case OpSourceExtension:
 		break;
 	default:
 		output(out);
