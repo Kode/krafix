@@ -920,7 +920,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpBranch: {
 		id branch = inst.operands[0];
 		output(out);
-		(*out) << "// Branch to " << branch;
+		if (merges.find(branch) != merges.end() && merges.find(branch)->second.loop) (*out) << "break; // Branch to " << branch;
+		else (*out) << "// Branch to " << branch;
 		break;
 	}
 	case OpSelectionMerge: {
