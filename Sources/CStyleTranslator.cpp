@@ -6,16 +6,34 @@ using namespace krafix;
 
 typedef unsigned id;
 
+#ifndef SYS_WINDOWS
+void _itoa(int value, char* str, int base) {
+	sprintf(str, "%d", value);
+}
+#endif
+
 CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {
 
 }
 
 std::string CStyleTranslator::indexName(Type& type, const std::vector<unsigned>& indices) {
+	std::vector<std::string> stringindices;
+	for (unsigned i = 0; i < indices.size(); ++i) {
+		char a[32];
+		_itoa(indices[i], a, 10);
+		stringindices.push_back(a);
+	}
+	return indexName(type, stringindices);
+}
+
+std::string CStyleTranslator::indexName(Type& type, const std::vector<std::string>& indices) {
 	std::stringstream str;
 	for (unsigned i = 0; i < indices.size(); ++i) {
-		if ((!type.isarray || i > 0) && type.members.find(indices[i]) != type.members.end()) {
+		int numindex = -1;
+		if (indices[i][0] >= '0' && indices[i][0] <= '9') numindex = atoi(indices[i].c_str());
+		if (numindex >= 0 && (!type.isarray || i > 0) && type.members.find(numindex) != type.members.end()) {
 			if (strncmp(type.name, "gl_", 3) != 0 || i > 0) str << ".";
-			str << std::get<0>(type.members[indices[i]]);
+			str << std::get<0>(type.members[numindex]);
 		}
 		else {
 			str << "[";
@@ -1051,9 +1069,11 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id base = inst.operands[2];
 		std::stringstream str;
 		if (strncmp(types[base].name, "gl_", 3) != 0 || types[base].isarray) str << getReference(base);
-		std::vector<unsigned> indices;
+		std::vector<std::string> indices;
 		for (unsigned i = 3; i < inst.length; ++i) {
-			indices.push_back(atoi(getReference(inst.operands[i]).c_str()));
+			/*std::string reference = getReference(inst.operands[i]);
+			if (reference[0] >= '0' && reference[0] <= 9) indices.push_back(atoi(reference.c_str()));
+			else*/ indices.push_back(getReference(inst.operands[i]));
 		}
 		str << indexName(types[base], indices);
 		references[result] = str.str();

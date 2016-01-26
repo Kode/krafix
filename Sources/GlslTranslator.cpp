@@ -8,6 +8,21 @@ using namespace krafix;
 
 typedef unsigned id;
 
+namespace {
+	std::vector<std::string> splitLines(std::string text) {
+		std::vector<std::string> lines;
+		unsigned lastSplit = 0;
+		for (unsigned i = 0; i < text.size(); ++i) {
+			if (text[i] == '\n') {
+				lines.push_back(text.substr(lastSplit, i - lastSplit));
+				lastSplit = i + 1;
+			}
+		}
+		lines.push_back(text.substr(lastSplit));
+		return lines;
+	}
+}
+
 void GlslTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
 	std::ofstream file;
 	file.open(filename, std::ios::binary | std::ios::out);
@@ -22,8 +37,39 @@ void GlslTranslator::outputCode(const Target& target, const char* filename, std:
 		if (outputting) (*out) << "\n";
 	}
 	for (unsigned i = 0; i < functions.size(); ++i) {
-		(*out) << functions[i]->text.str();
-		(*out) << "\n\n";
+		if (functions[i]->name == "patch_main") {
+
+		}
+		else if (functions[i]->name == "main") {
+			std::string patch;
+			for (unsigned i2 = 0; i2 < functions.size(); ++i2) {
+				if (functions[i2]->name == "patch_main") {
+					patch = functions[i2]->text.str();
+					break;
+				}
+			}
+			if (patch.size() > 0) {
+				std::vector<std::string> mainlines = splitLines(functions[i]->text.str());
+				std::vector<std::string> patchlines = splitLines(patch);
+				for (unsigned line = 0; line < 2; ++line) {
+					(*out) << mainlines[line] << '\n';
+				}
+				for (unsigned line = 0; line < patchlines.size(); ++line) {
+					if (patchlines[line].size() < 7 || patchlines[line].substr(patchlines[line].size() - 7) != "return;") (*out) << '\t' << patchlines[line] << '\n';
+				}
+				for (unsigned line = 2; line < mainlines.size(); ++line) {
+					(*out) << mainlines[line] << '\n';
+				}
+			}
+			else {
+				(*out) << functions[i]->text.str();
+			}
+			(*out) << "\n\n";
+		}
+		else {
+			(*out) << functions[i]->text.str();
+			(*out) << "\n\n";
+		}
 	}
 
 	file.close();
@@ -186,7 +232,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				firstFunction = false;
 			}
 
-			if (funcName != "main") {
+			if (funcName != "main" && funcName != "patch_main") {
 				(*out) << funcType << " " << funcName << "(";
 				for (unsigned i = 0; i < parameters.size(); ++i) {
 					(*out) << parameters[i].type.name << " " << getReference(parameters[i].id);
@@ -197,12 +243,17 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 			startFunction(funcName);
 
-			(*out) << funcType << " " << funcName << "(";
-			for (unsigned i = 0; i < parameters.size(); ++i) {
-				(*out) << parameters[i].type.name << " " << getReference(parameters[i].id);
-				if (i < parameters.size() - 1) (*out) << ", ";
+			if (funcName == "patch_main") {
+				(*out) << "if (gl_InvocationID == 0)\n";
 			}
-			(*out) << ")\n";
+			else {
+				(*out) << funcType << " " << funcName << "(";
+				for (unsigned i = 0; i < parameters.size(); ++i) {
+					(*out) << parameters[i].type.name << " " << getReference(parameters[i].id);
+					if (i < parameters.size() - 1) (*out) << ", ";
+				}
+				(*out) << ")\n";
+			}
 		
 			indent(out);
 			(*out) << "{";

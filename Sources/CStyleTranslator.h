@@ -73,7 +73,8 @@ namespace krafix {
 		std::vector<Function*> functions;
 		std::ostream* tempout = NULL;
 		
-		virtual std::string indexName(Type& type, const std::vector<unsigned>& indices);
+		virtual std::string indexName(Type& type, const std::vector<std::string>& indices);
+		std::string indexName(Type& type, const std::vector<unsigned>& indices);
 		void indent(std::ostream* out);
 		void output(std::ostream* out);
 		std::string getReference(unsigned _id);

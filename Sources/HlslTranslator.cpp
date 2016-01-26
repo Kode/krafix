@@ -11,7 +11,7 @@ using namespace krafix;
 typedef unsigned id;
 
 #ifndef SYS_WINDOWS
-void _itoa(int value, char * str, int base) {
+void _itoa(int value, char* str, int base) {
 	sprintf(str, "%d", value);
 }
 #endif
