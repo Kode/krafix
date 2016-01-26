@@ -13,8 +13,8 @@ CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage sta
 std::string CStyleTranslator::indexName(Type& type, const std::vector<unsigned>& indices) {
 	std::stringstream str;
 	for (unsigned i = 0; i < indices.size(); ++i) {
-		if (type.members.find(indices[i]) != type.members.end()) {
-			if (strncmp(type.name, "gl_", 3) != 0) str << ".";
+		if ((!type.isarray || i > 0) && type.members.find(indices[i]) != type.members.end()) {
+			if (strncmp(type.name, "gl_", 3) != 0 || i > 0) str << ".";
 			str << std::get<0>(type.members[indices[i]]);
 		}
 		else {
@@ -449,19 +449,9 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type subtype = types[inst.operands[1]];
 		t.length = atoi(references[inst.operands[2]].c_str());
 		if (subtype.name != NULL) {
-			if (strcmp(subtype.name, "float") == 0) {
-				t.name = "float";
-			}
-			else if (strcmp(subtype.name, "vec2") == 0) {
-				t.name = "vec2";
-			}
-			else if (strcmp(subtype.name, "vec3") == 0) {
-				t.name = "vec3";
-			}
-			else if (strcmp(subtype.name, "vec4") == 0) {
-				t.name = "vec4";
-			}
+			t.name = subtype.name;
 		}
+		t.members = subtype.members;
 		types[id] = t;
 		break;
 	}
@@ -1060,12 +1050,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		types[result] = resultType;
 		id base = inst.operands[2];
 		std::stringstream str;
-		if (strncmp(types[base].name, "gl_", 3) != 0) str << getReference(base);
+		if (strncmp(types[base].name, "gl_", 3) != 0 || types[base].isarray) str << getReference(base);
+		std::vector<unsigned> indices;
 		for (unsigned i = 3; i < inst.length; ++i) {
-			std::vector<unsigned> indices;
 			indices.push_back(atoi(getReference(inst.operands[i]).c_str()));
-			str << indexName(types[base], indices);
 		}
+		str << indexName(types[base], indices);
 		references[result] = str.str();
 		break;
 	}

@@ -145,21 +145,39 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					case EShLangTessControl:
 					case EShLangTessEvaluation:
 						if (variable.storage == StorageClassInput) {
-							(*out) << "in " << t.name << " " << name << ";\n";
+							if (strncmp(t.name, "gl_", 3) != 0) {
+								if (t.isarray) {
+									(*out) << "in " << t.name << " " << name << "[" << t.length << "];\n";
+								}
+								else {
+									(*out) << "in " << t.name << " " << name << ";\n";
+								}
+							}
 						}
 						else if (variable.storage == StorageClassOutput) {
-							(*out) << "out " << t.name << " " << name << ";\n";
+							if (strncmp(t.name, "gl_", 3) != 0) {
+								if (t.isarray) {
+									(*out) << "out " << t.name << " " << name << "[" << t.length << "];\n";
+								}
+								else {
+									(*out) << "out " << t.name << " " << name << ";\n";
+								}
+							}
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
-							if (t.isarray) {
-								(*out) << "uniform " << t.name << " " << name << "[" << t.length << "];\n";
-							}
-							else {
-								(*out) << "uniform " << t.name << " " << name << ";\n";
+							if (strncmp(t.name, "gl_", 3) != 0) {
+								if (t.isarray) {
+									(*out) << "uniform " << t.name << " " << name << "[" << t.length << "];\n";
+								}
+								else {
+									(*out) << "uniform " << t.name << " " << name << ";\n";
+								}
 							}
 						}
 						else {
-							(*out) << t.name << " " << name << ";\n";
+							if (strncmp(t.name, "gl_", 3) != 0) {
+								(*out) << t.name << " " << name << ";\n";
+							}
 						}
 						break;
 					}
