@@ -27,8 +27,13 @@ void GlslTranslator::outputCode(const Target& target, const char* filename, std:
 	std::ofstream file;
 	file.open(filename, std::ios::binary | std::ios::out);
 	out = &file;
-
-	(*out) << "#version " << target.version << "\n";
+	
+	if (stage != EShLangVertex && stage != EShLangFragment) {
+		(*out) << "#version 400\n";
+	}
+	else {
+		(*out) << "#version " << target.version << "\n";
+	}
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		outputting = false;
