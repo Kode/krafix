@@ -422,14 +422,6 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			output(out);
 			(*out) << "}";
 			break;
-		case OpCompositeConstruct: {
-			//Type resultType = types[inst.operands[0]];
-			id result = inst.operands[1];
-			std::stringstream str;
-			str << "float4(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ", " << getReference(inst.operands[4]) << ", " << getReference(inst.operands[5]) << ")";
-			references[result] = str.str();
-			break;
-		}
 		case OpMatrixTimesVector: {
 			//Type resultType = types[inst.operands[0]];
 			id result = inst.operands[1];
