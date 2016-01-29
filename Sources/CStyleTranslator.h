@@ -122,7 +122,7 @@ namespace krafix {
 	class CStyleTranslator : public Translator {
 	public:
 		CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage);
-		virtual ~CStyleTranslator() {}
+		virtual ~CStyleTranslator();
 		virtual void outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst);
 		virtual void outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSLstd450 entrypoint);
 		void startFunction(std::string name);
@@ -153,7 +153,6 @@ namespace krafix {
 		virtual std::string indexName(const std::vector<unsigned>& indices);
 		void indent(std::ostream* out);
 		void output(std::ostream* out);
-		bool argComma(std::ostream* out, bool needsComma);
 		std::string getReference(unsigned _id);
 		inline unsigned getMemberId(unsigned typeId, unsigned member) { return (typeId << 16) + member; }
 	};

@@ -10,6 +10,14 @@ CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage sta
 
 }
 
+CStyleTranslator::~CStyleTranslator() {
+	// Delete any function objects that were added to the function pointer vector
+	for (auto iter = functions.begin(), end = functions.end(); iter != end; iter++) {
+		delete *iter;
+	}
+	functions.clear();
+}
+
 std::string CStyleTranslator::indexName(const std::vector<unsigned>& indices) {
 	std::stringstream str;
 	for (unsigned i = 0; i < indices.size(); ++i) {
@@ -29,11 +37,6 @@ void CStyleTranslator::indent(std::ostream* out) {
 void CStyleTranslator::output(std::ostream* out) {
 	outputting = true;
 	indent(out);
-}
-
-bool CStyleTranslator::argComma(std::ostream* out, bool needsComma) {
-	if (needsComma) { (*out) << ", "; }
-	return true;
 }
 
 std::string CStyleTranslator::getReference(id _id) {
@@ -56,7 +59,11 @@ void CStyleTranslator::startFunction(std::string name) {
 }
 
 void CStyleTranslator::endFunction() {
-	out = tempout;
+	// guard against an end func not matched to a previous start func
+	if (tempout) {
+		out = tempout;
+		tempout = NULL;
+	}
 }
 
 void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSLstd450 entrypoint) {
@@ -1150,8 +1157,13 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		}
 		break;
 	}
-	case OpTypeVoid:
+	case OpTypeVoid: {
+		Type t(inst.opcode);
+		unsigned id = inst.operands[0];
+		t.name = "void";
+		types[id] = t;
 		break;
+	}
 	case OpEntryPoint:
 		entryPoint = inst.operands[1];
 		break;
