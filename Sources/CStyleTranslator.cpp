@@ -16,7 +16,7 @@ CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage sta
 
 CStyleTranslator::~CStyleTranslator() {
 	// Delete any function objects that were added to the function pointer vector
-	for (auto iter = functions.begin(), end = functions.end(); iter != end; iter++) {
+	for (std::vector<Function*>::iterator iter = functions.begin(), end = functions.end(); iter != end; iter++) {
 		delete *iter;
 	}
 	functions.clear();

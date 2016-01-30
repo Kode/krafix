@@ -416,12 +416,6 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			else (*out) << "float4 output;";
 			break;
 		}
-		case OpFunctionEnd:
-			// Don't call endFunction()
-			--indentation;
-			output(out);
-			(*out) << "}";
-			break;
 		case OpMatrixTimesVector: {
 			//Type resultType = types[inst.operands[0]];
 			id result = inst.operands[1];
