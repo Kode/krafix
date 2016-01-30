@@ -37,12 +37,15 @@ namespace krafix {
 		bool isDepthImage;
 		bool isMultiSampledImage;
 		bool isarray;
+		bool ispointer;
+		std::map<unsigned, std::pair<std::string, Type>> members;
 
 		Type(spv::Op opcode) : opcode(opcode)  {
 			name = "unknown";
 			baseType = 0;
 			length = 1;
 			isarray = false;
+			ispointer = false;
 			sampledImage = kSampledImageUnknown;
 			imageDim = spv::Dim2D;
 			isDepthImage = false;
@@ -151,7 +154,8 @@ namespace krafix {
 		std::vector<Function*> functions;
 		std::ostream* tempout = NULL;
 		
-		virtual std::string indexName(const std::vector<unsigned>& indices);
+		virtual std::string indexName(Type& type, const std::vector<std::string>& indices);
+		std::string indexName(Type& type, const std::vector<unsigned>& indices);
 		void indent(std::ostream* out);
 		void output(std::ostream* out);
 		std::string getReference(unsigned _id);
