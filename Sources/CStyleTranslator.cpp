@@ -6,9 +6,7 @@ using namespace krafix;
 
 typedef unsigned id;
 
-CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {
-
-}
+CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {}
 
 CStyleTranslator::~CStyleTranslator() {
 	// Delete any function objects that were added to the function pointer vector
@@ -16,6 +14,53 @@ CStyleTranslator::~CStyleTranslator() {
 		delete *iter;
 	}
 	functions.clear();
+}
+
+/** 
+ * Associate the specified name with the specified ID, 
+ * and ensure the name is unique by appending the ID if needed.
+ * This is necessary if the SPIR-V contains duplicate names for intermediate variables.
+ */
+void CStyleTranslator::addUniqueName(unsigned id, const char* name) {
+	std::string uqName = name;
+	for (std::map<unsigned, std::string>::iterator iter = uniqueNames.begin(); iter != uniqueNames.end(); iter++) {
+		if (iter->second == uqName) {
+			if (iter->first != id) {					// If BOTH ID and name are same, leave it
+				uqName = uqName + std::to_string(id);	// Otherwise make the name unique...
+				uniqueNames[id] = uqName;				// ...and add it
+			}
+			return;
+		}
+	}
+	uniqueNames[id] = uqName;				// If not found, add name unchanged
+}
+
+/** 
+ * Returns the name associated with the specified ID. If a name does not yet 
+ * exist for the ID, a unique name is created from the ID and the prefix string.
+ * This is necessary if the SPIR-V does not contain names, or contains duplicates.
+ */
+std::string& CStyleTranslator::getUniqueName(unsigned id, const char* prefix) {
+	std::string& uqName = uniqueNames[id];
+	if (uqName == "") {
+		uqName = uqName + std::to_string(id);
+		uniqueNames[id] = uqName;
+	}
+	return uqName;
+}
+/** Returns the name of the specified variable, creating a unique name if necessary. */
+std::string& CStyleTranslator::getVariableName(unsigned id) {
+	return getUniqueName(id, "var");
+}
+
+std::string& CStyleTranslator::getFunctionName(unsigned id) {
+	std::string& funcName =  getUniqueName(id, "func");
+	size_t endPos = funcName.find_first_of('(');
+	if (endPos != std::string::npos) {
+		funcName = funcName.substr(0, endPos);
+		uniqueNames[id] = funcName;
+	}
+	return funcName;
 }
 
 std::string CStyleTranslator::indexName(const std::vector<unsigned>& indices) {
@@ -277,6 +322,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			Name n; 
 			n.name = inst.string;
 			names[id] = n;
+			addUniqueName(id, inst.string);		// Also add to array of unique names
 		}
 		break;
 	}

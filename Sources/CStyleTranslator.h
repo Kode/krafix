@@ -130,6 +130,7 @@ namespace krafix {
 	protected:
 		std::ostream* out;
 		std::map<unsigned, Name> names;
+		std::map<unsigned, std::string> uniqueNames;
 		std::map<unsigned, Type> types;
 		std::map<unsigned, Variable> variables;
 		std::map<unsigned, Member> members;
@@ -155,5 +156,9 @@ namespace krafix {
 		void output(std::ostream* out);
 		std::string getReference(unsigned _id);
 		inline unsigned getMemberId(unsigned typeId, unsigned member) { return (typeId << 16) + member; }
+		void addUniqueName(unsigned id, const char* name);
+		std::string& getUniqueName(unsigned id, const char* prefix);
+		std::string& getVariableName(unsigned id);
+		std::string& getFunctionName(unsigned id);
 	};
 }
