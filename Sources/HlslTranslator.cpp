@@ -72,6 +72,14 @@ void HlslTranslator::outputLibraryInstruction(const Target& target, std::map<std
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450Atan2: {
+		id y = inst.operands[4];
+		id x = inst.operands[5];
+		std::stringstream str;
+		str << "atan2(" << getReference(y) << ", " << getReference(x) << ")";
+		references[result] = str.str();
+		break;
+	}
 	default:
 		CStyleTranslator::outputLibraryInstruction(target, attributes, inst, entrypoint);
 		break;

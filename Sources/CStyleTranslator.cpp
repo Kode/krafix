@@ -282,7 +282,7 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		id y = inst.operands[4];
 		id x = inst.operands[5];
 		std::stringstream str;
-		str << "atan2(" << getReference(y) << ", " << getReference(x) << ")";
+		str << "atan(" << getReference(y) << ", " << getReference(x) << ")";
 		references[result] = str.str();
 		break;
 	}
@@ -330,6 +330,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		t.members = subtype.members;
 		t.ispointer = true;
 		types[id] = t;
+		names[id] = names[inst.operands[2]];
 		break;
 	}
 	case OpTypeVoid: {
