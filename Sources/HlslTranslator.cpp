@@ -10,13 +10,13 @@ using namespace krafix;
 
 typedef unsigned id;
 
+namespace {
 #ifndef SYS_WINDOWS
-void _itoa(int value, char* str, int base) {
-	sprintf(str, "%d", value);
-}
+	void _itoa(int value, char* str, int base) {
+		sprintf(str, "%d", value);
+	}
 #endif
 
-namespace {
 	std::string positionName = "gl_Position";
 	std::map<unsigned, Name> currentNames;
 
