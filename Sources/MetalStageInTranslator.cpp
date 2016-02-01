@@ -1,9 +1,8 @@
 
 #include "MetalStageInTranslator.h"
 
-#pragma mark -
-#pragma mark MetalStageInTranslator
-
+using namespace krafix;
+using namespace spv;
 
 void MetalStageInTranslator::outputCode(const Target& target,
 										const MetalStageInTranslatorRenderContext& renderContext,
@@ -185,9 +184,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 	}
 }
 
-
-#pragma mark Output functions
-
+/** Outputs a function signature. */
 void MetalStageInTranslator::outputFunctionSignature(bool asDeclaration) {
 	if (_isEntryFunction) {
 		outputEntryFunctionSignature(asDeclaration);
@@ -196,7 +193,7 @@ void MetalStageInTranslator::outputFunctionSignature(bool asDeclaration) {
 	}
 }
 
-/** Ouptus the function signature of the entry function. */
+/** Outputs the function signature of an entry function. */
 void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 
 	// If this is a declaration, output entry point function input and output variables
@@ -286,6 +283,7 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 	closeFunctionSignature(asDeclaration);
 }
 
+/** Outputs the function signature of a local function. */
 void MetalStageInTranslator::outputLocalFunctionSignature(bool asDeclaration) {
 	indent(out);
 	(*out) << funcType << " " << funcName << "(";
@@ -293,6 +291,7 @@ void MetalStageInTranslator::outputLocalFunctionSignature(bool asDeclaration) {
 	closeFunctionSignature(asDeclaration);
 }
 
+/** Outputs the function parameters for the current function. */
 bool MetalStageInTranslator::outputFunctionParameters(bool asDeclaration, bool needsComma) {
 	for (std::vector<Parameter>::iterator iter = parameters.begin(), end = parameters.end(); iter != end; iter++) {
 		needsComma = paramComma(needsComma);
@@ -505,9 +504,6 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 	return hasStageOut;
 }
 
-
-#pragma mark Support member functions
-
 /** Returns the shader stage corresponding to the specified SPIRV execution model. */
 EShLanguage MetalStageInTranslator::stageFromSPIRVExecutionModel(ExecutionModel execModel) {
 	switch (execModel) {
@@ -563,15 +559,12 @@ bool MetalStageInTranslator::paramComma(bool needsComma) {
 }
 
 
-#pragma mark -
-#pragma mark Support functions
-
-std::string& cleanMSLFuncName(std::string& funcName) {
+std::string& krafix::cleanMSLFuncName(std::string& funcName) {
 	static std::string _cleanMainFuncName = "mmain";
 	return (funcName == "main") ? _cleanMainFuncName : funcName;
 }
 
-bool compareByLocation(KrafixVarPair* vp1, KrafixVarPair* vp2) {
+bool krafix::compareByLocation(KrafixVarPair* vp1, KrafixVarPair* vp2) {
 	Variable& v1 = vp1->second;
 	Variable& v2 = vp2->second;
 	if ( !v1.builtin && v2.builtin) { return true; }
