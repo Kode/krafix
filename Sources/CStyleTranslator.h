@@ -40,7 +40,8 @@ namespace krafix {
 		bool ispointer;
 		std::map<unsigned, std::pair<std::string, Type>> members;
 
-		Type(spv::Op opcode) : opcode(opcode)  {
+		Type() {
+			opcode = spv::OpNop;
 			name = "unknown";
 			baseType = 0;
 			length = 1;
@@ -51,7 +52,6 @@ namespace krafix {
 			isDepthImage = false;
 			isMultiSampledImage = false;
 		}
-		Type() : Type(spv::OpNop) {}
 	};
 
 	struct Member {

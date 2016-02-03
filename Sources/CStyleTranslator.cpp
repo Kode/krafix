@@ -390,49 +390,42 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		t.opcode = inst.opcode;		// ...except OpCode...
 		t.baseType = reftype;		// ...and base type
 		t.ispointer = true;			// ...and pointer indicator
-
-//		Type& subtype = types[inst.operands[2]];
-//		t.name = subtype.name;
-//		t.isarray = subtype.isarray;
-//		t.length = subtype.length;
-//		t.members = subtype.members;
-//		t.ispointer = true;
-
 		types[id] = t;
 		names[id] = names[inst.operands[2]];
 		break;
 	}
 	case OpTypeVoid: {
-		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
+		t.opcode = inst.opcode;
 		t.name = "void";
-		types[id] = t;
 		break;
 	}
 	case OpTypeFloat: {
-		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
+		t.opcode = inst.opcode;
 		t.name = "float";
-		types[id] = t;
 		break;
 	}
 	case OpTypeInt: {
-		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
+		t.opcode = inst.opcode;
 		t.name = "int";
-		types[id] = t;
 		break;
 	}
 	case OpTypeBool: {
-		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
+		t.opcode = inst.opcode;
 		t.name = "bool";
-		types[id] = t;
 		break;
 	}
 	case OpTypeStruct: {
-		Type t(inst.opcode);
 		unsigned typeId = inst.operands[0];
+		Type& t = types[typeId];
+		t.opcode = inst.opcode;
 		t.name = names[typeId].name;
 		unsigned mbrCnt = inst.length - 1;
 		t.length = mbrCnt;
@@ -440,8 +433,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			unsigned mbrId = getMemberId(typeId, mbrIdx);
 			members[mbrId].type = inst.operands[opIdx];
 		}
-		types[typeId] = t;
-
+		
 		for (unsigned i = 1; i < inst.length; ++i) {
 			Type& membertype = types[inst.operands[i]];
 			std::get<1>(t.members[i - 1]) = membertype;
@@ -573,22 +565,23 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeArray: {
-		Type t(inst.opcode);
+		unsigned id = inst.operands[0];
+		Type& t = types[id];
+		t.opcode = inst.opcode;
 		t.name = "unknownarray";
 		t.isarray = true;
-		unsigned id = inst.operands[0];
-		Type subtype = types[inst.operands[1]];
+		Type& subtype = types[inst.operands[1]];
 		t.length = atoi(references[inst.operands[2]].c_str());
 		if (subtype.name != NULL) {
 			t.name = subtype.name;
 		}
 		t.members = subtype.members;
-		types[id] = t;
 		break;
 	}
 	case OpTypeVector: {
-		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
+		t.opcode = inst.opcode;
 		t.name = "vec?";
 		Type subtype = types[inst.operands[1]];
 		if (subtype.name != NULL) {
@@ -605,36 +598,34 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 				t.length = 4;
 			}
 		}
-		types[id] = t;
 		break;
 	}
 	case OpTypeMatrix: {
-		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
+		t.opcode = inst.opcode;
 		t.name = "mat?";
 		Type subtype = types[inst.operands[1]];
 		if (subtype.name != NULL) {
 			if (strcmp(subtype.name, "vec2") == 0 && inst.operands[2] == 2) {
 				t.name = "mat2";
 				t.length = 4;
-				types[id] = t;
 			}
 			if (strcmp(subtype.name, "vec3") == 0 && inst.operands[2] == 3) {
 				t.name = "mat3";
 				t.length = 4;
-				types[id] = t;
 			}
 			else if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
 				t.name = "mat4";
 				t.length = 4;
-				types[id] = t;
 			}
 		}
 		break;
 	}
 	case OpTypeImage: {
-		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
+		t.opcode = inst.opcode;
 		bool video = inst.length >= 8 && inst.operands[8] == 1;
 		if (video && target.system == Android) {
 			t.name = "samplerExternalOES";
@@ -642,7 +633,6 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		else {
 			t.name = "sampler2D";
 		}
-		types[id] = t;
 		break;
 	}
 	case OpTypeSampler: {
@@ -651,14 +641,14 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpTypeSampledImage: {
 		unsigned id = inst.operands[0];
 		unsigned image = inst.operands[1];
-		Type t = types[image];		// Pass through image type...
+		Type& t = types[image];		// Pass through image type...
 		t.opcode = inst.opcode;		// ...except OpCode...
 		t.baseType = image;			// ...and base type
 		types[id] = t;
 		break;
 	}
 	case OpVariable: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		Variable& v = variables[result];
@@ -745,7 +735,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpVectorShuffle: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id vector1 = inst.operands[2];
@@ -770,7 +760,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFMul: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id operand1 = inst.operands[2];
@@ -781,7 +771,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpIMul: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id operand1 = inst.operands[2];
@@ -792,7 +782,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFAdd: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id operand1 = inst.operands[2];
@@ -803,7 +793,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpMatrixTimesMatrix: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id operand1 = inst.operands[2];
@@ -814,7 +804,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpMatrixTimesScalar: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id matrix = inst.operands[2];
@@ -825,7 +815,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpVectorTimesScalar: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id vector = inst.operands[2];
@@ -836,7 +826,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFOrdGreaterThan: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id op1 = inst.operands[2];
@@ -847,7 +837,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFOrdLessThanEqual: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id op1 = inst.operands[2];
@@ -858,7 +848,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFOrdNotEqual: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id op1 = inst.operands[2];
@@ -869,7 +859,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpLogicalAnd: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id op1 = inst.operands[2];
@@ -880,7 +870,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFSub: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id op1 = inst.operands[2];
@@ -891,7 +881,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpDot: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id op1 = inst.operands[2];
@@ -902,7 +892,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFDiv: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id op1 = inst.operands[2];
@@ -913,7 +903,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpVectorTimesMatrix: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id vector = inst.operands[2];
@@ -924,7 +914,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpConvertSToF: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		id value = inst.operands[2];
 		std::stringstream str;
@@ -933,7 +923,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTranspose: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id matrix = inst.operands[2];
@@ -943,7 +933,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpSelect: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id condition = inst.operands[2];
@@ -955,7 +945,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpCompositeInsert: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id object = inst.operands[2];
@@ -971,7 +961,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFunctionCall: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id func = inst.operands[2];
@@ -988,7 +978,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpExtInst: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id set = inst.operands[2];
@@ -1113,14 +1103,14 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeFunction: {
-		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
+		t.opcode = inst.opcode;
 		t.name = "function";
-		types[id] = t;
 		break;
 	}
 	case OpIEqual: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand1 = inst.operands[2];
@@ -1131,7 +1121,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpIAdd: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand1 = inst.operands[2];
@@ -1142,7 +1132,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFOrdLessThan: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand1 = inst.operands[2];
@@ -1153,7 +1143,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpSLessThan: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand1 = inst.operands[2];
@@ -1164,7 +1154,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpSLessThanEqual: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand1 = inst.operands[2];
@@ -1175,7 +1165,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFNegate: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand = inst.operands[2];
@@ -1185,7 +1175,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpAccessChain: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id base = inst.operands[2];
@@ -1202,14 +1192,14 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpLoad: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		references[result] = getReference(inst.operands[2]);
 		break;
 	}
 	case OpFOrdEqual: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand1 = inst.operands[2];
@@ -1220,7 +1210,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFOrdGreaterThanEqual: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand1 = inst.operands[2];
@@ -1231,7 +1221,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpFMod: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand1 = inst.operands[2];
@@ -1242,7 +1232,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpISub: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand1 = inst.operands[2];
@@ -1253,7 +1243,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpLogicalOr: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned operand1 = inst.operands[2];
@@ -1264,7 +1254,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpConvertFToS: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned value = inst.operands[2];
@@ -1274,7 +1264,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpLogicalNot: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		unsigned value = inst.operands[2];
@@ -1295,7 +1285,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpFunction: {
 		firstLabel = true;
 		parameters.clear();
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		if (result == entryPoint) {
@@ -1313,7 +1303,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpCompositeConstruct: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		std::stringstream str;
@@ -1327,7 +1317,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpMatrixTimesVector: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id matrix = inst.operands[2];
@@ -1338,7 +1328,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpImageSampleImplicitLod: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id sampler = inst.operands[2];
@@ -1351,7 +1341,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpUndef: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		if (strcmp(resultType.name, "bool") == 0) {

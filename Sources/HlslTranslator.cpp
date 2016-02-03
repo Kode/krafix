@@ -117,7 +117,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
 
-					Type t = types[variable.type];
+					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
 					if (variable.storage == StorageClassUniformConstant) {
@@ -204,7 +204,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
 
-					Type t = types[variable.type];
+					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
 					if (variable.storage == StorageClassInput) {
@@ -285,7 +285,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
 
-					Type t = types[variable.type];
+					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
 					if (variable.storage == StorageClassOutput) {
@@ -309,7 +309,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
 
-					Type t = types[variable.type];
+					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
 					if (variable.storage == StorageClassOutput) {
@@ -380,7 +380,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
 
-					Type t = types[variable.type];
+					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
 					if (variable.storage == StorageClassInput) {
@@ -447,7 +447,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
 
-					Type t = types[variable.type];
+					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
 					if (variable.storage == StorageClassOutput) {
@@ -534,7 +534,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		t.isarray = true;
 		unsigned id = inst.operands[0];
 		t.name = "unknownarray";
-		Type subtype = types[inst.operands[1]];
+		Type& subtype = types[inst.operands[1]];
 		t.length = atoi(references[inst.operands[2]].c_str());
 		if (subtype.name != NULL) {
 			if (strcmp(subtype.name, "float") == 0) {
@@ -557,7 +557,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		Type t;
 		unsigned id = inst.operands[0];
 		t.name = "float?";
-		Type subtype = types[inst.operands[1]];
+		Type& subtype = types[inst.operands[1]];
 		if (subtype.name != NULL) {
 			if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 2) {
 				t.name = "float2";
@@ -579,7 +579,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		Type t;
 		unsigned id = inst.operands[0];
 		t.name = "float4x?";
-		Type subtype = types[inst.operands[1]];
+		Type& subtype = types[inst.operands[1]];
 		if (subtype.name != NULL) {
 			if (strcmp(subtype.name, "float2") == 0 && inst.operands[2] == 3) {
 				t.name = "float2x2";
@@ -607,7 +607,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		break;
 	} 
 	case OpVariable: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		Variable& v = variables[result];
@@ -639,7 +639,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		}
 		if (v.storage == StorageClassFunction && getReference(result) != "param") {
 			output(out);
-			Type t = types[v.type];
+			Type& t = types[v.type];
 			if (t.isarray) {
 				(*out) << t.name << " " << getReference(result) << "[" << t.length << "];\n";
 			}
@@ -650,7 +650,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		break;
 	}
 	case OpCompositeConstruct: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		std::stringstream str;
@@ -664,7 +664,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		break;
 	}
 	case OpMatrixTimesVector: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id matrix = inst.operands[2];
@@ -675,7 +675,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		break;
 	}
 	case OpVectorTimesMatrix: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id vector = inst.operands[2];
@@ -686,7 +686,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		break;
 	}
 	case OpMatrixTimesMatrix: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id operand1 = inst.operands[2];
@@ -697,7 +697,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		break;
 	}
 	case OpImageSampleImplicitLod: {
-		Type resultType = types[inst.operands[0]];
+		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
 		id sampler = inst.operands[2];

@@ -117,7 +117,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					unsigned id = v->first;
 					Variable& variable = v->second;
 
-					Type t = types[variable.type];
+					Type& t = types[variable.type];
 					std::string name = getReference(id);
 
 					if (variable.builtin) {

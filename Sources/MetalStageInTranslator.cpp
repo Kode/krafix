@@ -63,7 +63,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 						  v.storage == StorageClassPushConstant);
 
 			std::string varName = getVariableName(id);
-			Type t = types[v.type];
+			Type& t = types[v.type];
 			if (t.opcode == OpTypePointer) { t = types[t.baseType]; }
 
 			if (v.storage == StorageClassInput) {
@@ -102,7 +102,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 			funcName = cleanMSLFuncName(getFunctionName(result));
 			references[result] = funcName;
 
-			Type resultType = types[inst.operands[0]];
+			Type& resultType = types[inst.operands[0]];
 			types[result] = resultType;
 			funcType = resultType.name;
 			
@@ -242,7 +242,7 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 		unsigned id = v->first;
 		Variable& variable = v->second;
 
-		Type t = types[variable.type];
+		Type& t = types[variable.type];
 		if (t.opcode == OpTypePointer) { t = types[t.baseType]; }
 		std::string varName = getVariableName(id);
 
@@ -357,7 +357,7 @@ void MetalStageInTranslator::outputUniformBuffers() {
 			for (unsigned mbrIdx = 0; mbrIdx < t.length; mbrIdx++) {
 				unsigned mbrId = getMemberId(typeId, mbrIdx);
 				Member member = members[mbrId];
-				Type mbrType = types[member.type];
+				Type& mbrType = types[member.type];
 				indent(out);
 				(*out) << mbrType.name << " " << member.name;
 				if (mbrType.isarray) { (*out) << "[" << mbrType.length << "]"; }
@@ -394,7 +394,7 @@ bool MetalStageInTranslator::outputStageInStruct() {
 		unsigned id = pVar->first;
 		Variable& variable = pVar->second;
 
-		Type t = types[variable.type];
+		Type& t = types[variable.type];
 
 		indent(out);
 		(*out) << t.name << " " << getVariableName(id);
@@ -442,7 +442,7 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 				for (unsigned mbrIdx = 0; mbrIdx < t.length; mbrIdx++) {
 					unsigned mbrId = getMemberId(typeId, mbrIdx);
 					Member member = members[mbrId];
-					Type mbrType = types[member.type];
+					Type& mbrType = types[member.type];
 					indent(&tmpOut);
 					tmpOut << mbrType.name << " " << member.name;
 					if (mbrType.isarray) { tmpOut << "[" << mbrType.length << "]"; }
