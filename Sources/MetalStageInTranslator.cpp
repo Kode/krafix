@@ -1,5 +1,5 @@
-
 #include "MetalStageInTranslator.h"
+#include <algorithm>
 
 using namespace krafix;
 using namespace spv;
@@ -513,7 +513,8 @@ EShLanguage MetalStageInTranslator::stageFromSPIRVExecutionModel(ExecutionModel 
 		case ExecutionModelGeometry:				return EShLangGeometry;
 		case ExecutionModelFragment:				return EShLangFragment;
 		case ExecutionModelGLCompute:				return EShLangCompute;
-		case ExecutionModelKernel:					return EShLangCompute;
+		case ExecutionModelKernel:					return EShLangVertex;
+		default:                                    return EShLangVertex; // silence the compiler
 	}
 }
 

@@ -35,7 +35,7 @@ int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::str
 	if (hr == S_OK) {
 		std::ofstream file(to, std::ios_base::binary);
 
-		file.put(attributes.size());
+		file.put((char)attributes.size());
 		for (std::map<std::string, int>::const_iterator attribute = attributes.begin(); attribute != attributes.end(); ++attribute) {
 			file << attribute->first.c_str();
 			file.put(0);
