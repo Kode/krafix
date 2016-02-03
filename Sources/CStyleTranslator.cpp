@@ -12,8 +12,65 @@ void _itoa(int value, char* str, int base) {
 }
 #endif
 
-CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {
+CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {}
 
+CStyleTranslator::~CStyleTranslator() {
+	// Delete any function objects that were added to the function pointer vector
+	for (std::vector<Function*>::iterator iter = functions.begin(), end = functions.end(); iter != end; iter++) {
+		delete *iter;
+	}
+	functions.clear();
+}
+
+/** 
+ * Associate the specified name with the specified ID, 
+ * and ensure the name is unique by appending the ID if needed.
+ * This is necessary if the SPIR-V contains duplicate names for intermediate variables.
+ */
+void CStyleTranslator::addUniqueName(unsigned id, const char* name) {
+	std::string uqName = name;
+	for (std::map<unsigned, std::string>::iterator iter = uniqueNames.begin(); iter != uniqueNames.end(); iter++) {
+		if (iter->second == uqName) {
+			if (iter->first != id) {					// If BOTH ID and name are same, leave it
+				char idStr[32];
+				_itoa(id, idStr, 10);
+				uqName = uqName + idStr;				// Otherwise make the name unique...
+				uniqueNames[id] = uqName;				// ...and add it
+			}
+			return;
+		}
+	}
+	uniqueNames[id] = uqName;				// If not found, add name unchanged
+}
+
+/** 
+ * Returns the name associated with the specified ID. If a name does not yet 
+ * exist for the ID, a unique name is created from the ID and the prefix string.
+ * This is necessary if the SPIR-V does not contain names, or contains duplicates.
+ */
+std::string& CStyleTranslator::getUniqueName(unsigned id, const char* prefix) {
+	std::string& uqName = uniqueNames[id];
+	if (uqName == "") {
+		char idStr[32];
+		_itoa(id, idStr, 10);
+		uqName = uqName + idStr;				// Otherwise make the name unique...
+		uniqueNames[id] = uqName;
+	}
+	return uqName;
+}
+/** Returns the name of the specified variable, creating a unique name if necessary. */
+std::string& CStyleTranslator::getVariableName(unsigned id) {
+	return getUniqueName(id, "var");
+}
+
+std::string& CStyleTranslator::getFunctionName(unsigned id) {
+	std::string& funcName =  getUniqueName(id, "func");
+	size_t endPos = funcName.find_first_of('(');
+	if (endPos != std::string::npos) {
+		funcName = funcName.substr(0, endPos);
+		uniqueNames[id] = funcName;
+	}
+	return funcName;
 }
 
 std::string CStyleTranslator::indexName(Type& type, const std::vector<unsigned>& indices) {
@@ -75,7 +132,11 @@ void CStyleTranslator::startFunction(std::string name) {
 }
 
 void CStyleTranslator::endFunction() {
-	out = tempout;
+	// guard against an end func not matched to a previous start func
+	if (tempout) {
+		out = tempout;
+		tempout = NULL;
+	}
 }
 
 void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSLstd450 entrypoint) {
@@ -311,64 +372,115 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	using namespace spv;
 
 	switch (inst.opcode) {
+
 	case OpName: {
 		unsigned id = inst.operands[0];
 		if (strcmp(inst.string, "") != 0) {
 			Name n; 
 			n.name = inst.string;
 			names[id] = n;
+			addUniqueName(id, inst.string);		// Also add to array of unique names
 		}
 		break;
 	}
 	case OpTypePointer: {
-		Type t;
 		unsigned id = inst.operands[0];
-		Type& subtype = types[inst.operands[2]];
-		t.name = subtype.name;
-		t.isarray = subtype.isarray;
-		t.length = subtype.length;
-		t.members = subtype.members;
-		t.ispointer = true;
+		unsigned reftype = inst.operands[2];
+		Type t = types[reftype];	// Pass through referenced type
+		t.opcode = inst.opcode;		// ...except OpCode...
+		t.baseType = reftype;		// ...and base type
+		t.ispointer = true;			// ...and pointer indicator
+
+//		Type& subtype = types[inst.operands[2]];
+//		t.name = subtype.name;
+//		t.isarray = subtype.isarray;
+//		t.length = subtype.length;
+//		t.members = subtype.members;
+//		t.ispointer = true;
+
 		types[id] = t;
 		names[id] = names[inst.operands[2]];
 		break;
 	}
 	case OpTypeVoid: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "void";
 		types[id] = t;
 		break;
 	}
 	case OpTypeFloat: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "float";
 		types[id] = t;
 		break;
 	}
 	case OpTypeInt: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "int";
 		types[id] = t;
 		break;
 	}
 	case OpTypeBool: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "bool";
 		types[id] = t;
 		break;
 	}
 	case OpTypeStruct: {
-		unsigned id = inst.operands[0];
-		Type& t = types[id];
-		Name n = names[id];
-		t.name = n.name;
+		Type t(inst.opcode);
+		unsigned typeId = inst.operands[0];
+		t.name = names[typeId].name;
+		unsigned mbrCnt = inst.length - 1;
+		t.length = mbrCnt;
+		for (unsigned mbrIdx = 0, opIdx = 1; mbrIdx < mbrCnt; mbrIdx++, opIdx++) {
+			unsigned mbrId = getMemberId(typeId, mbrIdx);
+			members[mbrId].type = inst.operands[opIdx];
+		}
+		types[typeId] = t;
+
 		for (unsigned i = 1; i < inst.length; ++i) {
 			Type& membertype = types[inst.operands[i]];
 			std::get<1>(t.members[i - 1]) = membertype;
+		}
+		break;
+	}
+	case OpMemberName: {
+		if (strcmp(inst.string, "") != 0) {
+			unsigned typeId = inst.operands[0];
+			unsigned member = inst.operands[1];
+			unsigned mbrId = getMemberId(typeId, member);
+			members[mbrId].name = inst.string;
+			references[mbrId] = inst.string;
+
+			Type& type = types[inst.operands[0]];
+			std::get<0>(type.members[member]) = (char*)&inst.operands[2];
+		}
+		break;
+	}
+	case OpMemberDecorate: {
+		unsigned typeId = inst.operands[0];
+		unsigned member = inst.operands[1];
+		unsigned mbrId = getMemberId(typeId, member);
+		Decoration decoration = (Decoration)inst.operands[2];
+		switch (decoration) {
+			case DecorationBuiltIn: {
+				Member& mbr = members[mbrId];
+				mbr.builtin = true;
+				mbr.builtinType = (BuiltIn)inst.operands[3];
+				break;
+			}
+			case spv::DecorationColMajor:
+				members[mbrId].isColumnMajor = true;
+				break;
+			case spv::DecorationRowMajor:
+				members[mbrId].isColumnMajor = false;
+				break;
+			default:
+				break;
 		}
 		break;
 	}
@@ -461,7 +573,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeArray: {
-		Type t;
+		Type t(inst.opcode);
 		t.name = "unknownarray";
 		t.isarray = true;
 		unsigned id = inst.operands[0];
@@ -475,7 +587,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeVector: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "vec?";
 		Type subtype = types[inst.operands[1]];
@@ -497,7 +609,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeMatrix: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "mat?";
 		Type subtype = types[inst.operands[1]];
@@ -521,7 +633,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeImage: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		bool video = inst.length >= 8 && inst.operands[8] == 1;
 		if (video && target.system == Android) {
@@ -537,19 +649,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		break;
 	}
 	case OpTypeSampledImage: {
-		Type t;
 		unsigned id = inst.operands[0];
 		unsigned image = inst.operands[1];
-		types[id] = types[image];
-		break;
-	}
-	case OpMemberName: {
-		Type& type = types[inst.operands[0]];
-		id number = inst.operands[1];
-		std::get<0>(type.members[number]) = (char*)&inst.operands[2];
-		break;
-	}
-	case OpMemberDecorate: {
+		Type t = types[image];		// Pass through image type...
+		t.opcode = inst.opcode;		// ...except OpCode...
+		t.baseType = image;			// ...and base type
+		types[id] = t;
 		break;
 	}
 	case OpVariable: {
@@ -986,13 +1091,29 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpDecorate: {
 		unsigned target = inst.operands[0];
 		Decoration decoration = (Decoration)inst.operands[1];
-		if (decoration == DecorationBuiltIn) {
-			variables[target].builtin = true;
+		switch (decoration) {
+			case DecorationBuiltIn: {
+				Variable& var = variables[target];
+				var.builtin = true;
+				var.builtinType = (BuiltIn)inst.operands[2];
+				break;
+			}
+			case DecorationLocation:
+				variables[target].location = inst.operands[2];
+				break;
+			case DecorationDescriptorSet:
+				variables[target].descriptorSet = inst.operands[2];
+				break;
+			case DecorationBinding:
+				variables[target].binding = inst.operands[2];
+				break;
+			default:
+				break;
 		}
 		break;
 	}
 	case OpTypeFunction: {
-		Type t;
+		Type t(inst.opcode);
 		unsigned id = inst.operands[0];
 		t.name = "function";
 		types[id] = t;
@@ -1285,6 +1406,10 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpSource:
 		break;
 	case OpCapability:
+		break;
+	case OpString:
+		break;
+	case OpSourceExtension:
 		break;
 	default:
 		output(out);

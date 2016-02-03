@@ -9,8 +9,6 @@ using namespace krafix;
 typedef unsigned id;
 
 namespace {
-	std::string positionName = "position";
-
 	std::string extractFilename(std::string path) {
 		int i = (int)path.size() - 1;
 		for (; i > 0; --i) {
@@ -55,29 +53,131 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 	using namespace spv;
 
 	switch (inst.opcode) {
-		case OpExecutionMode:
-			break;
-		case OpTypeArray: {
-			Type t;
-			unsigned id = inst.operands[0];
-			t.name = "?[]";
-			Type subtype = types[inst.operands[1]];
-			if (subtype.name != NULL) {
-				if (strcmp(subtype.name, "float") == 0) {
-					t.name = "float[]";
-					t.length = 2;
-					types[id] = t;
-				}
-				if (strcmp(subtype.name, "float3") == 0) {
-					t.name = "float3[]";
-					t.length = 2;
-					types[id] = t;
-				}
+		case OpExecutionMode: {
+			ExecutionMode execMode = (ExecutionMode)inst.operands[1];
+			switch (execMode) {
+				case ExecutionModeInvocations:
+					executionModes.invocationCount = inst.operands[2];
+					break;
+				case ExecutionModeSpacingEqual:
+				case ExecutionModeSpacingFractionalEven:
+				case ExecutionModeSpacingFractionalOdd:
+					executionModes.spacingType = execMode;
+					break;
+				case ExecutionModeVertexOrderCw:
+				case ExecutionModeVertexOrderCcw:
+					executionModes.vertexOrder = execMode;
+					break;
+				case ExecutionModePixelCenterInteger:
+					executionModes.usePixelCenterInteger = true;
+					break;
+				case ExecutionModeOriginUpperLeft:
+				case ExecutionModeOriginLowerLeft:
+					executionModes.originOrientation = execMode;
+					break;
+				case ExecutionModeEarlyFragmentTests:
+					executionModes.useEarlyFragmentTests = true;
+					break;
+				case ExecutionModePointMode:
+					executionModes.useTessellationPoints = true;
+					break;
+				case ExecutionModeXfb:
+					executionModes.useTransformFeedback = true;
+					break;
+				case ExecutionModeDepthReplacing:
+					executionModes.useDepthModification = true;
+					break;
+				case ExecutionModeDepthGreater:
+				case ExecutionModeDepthLess:
+				case ExecutionModeDepthUnchanged:
+					executionModes.depthModificationType = execMode;
+					break;
+				case ExecutionModeLocalSize:
+					executionModes.localSize[0] = inst.operands[2];
+					executionModes.localSize[1] = inst.operands[3];
+					executionModes.localSize[2] = inst.operands[4];
+					break;
+				case ExecutionModeLocalSizeHint:
+					executionModes.localSizeHint[0] = inst.operands[2];
+					executionModes.localSizeHint[1] = inst.operands[3];
+					executionModes.localSizeHint[2] = inst.operands[4];
+					break;
+				case ExecutionModeInputPoints:
+				case ExecutionModeInputLines:
+				case ExecutionModeInputLinesAdjacency:
+				case ExecutionModeTriangles:
+				case ExecutionModeInputTrianglesAdjacency:
+				case ExecutionModeQuads:
+				case ExecutionModeIsolines:
+					executionModes.primitiveType = execMode;
+					break;
+				case ExecutionModeOutputVertices:
+				case ExecutionModeOutputPoints:
+				case ExecutionModeOutputLineStrip:
+				case ExecutionModeOutputTriangleStrip:
+					executionModes.outputPrimitiveType = execMode;
+					break;
+				case ExecutionModeVecTypeHint:
+					executionModes.vectorTypeHint = inst.operands[2];
+					break;
+				case ExecutionModeContractionOff:
+					executionModes.disallowContractions = true;
+					break;
+				default:
+					(*out) << "// Unknown execution mode";
 			}
 			break;
 		}
+		case OpAccessChain: {
+			Type resultType = types[inst.operands[0]];
+			id result = inst.operands[1];
+			types[result] = resultType;
+			id base = inst.operands[2];
+			std::stringstream str;
+			str << getReference(base);
+
+			unsigned typeId = variables[base].type;
+			Type t = types[typeId];
+			if (t.opcode == OpTypePointer) { typeId = t.baseType; }
+
+			for (unsigned i = 3; i < inst.length; ++i) {
+				t = types[typeId];
+				unsigned elemRef = inst.operands[i];
+				switch (t.opcode) {
+					case OpTypeStruct: {
+						unsigned mbrIdx = atoi(references[elemRef].c_str());
+						unsigned mbrId = getMemberId(typeId, mbrIdx);
+						str << "." << getReference(mbrId);
+						Member mbr = members[mbrId];
+						typeId = mbr.type;
+						break;
+					}
+					case OpTypeArray: {
+						str << "[" << getReference(elemRef) << "]";
+						typeId = t.baseType;
+						break;
+					}
+					default:
+						str << "[" << getReference(elemRef) << "]";
+						break;
+				}
+			}
+			references[result] = str.str();
+			break;
+		}
+		case OpTypeArray: {
+			unsigned id = inst.operands[0];
+			unsigned reftype = inst.operands[1];
+			Type t = types[reftype];								// Pass through referenced type
+			t.opcode = inst.opcode;									// ...except OpCode
+			t.baseType = reftype;									// ...and base type
+			t.length = atoi(references[inst.operands[2]].c_str());	// ...and length
+			t.isarray = true;										// ...and array marker
+			types[id] = t;
+			break;
+		}
 		case OpTypeVector: {
-			Type t;
+			Type t(inst.opcode);
 			unsigned id = inst.operands[0];
 			t.name = "float?";
 			Type subtype = types[inst.operands[1]];
@@ -99,7 +199,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			break;
 		}
 		case OpTypeMatrix: {
-			Type t;
+			Type t(inst.opcode);
 			unsigned id = inst.operands[0];
 			t.name = "matrix_float4x?";
 			Type subtype = types[inst.operands[1]];
@@ -112,8 +212,50 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			}
 			break;
 		}
+		case OpTypeImage: {
+			Type t(inst.opcode);
+			unsigned id = inst.operands[0];
+			t.imageDim = (spv::Dim)inst.operands[2];
+			t.isDepthImage = (inst.operands[3] == 1);
+			t.isarray = !!(inst.operands[4]);
+			t.isMultiSampledImage = !!(inst.operands[5]);
+			t.sampledImage = (SampledImage)inst.operands[6];
+
+			if (t.isDepthImage) {
+				switch (t.imageDim) {
+					case spv::Dim2D:
+						t.name = t.isMultiSampledImage ? "depth2d_ms" : (t.isarray ? "depth2d_array" : "depth2d");
+						break;
+					case spv::DimCube:
+						t.name = t.isarray ? "depthcube_array" : "depthcube";
+						break;
+					default:
+						break;
+				}
+			} else {
+				switch (t.imageDim) {
+					case spv::Dim1D:
+						t.name = t.isarray ? "texture1d_array" : "texture1d";
+						break;
+					case spv::Dim2D:
+						t.name = t.isMultiSampledImage ? "texture2d_ms" : (t.isarray ? "texture2d_array" : "texture2d");
+						break;
+					case spv::Dim3D:
+						t.name = "texture3D";
+						break;
+					case spv::DimCube:
+						t.name = t.isarray ? "texturecube_array" : "texturecube";
+						break;
+					default:
+						break;
+				}
+			}
+
+			types[id] = t;
+			break;
+		}
 		case OpTypeSampler: {
-			Type t;
+			Type t(inst.opcode);
 			unsigned id = inst.operands[0];
 			t.name = "sampler2D";
 			types[id] = t;
@@ -274,14 +416,6 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			else (*out) << "float4 output;";
 			break;
 		}
-		case OpCompositeConstruct: {
-			//Type resultType = types[inst.operands[0]];
-			id result = inst.operands[1];
-			std::stringstream str;
-			str << "float4(" << getReference(inst.operands[2]) << ", " << getReference(inst.operands[3]) << ", " << getReference(inst.operands[4]) << ", " << getReference(inst.operands[5]) << ")";
-			references[result] = str.str();
-			break;
-		}
 		case OpMatrixTimesVector: {
 			//Type resultType = types[inst.operands[0]];
 			id result = inst.operands[1];
@@ -318,14 +452,13 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			break;
 		case OpStore: {
 			output(out);
-			Variable& v = variables[inst.operands[0]];
-			if (!v.declared) {
-				(*out) << types[v.type].name << " " << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+			unsigned refId = inst.operands[0];
+			Variable& v = variables[refId];
+			if (v.type != 0 && !v.declared) {
+				(*out) << types[v.type].name << " ";
 				v.declared = true;
 			}
-			else {
-				(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
-			}
+			(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
 			break;
 		}
 		default:
@@ -333,3 +466,51 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			break;
 	}
 }
+
+const char* MetalTranslator::builtInName(spv::BuiltIn builtin) {
+	using namespace spv;
+	switch (builtin) {
+		// Vertex function in
+		case BuiltInVertexId: return "vertex_id";
+		case BuiltInInstanceId: return "instance_id";
+
+		// Vertex function out
+		case BuiltInClipDistance: return "clip_distance";
+		case BuiltInPointSize: return "point_size";
+		case BuiltInPosition: return "position";
+
+		// Fragment function in
+		case BuiltInFrontFacing: return "front_facing";
+		case BuiltInPointCoord: return "point_coord";
+		case BuiltInSamplePosition: return "position";
+		case BuiltInSampleId: return "sample_id";
+		case BuiltInSampleMask: return "sample_mask";
+
+		// Fragment function out
+		case BuiltInFragDepth: {
+			switch (executionModes.depthModificationType) {
+				case ExecutionModeDepthGreater:
+					return "depth(greater)";
+				case ExecutionModeDepthLess:
+					return "depth(less)";
+				case ExecutionModeDepthUnchanged:
+				default:
+					return "depth(any)";
+			}
+		}
+
+		default: return "unsupported-built-in";
+	}
+}
+
+const char* MetalTranslator::builtInTypeName(spv::BuiltIn builtin, Type& type) {
+	using namespace spv;
+	switch (builtin) {
+			// Vertex function in
+		case BuiltInVertexId: return "uint";
+		case BuiltInInstanceId: return "uint";
+		default: return type.name;
+	}
+}
+
+

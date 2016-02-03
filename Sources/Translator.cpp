@@ -18,6 +18,15 @@ Instruction::Instruction(std::vector<unsigned>& spirv, unsigned& index) {
 	case OpName:
 		string = (char*)&spirv[index + 2];
 		break;
+	case OpMemberName:
+		string = (char*)&spirv[index + 3];
+		break;
+	case OpEntryPoint:
+		string = (char*)&spirv[index + 3];
+		break;
+	case OpSourceExtension:
+		string = (char*)&spirv[index + 1];
+		break;
 	default:
 		string = NULL;
 		break;

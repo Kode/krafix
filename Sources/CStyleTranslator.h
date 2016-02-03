@@ -6,24 +6,62 @@
 #include <sstream>
 
 namespace krafix {
+
+	typedef enum {
+		kSampledImageUnknown = 0,
+		kSampledImageYes = 1,
+		kSampledImageNo = 2,
+	} SampledImage;
+
 	struct Variable {
 		unsigned id;
 		unsigned type;
+		spv::BuiltIn builtinType;
+		unsigned location;
+		unsigned descriptorSet;
+		unsigned binding;
 		spv::StorageClass storage;
 		bool builtin;
 		bool declared;
 
-		Variable() : builtin(false) {}
+		Variable() : id(0), type(0), builtin(false), location(0), descriptorSet(0), binding(0) {}
 	};
 
 	struct Type {
+		spv::Op opcode;
 		const char* name;
+		unsigned baseType;
 		unsigned length;
+		SampledImage sampledImage;
+		spv::Dim imageDim;
+		bool isDepthImage;
+		bool isMultiSampledImage;
 		bool isarray;
 		bool ispointer;
 		std::map<unsigned, std::pair<std::string, Type>> members;
 
-		Type() : name("unknown"), length(1), isarray(false), ispointer(false) {}
+		Type(spv::Op opcode) : opcode(opcode)  {
+			name = "unknown";
+			baseType = 0;
+			length = 1;
+			isarray = false;
+			ispointer = false;
+			sampledImage = kSampledImageUnknown;
+			imageDim = spv::Dim2D;
+			isDepthImage = false;
+			isMultiSampledImage = false;
+		}
+		Type() : Type(spv::OpNop) {}
+	};
+
+	struct Member {
+		unsigned type;
+		const char* name;
+		spv::BuiltIn builtinType;
+		bool builtin;
+		bool isColumnMajor;
+
+		Member() : name("unknown"), isColumnMajor(true) {}
 	};
 
 	struct Name {
@@ -44,10 +82,50 @@ namespace krafix {
 		bool loop;
 	};
 
+#define ExecutionModeDefault  ( (spv::ExecutionMode) -1 )
+
+	struct ExecutionModes {
+		unsigned invocationCount;
+		spv::ExecutionMode spacingType;
+		spv::ExecutionMode vertexOrder;
+		spv::ExecutionMode originOrientation;
+		spv::ExecutionMode depthModificationType;
+		spv::ExecutionMode primitiveType;
+		spv::ExecutionMode outputPrimitiveType;
+		unsigned localSize[3];
+		unsigned localSizeHint[3];
+		unsigned maxVertexCount;
+		unsigned vectorTypeHint;
+		bool usePixelCenterInteger;
+		bool useEarlyFragmentTests;
+		bool useTessellationPoints;
+		bool useTransformFeedback;
+		bool useDepthModification;
+		bool disallowContractions;
+
+		ExecutionModes() : localSize{0, 0, 0}, localSizeHint{0, 0, 0} {
+			invocationCount = 1;
+			spacingType = ExecutionModeDefault;
+			vertexOrder = ExecutionModeDefault;
+			originOrientation = ExecutionModeDefault;
+			depthModificationType = ExecutionModeDefault;
+			primitiveType = ExecutionModeDefault;
+			outputPrimitiveType = ExecutionModeDefault;
+			maxVertexCount = 0;
+			vectorTypeHint = 0;
+			usePixelCenterInteger = false;
+			useEarlyFragmentTests = false;
+			useTessellationPoints = false;
+			useTransformFeedback = false;
+			useDepthModification = false;
+			disallowContractions = false;
+		}
+	};
+
 	class CStyleTranslator : public Translator {
 	public:
 		CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage);
-		virtual ~CStyleTranslator() {}
+		virtual ~CStyleTranslator();
 		virtual void outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst);
 		virtual void outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSLstd450 entrypoint);
 		void startFunction(std::string name);
@@ -55,14 +133,17 @@ namespace krafix {
 	protected:
 		std::ostream* out;
 		std::map<unsigned, Name> names;
+		std::map<unsigned, std::string> uniqueNames;
 		std::map<unsigned, Type> types;
 		std::map<unsigned, Variable> variables;
+		std::map<unsigned, Member> members;
 		std::map<unsigned, std::string> labelStarts;
 		std::map<unsigned, Merge> merges;
 		std::map<unsigned, std::string> references;
 		std::map<unsigned, std::vector<unsigned>> compositeInserts;
 		std::vector<Parameter> parameters;
 		std::vector<unsigned> callParameters;
+		ExecutionModes executionModes;
 		int indentation = 0;
 		bool outputting = false;
 		bool firstFunction = true;
@@ -78,5 +159,10 @@ namespace krafix {
 		void indent(std::ostream* out);
 		void output(std::ostream* out);
 		std::string getReference(unsigned _id);
+		inline unsigned getMemberId(unsigned typeId, unsigned member) { return (typeId << 16) + member; }
+		void addUniqueName(unsigned id, const char* name);
+		std::string& getUniqueName(unsigned id, const char* prefix);
+		std::string& getVariableName(unsigned id);
+		std::string& getFunctionName(unsigned id);
 	};
 }
