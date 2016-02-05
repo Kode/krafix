@@ -120,6 +120,8 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
+					if (strncmp(n.name, "gl_", 3) == 0) continue;
+
 					if (variable.storage == StorageClassUniformConstant) {
 						indent(out);
 						if (t.isarray) {
@@ -207,7 +209,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
-					if (variable.storage == StorageClassInput) {
+					if (variable.storage == StorageClassInput && strncmp(n.name, "gl_", 3) != 0) {
 						indent(out);
 						if (stage == EShLangVertex && target.system == Unity) {
 							if (strcmp(t.name, "float") == 0) {
@@ -383,7 +385,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
-					if (variable.storage == StorageClassInput) {
+					if (variable.storage == StorageClassInput && strncmp(n.name, "gl_", 3) != 0) {
 						indent(out);
 						if (stage == EShLangVertex) {
 							if (strcmp(t.name, "float4x4") == 0) {
