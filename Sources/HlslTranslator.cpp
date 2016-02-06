@@ -23,7 +23,7 @@ namespace {
 	bool compareVariables(const Variable& v1, const Variable& v2) {
 		Name n1 = currentNames[v1.id];
 		Name n2 = currentNames[v2.id];
-		return strcmp(n1.name, n2.name) < 0;
+		return strcmp(n1.name.c_str(), n2.name.c_str()) < 0;
 	}
 }
 
@@ -108,7 +108,6 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				std::vector<Variable> sortedVariables;
 				for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 					//if (strncmp(types[v->second.type].name, "gl_", 3) == 0) continue;
-					if (names.find(v->second.id) == names.end()) continue;
 					sortedVariables.push_back(v->second);
 				}
 				currentNames = names;
@@ -119,8 +118,6 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					Type& t = types[variable.type];
 					Name n = names[variable.id];
-
-					if (strncmp(n.name, "gl_", 3) == 0) continue;
 
 					if (variable.storage == StorageClassUniformConstant) {
 						indent(out);
@@ -209,18 +206,18 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
-					if (variable.storage == StorageClassInput && strncmp(n.name, "gl_", 3) != 0) {
+					if (variable.storage == StorageClassInput && strncmp(n.name.c_str(), "gl_", 3) != 0) {
 						indent(out);
 						if (stage == EShLangVertex && target.system == Unity) {
-							if (strcmp(t.name, "float") == 0) {
+							if (t.name == "float") {
 								(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
 								++uvindex;
 							}
-							else if (strcmp(t.name, "float2") == 0) {
+							else if (t.name == "float2") {
 								(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
 								++uvindex;
 							}
-							else if (strcmp(t.name, "float3") == 0) {
+							else if (t.name == "float3") {
 								if (threeindex == 0) {
 									(*out) << t.name << " " << n.name << " : POSITION;\n";
 								}
@@ -229,15 +226,15 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								}
 								++threeindex;
 							}
-							else if (strcmp(t.name, "float4") == 0) {
+							else if (t.name == "float4") {
 								(*out) << t.name << " " << n.name << " : TANGENT;\n";
 							}
 						}
 						else {
-							if (strcmp(t.name, "float4x4") == 0 && stage == EShLangVertex) {
+							if (t.name == "float4x4" && stage == EShLangVertex) {
 								for (int i = 0; i < 4; ++i) {
 									char name[101];
-									strcpy(name, n.name);
+									strcpy(name, n.name.c_str());
 									strcat(name, "_");
 									size_t length = strlen(name);
 									_itoa(i, &name[length], 10);
@@ -385,10 +382,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
-					if (variable.storage == StorageClassInput && strncmp(n.name, "gl_", 3) != 0) {
+					if (variable.storage == StorageClassInput) {
 						indent(out);
 						if (stage == EShLangVertex) {
-							if (strcmp(t.name, "float4x4") == 0) {
+							if (t.name == "float4x4") {
 								(*out) << "v_" << n.name << "[0] = input." << n.name << "_0;\n"; indent(out);
 								(*out) << "v_" << n.name << "[1] = input." << n.name << "_1;\n"; indent(out);
 								(*out) << "v_" << n.name << "[2] = input." << n.name << "_2;\n"; indent(out);
@@ -431,19 +428,19 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 				indent(out);
 				if (stage == EShLangFragment) {
-					(*out) << "Output_Frag output;\n";
+					(*out) << "OutputFrag output;\n";
 				}
 				else if (stage == EShLangTessControl) {
-					(*out) << "Output_TessC output;\n";
+					(*out) << "OutputTessC output;\n";
 				}
 				else if (stage == EShLangTessEvaluation) {
-					(*out) << "Output_TessE output;\n";
+					(*out) << "OutputTessE output;\n";
 				}
 				else if (stage == EShLangGeometry) {
-					(*out) << "Output_Geometry output;\n";
+					(*out) << "OutputGeometry output;\n";
 				}
 				else {
-					(*out) << "Output_Vert output;\n";
+					(*out) << "OutputVert output;\n";
 				}
 
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
@@ -532,72 +529,61 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpExecutionMode:
 		break;
 	case OpTypeArray: {
-		Type t;
-		t.isarray = true;
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
+		t.isarray = true;
 		t.name = "unknownarray";
 		Type& subtype = types[inst.operands[1]];
 		t.length = atoi(references[inst.operands[2]].c_str());
-		if (subtype.name != NULL) {
-			if (strcmp(subtype.name, "float") == 0) {
-				t.name = "float";
-			}
-			else if (strcmp(subtype.name, "float2") == 0) {
-				t.name = "float2";
-			}
-			else if (strcmp(subtype.name, "float3") == 0) {
-				t.name = "float3";
-			}
-			else if (strcmp(subtype.name, "float4") == 0) {
-				t.name = "float4";
-			}
+		if (subtype.name == "float") {
+			t.name = "float";
 		}
-		types[id] = t;
+		else if (subtype.name == "float2") {
+			t.name = "float2";
+		}
+		else if (subtype.name == "float3") {
+			t.name = "float3";
+		}
+		else if (subtype.name == "float4") {
+			t.name = "float4";
+		}
 		break;
 	}
 	case OpTypeVector: {
-		Type t;
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
 		t.name = "float?";
 		Type& subtype = types[inst.operands[1]];
-		if (subtype.name != NULL) {
-			if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 2) {
-				t.name = "float2";
-				t.length = 2;
-			}
-			else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 3) {
-				t.name = "float3";
-				t.length = 3;
-			}
-			else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 4) {
-				t.name = "float4";
-				t.length = 4;
-			}
+		if (subtype.name == "float" && inst.operands[2] == 2) {
+			t.name = "float2";
+			t.length = 2;
 		}
-		types[id] = t;
+		else if (subtype.name == "float" && inst.operands[2] == 3) {
+			t.name = "float3";
+			t.length = 3;
+		}
+		else if (subtype.name == "float" && inst.operands[2] == 4) {
+			t.name = "float4";
+			t.length = 4;
+		}
 		break;
 	}
 	case OpTypeMatrix: {
-		Type t;
 		unsigned id = inst.operands[0];
+		Type& t = types[id];
 		t.name = "float4x?";
 		Type& subtype = types[inst.operands[1]];
-		if (subtype.name != NULL) {
-			if (strcmp(subtype.name, "float2") == 0 && inst.operands[2] == 3) {
-				t.name = "float2x2";
-				t.length = 4;
-				types[id] = t;
-			}
-			if (strcmp(subtype.name, "float3") == 0 && inst.operands[2] == 3) {
-				t.name = "float3x3";
-				t.length = 4;
-				types[id] = t;
-			}
-			if (strcmp(subtype.name, "float4") == 0 && inst.operands[2] == 4) {
-				t.name = "float4x4";
-				t.length = 4;
-				types[id] = t;
-			}
+		if (subtype.name == "float2" && inst.operands[2] == 3) {
+			t.name = "float2x2";
+			t.length = 4;
+		}
+		if (subtype.name == "float3" && inst.operands[2] == 3) {
+			t.name = "float3x3";
+			t.length = 4;
+		}
+		if (subtype.name == "float4" && inst.operands[2] == 4) {
+			t.name = "float4x4";
+			t.length = 4;
 		}
 		break;
 	}

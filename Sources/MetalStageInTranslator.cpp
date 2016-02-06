@@ -68,7 +68,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 
 			if (v.storage == StorageClassInput) {
 				const char* vPfx = v.builtin ? "" : "in.";
-				if (strcmp(t.name, "float2") == 0 || strcmp(t.name, "float3") == 0 || strcmp(t.name, "float4") == 0) {
+				if (t.name == "float2" || t.name == "float3" || t.name == "float4") {
 					references[id] = std::string(t.name) + "(" + vPfx + varName + ")";
 				} else {
 					references[id] = std::string(vPfx) + varName;

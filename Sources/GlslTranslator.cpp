@@ -97,7 +97,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Type& type = it->second;
 					if (type.ispointer) continue;
 					if (type.members.size() == 0) continue;
-					if (strncmp(type.name, "gl_", 3) == 0) continue;
+					if (strncmp(type.name.c_str(), "gl_", 3) == 0) continue;
 					(*out) << "struct " << type.name << " {\n";
 					for (std::map<unsigned, std::pair<std::string, Type>>::iterator it2 = type.members.begin(); it2 != type.members.end(); ++it2) {
 						std::string& name = std::get<0>(it2->second);
@@ -127,7 +127,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					switch (stage) {
 					case EShLangVertex:
 						if (variable.storage == StorageClassInput) {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (target.version < 300) {
 									(*out) << "attribute " << t.name << " " << name << ";\n";
 								}
@@ -137,7 +137,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else if (variable.storage == StorageClassOutput) {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (target.version < 300) {
 									(*out) << "varying " << t.name << " " << name << ";\n";
 								}
@@ -147,7 +147,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (t.isarray) {
 									(*out) << "uniform " << t.name << " " << name << "[" << t.length << "];\n";
 								}
@@ -157,14 +157,14 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								(*out) << t.name << " " << name << ";\n";
 							}
 						}
 						break;
 					case EShLangFragment:
 						if (variable.storage == StorageClassInput) {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (target.version < 300) {
 									(*out) << "varying " << t.name << " " << name << ";\n";
 								}
@@ -177,7 +177,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (t.isarray) {
 									(*out) << "uniform " << t.name << " " << name << "[" << t.length << "];\n";
 								}
@@ -187,7 +187,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								(*out) << t.name << " " << name << ";\n";
 							}
 						}
@@ -196,7 +196,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					case EShLangTessControl:
 					case EShLangTessEvaluation:
 						if (variable.storage == StorageClassInput) {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (t.isarray) {
 									(*out) << "in " << t.name << " " << name << "[" << t.length << "];\n";
 								}
@@ -206,7 +206,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else if (variable.storage == StorageClassOutput) {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (t.isarray) {
 									(*out) << "out " << t.name << " " << name << "[" << t.length << "];\n";
 								}
@@ -216,7 +216,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else if (variable.storage == StorageClassUniformConstant) {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (t.isarray) {
 									(*out) << "uniform " << t.name << " " << name << "[" << t.length << "];\n";
 								}
@@ -226,7 +226,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else {
-							if (strncmp(t.name, "gl_", 3) != 0) {
+							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								(*out) << t.name << " " << name << ";\n";
 							}
 						}

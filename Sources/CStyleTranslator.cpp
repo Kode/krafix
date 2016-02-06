@@ -12,6 +12,10 @@ void _itoa(int value, char* str, int base) {
 }
 #endif
 
+namespace {
+	int unnamedCount = 0;
+}
+
 CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {}
 
 CStyleTranslator::~CStyleTranslator() {
@@ -89,7 +93,7 @@ std::string CStyleTranslator::indexName(Type& type, const std::vector<std::strin
 		int numindex = -1;
 		if (indices[i][0] >= '0' && indices[i][0] <= '9') numindex = atoi(indices[i].c_str());
 		if (numindex >= 0 && (!type.isarray || i > 0) && type.members.find(numindex) != type.members.end()) {
-			if (strncmp(type.name, "gl_", 3) != 0 || i > 0) str << ".";
+			if (strncmp(type.name.c_str(), "gl_", 3) != 0 || i > 0) str << ".";
 			str << std::get<0>(type.members[numindex]);
 		}
 		else {
@@ -375,12 +379,20 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 
 	case OpName: {
 		unsigned id = inst.operands[0];
-		if (strcmp(inst.string, "") != 0) {
-			Name n; 
-			n.name = inst.string;
-			names[id] = n;
-			addUniqueName(id, inst.string);		// Also add to array of unique names
+		const char* name = inst.string;
+		
+		Name n;
+		if (strcmp(inst.string, "") == 0) {
+			char unname[101];
+			strcpy(unname, "_unnamed");
+			_itoa(unnamedCount++, &unname[8], 10);
+			n.name = unname;
 		}
+		else {
+			n.name = inst.string;
+		}
+		names[id] = n;
+		addUniqueName(id, inst.string);		// Also add to array of unique names
 		break;
 	}
 	case OpTypePointer: {
@@ -481,14 +493,14 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id result = inst.operands[1];
 		types[result] = resultType;
 		std::string value = "unknown";
-		if (strcmp(resultType.name, "float") == 0) {
+		if (resultType.name == "float") {
 			float f = *(float*)&inst.operands[2];
 			std::stringstream strvalue;
 			strvalue << f;
 			if (strvalue.str().find('.') == std::string::npos) strvalue << ".0";
 			value = strvalue.str();
 		}
-		if (strcmp(resultType.name, "int") == 0) {
+		if (resultType.name == "int") {
 			std::stringstream strvalue;
 			strvalue << *(int*)&inst.operands[2];
 			value = strvalue.str();
@@ -572,7 +584,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		t.isarray = true;
 		Type& subtype = types[inst.operands[1]];
 		t.length = atoi(references[inst.operands[2]].c_str());
-		if (subtype.name != NULL) {
+		if (subtype.name != "") {
 			t.name = subtype.name;
 		}
 		t.members = subtype.members;
@@ -584,19 +596,17 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		t.opcode = inst.opcode;
 		t.name = "vec?";
 		Type subtype = types[inst.operands[1]];
-		if (subtype.name != NULL) {
-			if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 2) {
-				t.name = "vec2";
-				t.length = 2;
-			}
-			else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 3) {
-				t.name = "vec3";
-				t.length = 3;
-			}
-			else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 4) {
-				t.name = "vec4";
-				t.length = 4;
-			}
+		if (subtype.name == "float" && inst.operands[2] == 2) {
+			t.name = "vec2";
+			t.length = 2;
+		}
+		else if (subtype.name == "float" && inst.operands[2] == 3) {
+			t.name = "vec3";
+			t.length = 3;
+		}
+		else if (subtype.name == "float" && inst.operands[2] == 4) {
+			t.name = "vec4";
+			t.length = 4;
 		}
 		break;
 	}
@@ -606,19 +616,17 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		t.opcode = inst.opcode;
 		t.name = "mat?";
 		Type subtype = types[inst.operands[1]];
-		if (subtype.name != NULL) {
-			if (strcmp(subtype.name, "vec2") == 0 && inst.operands[2] == 2) {
-				t.name = "mat2";
-				t.length = 4;
-			}
-			if (strcmp(subtype.name, "vec3") == 0 && inst.operands[2] == 3) {
-				t.name = "mat3";
-				t.length = 4;
-			}
-			else if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
-				t.name = "mat4";
-				t.length = 4;
-			}
+		if (subtype.name == "vec2" && inst.operands[2] == 2) {
+			t.name = "mat2";
+			t.length = 4;
+		}
+		if (subtype.name == "vec3" && inst.operands[2] == 3) {
+			t.name = "mat3";
+			t.length = 4;
+		}
+		else if (subtype.name == "vec4" && inst.operands[2] == 4) {
+			t.name = "mat4";
+			t.length = 4;
 		}
 		break;
 	}
@@ -1180,7 +1188,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		types[result] = resultType;
 		id base = inst.operands[2];
 		std::stringstream str;
-		if (strncmp(types[base].name, "gl_", 3) != 0 || types[base].isarray) str << getReference(base);
+		if (strncmp(types[base].name.c_str(), "gl_", 3) != 0 || types[base].isarray) str << getReference(base);
 		std::vector<std::string> indices;
 		for (unsigned i = 3; i < inst.length; ++i) {
 			/*std::string reference = getReference(inst.operands[i]);
@@ -1344,7 +1352,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
-		if (strcmp(resultType.name, "bool") == 0) {
+		if (resultType.name == "bool") {
 			references[result] = "false";
 		}
 		else {

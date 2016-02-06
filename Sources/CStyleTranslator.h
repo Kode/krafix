@@ -29,7 +29,7 @@ namespace krafix {
 
 	struct Type {
 		spv::Op opcode;
-		const char* name;
+		std::string name;
 		unsigned baseType;
 		unsigned length;
 		SampledImage sampledImage;
@@ -65,7 +65,7 @@ namespace krafix {
 	};
 
 	struct Name {
-		const char* name;
+		std::string name;
 	};
 
 	struct Parameter {

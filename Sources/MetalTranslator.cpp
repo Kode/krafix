@@ -182,19 +182,17 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			t.opcode = inst.opcode;
 			t.name = "float?";
 			Type subtype = types[inst.operands[1]];
-			if (subtype.name != NULL) {
-				if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 2) {
-					t.name = "float2";
-					t.length = 2;
-				}
-				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 3) {
-					t.name = "float3";
-					t.length = 3;
-				}
-				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 4) {
-					t.name = "float4";
-					t.length = 4;
-				}
+			if (subtype.name == "float" && inst.operands[2] == 2) {
+				t.name = "float2";
+				t.length = 2;
+			}
+			else if (subtype.name == "float" && inst.operands[2] == 3) {
+				t.name = "float3";
+				t.length = 3;
+			}
+			else if (subtype.name == "float" && inst.operands[2] == 4) {
+				t.name = "float4";
+				t.length = 4;
 			}
 			break;
 		}
@@ -204,11 +202,9 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			t.opcode = inst.opcode;
 			t.name = "matrix_float4x?";
 			Type& subtype = types[inst.operands[1]];
-			if (subtype.name != NULL) {
-				if (strcmp(subtype.name, "float4") == 0 && inst.operands[2] == 4) {
-					t.name = "matrix_float4x4";
-					t.length = 4;
-				}
+			if (subtype.name == "float4" && inst.operands[2] == 4) {
+				t.name = "matrix_float4x4";
+				t.length = 4;
 			}
 			break;
 		}
@@ -271,7 +267,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 				if (v.storage == StorageClassInput) {
 					if (stage == EShLangVertex) {
 						Type& type = types[v.type];
-						if (strcmp(type.name, "float2") == 0 || strcmp(type.name, "float3") == 0 || strcmp(type.name, "float4") == 0) references[id] = type.name + std::string("(vertices[vid].") + names[id].name + ")";
+						if (type.name == "float2" || type.name == "float3" || type.name == "float4") references[id] = type.name + std::string("(vertices[vid].") + names[id].name + ")";
 						else references[id] = std::string("vertices[vid].") + names[id].name;
 					}
 					else {
@@ -284,7 +280,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 				}
 				else if (v.storage == StorageClassUniformConstant) {
 					Type& type = types[v.type];
-					if (strcmp(type.name, "sampler2D") == 0) references[id] = names[id].name;
+					if (type.name == "sampler2D") references[id] = names[id].name;
 					else references[id] = std::string("uniforms.") + names[id].name;
 				}
 				else {
@@ -311,7 +307,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 				Name n = names[id];
 
 				if (variable.storage == StorageClassUniformConstant) {
-					if (strcmp(t.name, "sampler2D") != 0) {
+					if (t.name != "sampler2D") {
 						indent(out);
 						(*out) << t.name << " " << n.name << ";\n";
 					}
@@ -399,7 +395,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 					Name n = names[id];
 
 					if (variable.storage == StorageClassUniformConstant) {
-						if (strcmp(t.name, "sampler2D") == 0) {
+						if (t.name == "sampler2D") {
 							indent(out);
 							(*out) << ", texture2d<float> " << n.name << " [[texture(" << texindex << ")]]"
 								<< ", sampler " << n.name << "Sampler [[sampler(" << texindex << ")]]";
@@ -503,7 +499,7 @@ const char* MetalTranslator::builtInName(spv::BuiltIn builtin) {
 	}
 }
 
-const char* MetalTranslator::builtInTypeName(spv::BuiltIn builtin, Type& type) {
+std::string MetalTranslator::builtInTypeName(spv::BuiltIn builtin, Type& type) {
 	using namespace spv;
 	switch (builtin) {
 			// Vertex function in
@@ -512,5 +508,3 @@ const char* MetalTranslator::builtInTypeName(spv::BuiltIn builtin, Type& type) {
 		default: return type.name;
 	}
 }
-
-
