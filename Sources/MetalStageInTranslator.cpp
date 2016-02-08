@@ -63,7 +63,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 						  v.storage == StorageClassPushConstant);
 
 			std::string varName = getVariableName(id);
-			Type& t = types[v.type];
+			Type t = types[v.type];
 			if (t.opcode == OpTypePointer) { t = types[t.baseType]; }
 
 			if (v.storage == StorageClassInput) {
@@ -242,7 +242,7 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 		unsigned id = v->first;
 		Variable& variable = v->second;
 
-		Type& t = types[variable.type];
+		Type t = types[variable.type];
 		if (t.opcode == OpTypePointer) { t = types[t.baseType]; }
 		std::string varName = getVariableName(id);
 
