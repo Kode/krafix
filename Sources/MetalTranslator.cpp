@@ -138,7 +138,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 
 			unsigned typeId = variables[base].type;
 			Type t = types[typeId];
-			if (t.opcode == OpTypePointer) { typeId = t.baseType; }
+			if (t.ispointer) { typeId = t.baseType; }
 
 			for (unsigned i = 3; i < inst.length; ++i) {
 				t = types[typeId];

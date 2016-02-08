@@ -64,7 +64,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 
 			std::string varName = getVariableName(id);
 			Type t = types[v.type];
-			if (t.opcode == OpTypePointer) { t = types[t.baseType]; }
+			if (t.ispointer) { t = types[t.baseType]; }
 
 			if (v.storage == StorageClassInput) {
 				const char* vPfx = v.builtin ? "" : "in.";
@@ -243,7 +243,7 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 		Variable& variable = v->second;
 
 		Type t = types[variable.type];
-		if (t.opcode == OpTypePointer) { t = types[t.baseType]; }
+		if (t.ispointer) { t = types[t.baseType]; }
 		std::string varName = getVariableName(id);
 
 		if (variable.storage == StorageClassUniform ||
@@ -320,7 +320,7 @@ bool MetalStageInTranslator::outputLooseUniformStruct() {
 		Variable& variable = v->second;
 
 		Type t = types[variable.type];
-		if (t.opcode == OpTypePointer) { t = types[t.baseType]; }
+		if (t.ispointer) { t = types[t.baseType]; }
 
 		if (isUniformBufferMember(variable, t)) {
 			tmpOut << t.name << " " << getVariableName(id);
@@ -345,7 +345,7 @@ void MetalStageInTranslator::outputUniformBuffers() {
 
 		unsigned typeId = variable.type;
 		Type t = types[typeId];
-		if (t.opcode == OpTypePointer) {
+		if (t.ispointer) {
 			typeId = t.baseType;
 			t = types[typeId];
 		}
@@ -431,7 +431,7 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 		if (variable.storage == StorageClassOutput) {
 			unsigned typeId = variable.type;
 			Type t = types[typeId];
-			if (t.opcode == OpTypePointer) {
+			if (t.ispointer) {
 				typeId = t.baseType;
 				t = types[typeId];
 			}
