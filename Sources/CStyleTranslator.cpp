@@ -504,7 +504,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			float f = *(float*)&inst.operands[2];
 			std::stringstream strvalue;
 			strvalue << f;
-			if (strvalue.str().find('.') == std::string::npos) strvalue << ".0";
+			if (strvalue.str().find_first_of(".e") == std::string::npos) strvalue << ".0";
 			value = strvalue.str();
 		}
 		if (resultType.name == "int") {
