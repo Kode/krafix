@@ -172,6 +172,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			t.opcode = inst.opcode;									// ...except OpCode
 			t.baseType = reftype;									// ...and base type
 			t.length = atoi(references[inst.operands[2]].c_str());	// ...and length
+			t.byteSize = t.byteSize * t.length;						// ...and byte size
 			t.isarray = true;										// ...and array marker
 			types[id] = t;
 			break;
@@ -180,32 +181,20 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			unsigned id = inst.operands[0];
 			Type& t = types[id];
 			t.opcode = inst.opcode;
-			t.name = "float?";
+			t.length = inst.operands[2];
 			Type subtype = types[inst.operands[1]];
-			if (subtype.name == "float" && inst.operands[2] == 2) {
-				t.name = "float2";
-				t.length = 2;
-			}
-			else if (subtype.name == "float" && inst.operands[2] == 3) {
-				t.name = "float3";
-				t.length = 3;
-			}
-			else if (subtype.name == "float" && inst.operands[2] == 4) {
-				t.name = "float4";
-				t.length = 4;
-			}
+			t.name = subtype.name + std::to_string(t.length);
+			t.byteSize = subtype.byteSize * t.length;
 			break;
 		}
 		case OpTypeMatrix: {
 			unsigned id = inst.operands[0];
 			Type& t = types[id];
 			t.opcode = inst.opcode;
-			t.name = "matrix_float4x?";
+			t.length = inst.operands[2];
 			Type& subtype = types[inst.operands[1]];
-			if (subtype.name == "float4" && inst.operands[2] == 4) {
-				t.name = "matrix_float4x4";
-				t.length = 4;
-			}
+			t.name = "float" + std::to_string(t.length) + "x" + std::to_string(subtype.length);
+			t.byteSize = subtype.byteSize * t.length;
 			break;
 		}
 		case OpTypeImage: {
@@ -499,12 +488,15 @@ const char* MetalTranslator::builtInName(spv::BuiltIn builtin) {
 	}
 }
 
-std::string MetalTranslator::builtInTypeName(spv::BuiltIn builtin, Type& type) {
+std::string MetalTranslator::builtInTypeName(Variable& variable) {
 	using namespace spv;
-	switch (builtin) {
-			// Vertex function in
+	switch (variable.builtinType) {
 		case BuiltInVertexId: return "uint";
 		case BuiltInInstanceId: return "uint";
-		default: return type.name;
+		default: {
+			Type t = types[variable.type];
+			if (t.ispointer) { t = types[t.baseType]; }
+			return t.name;
+		}
 	}
 }

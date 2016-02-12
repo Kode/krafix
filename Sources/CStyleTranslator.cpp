@@ -425,6 +425,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type& t = types[id];
 		t.opcode = inst.opcode;
 		t.name = "float";
+		t.byteSize = 4;
 		break;
 	}
 	case OpTypeInt: {
@@ -432,6 +433,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type& t = types[id];
 		t.opcode = inst.opcode;
 		t.name = "int";
+		t.byteSize = 4;
 		break;
 	}
 	case OpTypeBool: {
@@ -439,6 +441,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type& t = types[id];
 		t.opcode = inst.opcode;
 		t.name = "bool";
+		t.byteSize = 1;
 		break;
 	}
 	case OpTypeStruct: {
@@ -450,7 +453,10 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		t.length = mbrCnt;
 		for (unsigned mbrIdx = 0, opIdx = 1; mbrIdx < mbrCnt; mbrIdx++, opIdx++) {
 			unsigned mbrId = getMemberId(typeId, mbrIdx);
-			members[mbrId].type = inst.operands[opIdx];
+			unsigned mbrTypeId = inst.operands[opIdx];
+			members[mbrId].type = mbrTypeId;
+			Type& mbrType = types[mbrTypeId];
+			t.byteSize += mbrType.byteSize;
 		}
 		
 		for (unsigned i = 1; i < inst.length; ++i) {
@@ -504,7 +510,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			float f = *(float*)&inst.operands[2];
 			std::stringstream strvalue;
 			strvalue << f;
-			if (strvalue.str().find('.') == std::string::npos) strvalue << ".0";
+			if (strvalue.str().find_first_of(".e") == std::string::npos) strvalue << ".0";
 			value = strvalue.str();
 		}
 		if (resultType.name == "int") {
@@ -595,6 +601,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			t.name = subtype.name;
 		}
 		t.members = subtype.members;
+		t.byteSize = subtype.byteSize * t.length;
 		break;
 	}
 	case OpTypeVector: {
@@ -615,6 +622,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			t.name = "vec4";
 			t.length = 4;
 		}
+		t.byteSize = subtype.byteSize * t.length;
 		break;
 	}
 	case OpTypeMatrix: {
@@ -635,6 +643,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			t.name = "mat4";
 			t.length = 4;
 		}
+		t.byteSize = subtype.byteSize * t.length;
 		break;
 	}
 	case OpTypeImage: {
@@ -1101,6 +1110,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 				Variable& var = variables[target];
 				var.builtin = true;
 				var.builtinType = (BuiltIn)inst.operands[2];
+				if (var.builtinType == BuiltInVertexId) { vtxIdVarId = target; }
+				if (var.builtinType == BuiltInInstanceId) { instIdVarId = target; }
 				break;
 			}
 			case DecorationLocation:

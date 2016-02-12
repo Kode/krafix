@@ -4,6 +4,14 @@
 using namespace krafix;
 using namespace spv;
 
+
+void MetalVertexInStruct::padToOffset(unsigned offset) {
+	if (offset > byteSize) {
+		body << "\tchar pad" << padIndex++ << "[" << (offset - byteSize) << "];\n";
+		byteSize = offset;
+	}
+}
+
 void MetalStageInTranslator::outputCode(const Target& target,
 										const MetalStageInTranslatorRenderContext& renderContext,
 										std::ostream* pOutput,
@@ -14,6 +22,7 @@ void MetalStageInTranslator::outputCode(const Target& target,
 	_nextMTLBufferIndex = 0;
 	_nextMTLTextureIndex = 0;
 	_nextMTLSamplerIndex = 0;
+	_vertexInStructs.clear();
 
 	outputHeader();
 	
@@ -54,6 +63,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 		case OpVariable: {
 			unsigned id = inst.operands[1];
 			Variable& v = variables[id];
+			v.id = id;
 			v.type = inst.operands[0];
 			v.storage = (StorageClass)inst.operands[2];
 			v.declared = (v.storage == StorageClassInput ||
@@ -67,12 +77,30 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 			if (t.ispointer) { t = types[t.baseType]; }
 
 			if (v.storage == StorageClassInput) {
-				const char* vPfx = v.builtin ? "" : "in.";
-				if (t.name == "float2" || t.name == "float3" || t.name == "float4") {
-					references[id] = std::string(t.name) + "(" + vPfx + varName + ")";
-				} else {
-					references[id] = std::string(vPfx) + varName;
+				std::string vPfx;
+				if ( !v.builtin ) {
+					if (stage == EShLangVertex) {
+
+						// Set attribute parameters of this variable
+						MetalVertexAttribute& vtxAttr = _renderContext.vertexAttributesByLocation[v.location];
+						v.offset = vtxAttr.offset;
+						v.stride = vtxAttr.stride;
+						v.isPerInstance = vtxAttr.isPerInstance;
+						v.binding = vtxAttr.binding;
+
+						if (v.binding == _renderContext.vertexAttributeStageInBinding) {
+							vPfx = "in.";
+						} else {
+							// Set the reference to use either vertex or instance index variable
+							MetalVertexInStruct& inStruct = _vertexInStructs[v.binding];
+							if (inStruct.name.empty()) { inStruct.name += "in" + std::to_string(v.binding); }
+							vPfx = inStruct.name + "[" + getVariableName(v.isPerInstance ? instIdVarId : vtxIdVarId) + "].";
+						}
+					} else {
+						vPfx = "in.";
+					}
 				}
+				references[id] = vPfx + varName;
 			}
 			else if (v.storage == StorageClassOutput) {
 				if (t.opcode != OpTypeStruct) {
@@ -81,12 +109,10 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 					references[id] = "out";
 				}
 			}
-			else {
-				if (isUniformBufferMember(v, t)) {
-					references[id] = std::string("uniforms.") + varName;
-				} else {
-					references[id] = varName;
-				}
+			else if (isUniformBufferMember(v, t)) {
+				references[id] = std::string("uniforms.") + varName;
+			} else {
+				references[id] = varName;
 			}
 			break;
 		}
@@ -200,6 +226,7 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 	if (asDeclaration) {
 		_hasLooseUniforms = outputLooseUniformStruct();
 		outputUniformBuffers();
+		outputVertexInStructs();
 		_hasStageIn = outputStageInStruct();
 		_hasStageOut = outputStageOutStruct();
 	}
@@ -233,12 +260,20 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 		(*out) << funcName << "_in in [[stage_in]]";
 	}
 
+	for (auto iter = _vertexInStructs.begin(); iter != _vertexInStructs.end(); iter++) {
+		unsigned binding = iter->first;
+		MetalVertexInStruct& inStruct = iter->second;
+		needsComma = paramComma(needsComma);
+		const std::string& varName = inStruct.name;
+		(*out) << "device " << funcName << "_" << varName << "* " << varName << " [[buffer(" << binding << ")]]";
+	}
+
 	if (_hasLooseUniforms) {
 		needsComma = paramComma(needsComma);
 		(*out) << "constant " << funcName << "_uniforms& uniforms [[buffer(0)]]";
 	}
 
-	for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
+	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		unsigned id = v->first;
 		Variable& variable = v->second;
 
@@ -273,9 +308,7 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 		}
 		if (variable.storage == StorageClassInput && variable.builtin) {
 			needsComma = paramComma(needsComma);
-			(*out) << builtInTypeName(variable.builtinType, t)
-			<< " " << varName
-			<< " [[" << builtInName(variable.builtinType) << "]]";
+			(*out) << builtInTypeName(variable) << " " << varName << " [[" << builtInName(variable.builtinType) << "]]";
 		}
 	}
 
@@ -315,7 +348,7 @@ bool MetalStageInTranslator::outputLooseUniformStruct() {
 	indent(&tmpOut);
 	tmpOut << "struct " << funcName << "_uniforms {\n";
 	++indentation;
-	for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
+	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		unsigned id = v->first;
 		Variable& variable = v->second;
 
@@ -340,7 +373,7 @@ bool MetalStageInTranslator::outputLooseUniformStruct() {
 
 /** If named uniform buffers exist, output them. */
 void MetalStageInTranslator::outputUniformBuffers() {
-	for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
+	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		Variable& variable = v->second;
 
 		unsigned typeId = variable.type;
@@ -369,17 +402,73 @@ void MetalStageInTranslator::outputUniformBuffers() {
 		}
 	}
 }
+
+/** Outputs the vertex attribute input structures, and adds them to the _vertexInStructs map. */
+void MetalStageInTranslator::outputVertexInStructs() {
+	if (stage != EShLangVertex) { return; }
+
+	std::vector<std::pair<const unsigned, Variable>*> inVars;
+	for (auto v = variables.begin(); v != variables.end(); ++v) {
+		Variable& variable = v->second;
+		if ((variable.storage == StorageClassInput) &&
+			(variable.binding != _renderContext.vertexAttributeStageInBinding) &&
+			!variable.builtin) {
+
+			inVars.push_back(&(*v));
+		}
+	}
+	unsigned varCnt = (unsigned)inVars.size();
+	if (varCnt == 0) { return; }		// No input attributes to output
+
+	std::sort (inVars.begin(), inVars.end(), compareByLocation);
+
+	// Divide the input variables into separate structs according to their bindings.
+	++indentation;
+	for (unsigned varIdx = 0; varIdx < varCnt; varIdx++) {
+		auto pVar = inVars[varIdx];
+		unsigned id = pVar->first;
+		Variable& variable = pVar->second;
+		MetalVertexInStruct& inStruct = _vertexInStructs[variable.binding];
+		if (inStruct.body.str().empty()) {
+			inStruct.body  << "struct " << funcName << "_" << inStruct.name << " {\n";
+		}
+
+		// Add any padding required between the structure components
+		if (variable.offset > inStruct.byteSize) {
+			inStruct.body << "\tchar pad" << inStruct.padIndex++ << "[" << (variable.offset - inStruct.byteSize) << "];\n";
+			inStruct.byteSize = variable.offset;
+		}
+
+		Type t = types[variable.type];
+		if (t.ispointer) { t = types[t.baseType]; }
+		indent(&inStruct.body);
+		if (t.opcode == OpTypeVector) { inStruct.body << "packed_"; }
+		inStruct.body << t.name << " " << getVariableName(id) << ";\n";
+		inStruct.byteSize += t.byteSize;
+	}
+	--indentation;
+
+	// Finish and output the input variable structs.
+	for (auto iter = _vertexInStructs.begin(); iter != _vertexInStructs.end(); iter++) {
+		MetalVertexInStruct& inStruct = iter->second;
+		inStruct.body << "};\n";
+		(*out) << inStruct.body.str() << "\n";
+	}
+}
+
 /**
  * If attribute inputs exist, collect them into a single stage-in structure, in location order,
  * and output the structure. Returns whether structure was output.
  */
 bool MetalStageInTranslator::outputStageInStruct() {
-	std::ostringstream tmpOut;
 
 	std::vector<std::pair<const unsigned, Variable>*> inVars;
-	for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
+	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		Variable& variable = v->second;
-		if (variable.storage == StorageClassInput && !variable.builtin) {
+		if ((variable.storage == StorageClassInput) &&
+			((stage == EShLangFragment) || (variable.binding == _renderContext.vertexAttributeStageInBinding)) &&
+			!variable.builtin) {
+
 			inVars.push_back(&(*v));
 		}
 	}
@@ -424,7 +513,7 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 	indent(&tmpOut);
 	tmpOut << "struct " << funcName << "_out {\n";
 	++indentation;
-	for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
+	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		unsigned id = v->first;
 		Variable& variable = v->second;
 

@@ -10,7 +10,7 @@ namespace krafix {
 		void outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst);
 	protected:
 		const char* builtInName(spv::BuiltIn builtin);
-		std::string builtInTypeName(spv::BuiltIn builtin, Type& type);
+		std::string builtInTypeName(Variable& variable);
 
 		std::string name;
 		std::string positionName = "position";
