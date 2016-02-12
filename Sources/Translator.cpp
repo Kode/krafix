@@ -36,6 +36,8 @@ Instruction::Instruction(std::vector<unsigned>& spirv, unsigned& index) {
 }
 
 Translator::Translator(std::vector<unsigned>& spirv, EShLanguage stage) : stage(stage) {
+	if (spirv.size() < 5) { return; }
+
 	unsigned index = 0;
 	unsigned magicNumber = spirv[index++];
 	unsigned version = spirv[index++];
