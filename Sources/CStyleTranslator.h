@@ -17,14 +17,18 @@ namespace krafix {
 		unsigned id;
 		unsigned type;
 		spv::BuiltIn builtinType;
+		spv::StorageClass storage;
 		unsigned location;
 		unsigned descriptorSet;
 		unsigned binding;
-		spv::StorageClass storage;
+		unsigned offset;
+		unsigned stride;
+		bool isPerInstance;
 		bool builtin;
 		bool declared;
 
-		Variable() : id(0), type(0), builtin(false), location(0), descriptorSet(0), binding(0) {}
+		Variable() : id(0), type(0), builtin(false), location(0), descriptorSet(0),
+						binding(0), offset(0), stride(0), isPerInstance(false) {}
 	};
 
 	struct Type {
@@ -32,6 +36,7 @@ namespace krafix {
 		std::string name;
 		unsigned baseType;
 		unsigned length;
+		unsigned byteSize;
 		SampledImage sampledImage;
 		spv::Dim imageDim;
 		bool isDepthImage;
@@ -45,6 +50,7 @@ namespace krafix {
 			name = "unknown";
 			baseType = 0;
 			length = 1;
+			byteSize = 0;
 			isarray = false;
 			ispointer = false;
 			sampledImage = kSampledImageUnknown;
@@ -151,6 +157,8 @@ namespace krafix {
 		std::string funcType;
 		bool firstLabel = true;
 		unsigned entryPoint = -1;
+		unsigned vtxIdVarId = -1;
+		unsigned instIdVarId = -1;
 		std::vector<Function*> functions;
 		std::ostream* tempout = NULL;
 		

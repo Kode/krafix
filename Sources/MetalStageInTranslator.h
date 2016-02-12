@@ -5,17 +5,44 @@
 
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <sstream>
 
 
 namespace krafix {
 
+	/** Additional info about vertex attributes. */
+	struct MetalVertexAttribute {
+		unsigned binding;
+		unsigned offset;
+		unsigned stride;
+		bool isPerInstance;
+
+		MetalVertexAttribute() : binding(0), offset(0), stride(0), isPerInstance(false) {}
+	};
+
+	struct MetalVertexInStruct {
+		std::string name;
+		std::ostringstream body;
+		unsigned byteSize;
+		unsigned padIndex;
+
+		void padToOffset(unsigned offset);
+
+		MetalVertexInStruct() : byteSize(0), padIndex(0) {}
+	};
+
 	/** The rendering context in which a shader conversion occurs. */
 	struct MetalStageInTranslatorRenderContext {
-		bool shouldFlipVertexY = true;
-		bool shouldFlipFragmentY = true;
-		bool isRenderingPoints = false;
+		std::unordered_map<unsigned, MetalVertexAttribute> vertexAttributesByLocation;
+		signed vertexAttributeStageInBinding;
+		bool shouldFlipVertexY;
+		bool shouldFlipFragmentY;
+		bool isRenderingPoints;
+
+		MetalStageInTranslatorRenderContext() : vertexAttributeStageInBinding(-1), shouldFlipVertexY(true),
+												shouldFlipFragmentY(true), isRenderingPoints(false) {}
 	};
 
 	/** Converts SPIR-V code to Metal Shading Language Code that uses Stage-In attributes. */
@@ -47,6 +74,7 @@ namespace krafix {
 		virtual bool outputFunctionParameters(bool asDeclaration, bool needsComma);
 		virtual bool outputLooseUniformStruct();
 		virtual void outputUniformBuffers();
+		virtual void outputVertexInStructs();
 		virtual bool outputStageInStruct();
 		virtual bool outputStageOutStruct();
 		virtual signed getMetalResourceIndex(Variable& variable, spv::Op rezType);
@@ -55,6 +83,7 @@ namespace krafix {
 		bool paramComma(bool needsComma);
 
 		MetalStageInTranslatorRenderContext _renderContext;
+		std::unordered_map<unsigned, MetalVertexInStruct> _vertexInStructs;
 		unsigned _nextMTLBufferIndex;
 		unsigned _nextMTLTextureIndex;
 		unsigned _nextMTLSamplerIndex;
