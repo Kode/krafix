@@ -19,6 +19,7 @@ void MetalStageInTranslator::outputCode(const Target& target,
 	out = pOutput;
 	_renderContext = renderContext;
 
+	tempNameIndex = 0;
 	_nextMTLBufferIndex = 0;
 	_nextMTLTextureIndex = 0;
 	_nextMTLSamplerIndex = 0;
@@ -179,6 +180,59 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 			}
 			break;
 
+		case OpCompositeConstruct: {
+			Type& resultType = types[inst.operands[0]];
+			unsigned result = inst.operands[1];
+			types[result] = resultType;
+
+			bool needsComma = false;
+			std::stringstream tmpOut;
+			tmpOut << resultType.name << "(";
+			for (unsigned i = 2; i < inst.length; ++i) {
+				needsComma = paramComma(&tmpOut, needsComma);
+				tmpOut << getReference(inst.operands[i]);
+			}
+			tmpOut << ")";
+			references[result] = outputTempVar(out, resultType.name, tmpOut.str());
+			break;
+		}
+
+		case OpMatrixTimesMatrix: {
+			Type& resultType = types[inst.operands[0]];
+			unsigned result = inst.operands[1];
+			types[result] = resultType;
+			unsigned operand1 = inst.operands[2];
+			unsigned operand2 = inst.operands[3];
+			std::stringstream tmpOut;
+			tmpOut << "(" << getReference(operand1) << " * " << getReference(operand2) << ")";
+			references[result] = outputTempVar(out, resultType.name, tmpOut.str());
+			break;
+		}
+
+		case OpMatrixTimesVector: {
+			Type& resultType = types[inst.operands[0]];
+			unsigned result = inst.operands[1];
+			types[result] = resultType;
+			unsigned matrix = inst.operands[2];
+			unsigned vector = inst.operands[3];
+			std::stringstream tmpOut;
+			tmpOut << "(" << getReference(matrix) << " * " << getReference(vector) << ")";
+			references[result] = outputTempVar(out, resultType.name, tmpOut.str());
+			break;
+		}
+
+		case OpVectorTimesMatrix: {
+			Type& resultType = types[inst.operands[0]];
+			unsigned result = inst.operands[1];
+			types[result] = resultType;
+			unsigned vector = inst.operands[2];
+			unsigned matrix = inst.operands[3];
+			std::stringstream tmpOut;
+			tmpOut << "(" << getReference(vector) << " * " << getReference(matrix) << ")";
+			references[result] = outputTempVar(out, resultType.name, tmpOut.str());
+			break;
+		}
+
 		case OpImageSampleImplicitLod: {
 			unsigned result = inst.operands[1];
 			unsigned sampler = inst.operands[2];
@@ -256,20 +310,20 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 	bool needsComma = false;
 
 	if (_hasStageIn) {
-		needsComma = paramComma(needsComma);
+		needsComma = paramComma(out, needsComma);
 		(*out) << funcName << "_in in [[stage_in]]";
 	}
 
 	for (auto iter = _vertexInStructs.begin(); iter != _vertexInStructs.end(); iter++) {
 		unsigned binding = iter->first;
 		MetalVertexInStruct& inStruct = iter->second;
-		needsComma = paramComma(needsComma);
+		needsComma = paramComma(out, needsComma);
 		const std::string& varName = inStruct.name;
 		(*out) << "device " << funcName << "_" << varName << "* " << varName << " [[buffer(" << binding << ")]]";
 	}
 
 	if (_hasLooseUniforms) {
-		needsComma = paramComma(needsComma);
+		needsComma = paramComma(out, needsComma);
 		(*out) << "constant " << funcName << "_uniforms& uniforms [[buffer(0)]]";
 	}
 
@@ -286,19 +340,19 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 			variable.storage == StorageClassPushConstant) {
 			switch (t.opcode) {
 				case OpTypeStruct:
-					needsComma = paramComma(needsComma);
+					needsComma = paramComma(out, needsComma);
 					(*out) << "constant " << t.name << "& " << varName << " [[buffer(" << getMetalResourceIndex(variable, OpTypeStruct) << ")]]";
 					break;
 				case OpTypeSampler:
-					needsComma = paramComma(needsComma);
+					needsComma = paramComma(out, needsComma);
 					(*out) << t.name << " " << varName << " [[sampler(" << getMetalResourceIndex(variable, OpTypeSampler) << ")]]";
 					break;
 				case OpTypeImage:
-					needsComma = paramComma(needsComma);
+					needsComma = paramComma(out, needsComma);
 					(*out) << t.name << "<float> " << varName << " [[texture(" << getMetalResourceIndex(variable, OpTypeImage) << ")]]";
 					break;
 				case OpTypeSampledImage:
-					needsComma = paramComma(needsComma);
+					needsComma = paramComma(out, needsComma);
 					(*out) << t.name << "<float> " << varName << " [[texture(" << getMetalResourceIndex(variable, OpTypeImage) << ")]]";
 					(*out) << ", sampler " << varName << "Sampler [[sampler(" << getMetalResourceIndex(variable, OpTypeSampler) << ")]]";
 					break;
@@ -307,7 +361,7 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 			}
 		}
 		if (variable.storage == StorageClassInput && variable.builtin) {
-			needsComma = paramComma(needsComma);
+			needsComma = paramComma(out, needsComma);
 			(*out) << builtInTypeName(variable) << " " << varName << " [[" << builtInName(variable.builtinType) << "]]";
 		}
 	}
@@ -327,7 +381,7 @@ void MetalStageInTranslator::outputLocalFunctionSignature(bool asDeclaration) {
 /** Outputs the function parameters for the current function. */
 bool MetalStageInTranslator::outputFunctionParameters(bool asDeclaration, bool needsComma) {
 	for (std::vector<Parameter>::iterator iter = parameters.begin(), end = parameters.end(); iter != end; iter++) {
-		needsComma = paramComma(needsComma);
+		needsComma = paramComma(out, needsComma);
 		(*out) << iter->type.name << " " << getReference(iter->id);
 	}
 	return needsComma;
@@ -643,7 +697,7 @@ bool MetalStageInTranslator::isUniformBufferMember(Variable& var, Type& type) {
 }
 
 /** Outputs a parameter-separating comma if needed, and returns the need for further commas. */
-bool MetalStageInTranslator::paramComma(bool needsComma) {
+bool MetalStageInTranslator::paramComma(std::ostream* out, bool needsComma) {
 	if (needsComma) { (*out) << ", "; }
 	return true;
 }

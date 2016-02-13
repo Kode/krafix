@@ -80,7 +80,7 @@ namespace krafix {
 		virtual signed getMetalResourceIndex(Variable& variable, spv::Op rezType);
 		EShLanguage stageFromSPIRVExecutionModel(spv::ExecutionModel execModel);
 		bool isUniformBufferMember(Variable& var, Type& type);
-		bool paramComma(bool needsComma);
+		bool paramComma(std::ostream* out, bool needsComma);
 
 		MetalStageInTranslatorRenderContext _renderContext;
 		std::unordered_map<unsigned, MetalVertexInStruct> _vertexInStructs;
