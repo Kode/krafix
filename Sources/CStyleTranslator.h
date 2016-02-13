@@ -159,6 +159,7 @@ namespace krafix {
 		unsigned entryPoint = -1;
 		unsigned vtxIdVarId = -1;
 		unsigned instIdVarId = -1;
+		unsigned tempNameIndex;
 		std::vector<Function*> functions;
 		std::ostream* tempout = NULL;
 		
@@ -172,5 +173,7 @@ namespace krafix {
 		std::string& getUniqueName(unsigned id, const char* prefix);
 		std::string& getVariableName(unsigned id);
 		std::string& getFunctionName(unsigned id);
+		std::string getNextTempName();
+		std::string outputTempVar(std::ostream* out, std::string& tmpTypeName, const std::string& rhs);
 	};
 }
