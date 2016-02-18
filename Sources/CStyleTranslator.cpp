@@ -227,13 +227,13 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
-    case GLSLstd450Tan: {
-        id x = inst.operands[4];
-        std::stringstream str;
-        str << "tan(" << getReference(x)  << ")";
-        references[result] = str.str();
-        break;
-        }
+	case GLSLstd450Tan: {
+		id x = inst.operands[4];
+		std::stringstream str;
+		str << "tan(" << getReference(x)  << ")";
+		references[result] = str.str();
+		break;
+		}
 	case GLSLstd450Asin: {
 		id x = inst.operands[4];
 		std::stringstream str;
@@ -1379,7 +1379,27 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		std::stringstream str;
 		if (target.version < 300) str << "texture2D";
 		else str << "texture";
-		str << "(" << getReference(sampler) << ", " << getReference(coordinate) << ")";
+		str << "(" << getReference(sampler) << ", " << getReference(coordinate);
+		if (inst.length > 5) {
+			id bias = inst.operands[5];
+			str << ", " << getReference(bias);
+		}
+		str << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpImageSampleExplicitLod: {
+		Type& resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		id sampler = inst.operands[2];
+		id coordinate = inst.operands[3];
+		id lod = inst.operands[5];
+		std::stringstream str;
+		if (target.system == HTML5) str << "texture2DLodEXT";
+		else if (target.version < 300) str << "texture2DLod";
+		else str << "textureLod";
+		str << "(" << getReference(sampler) << ", " << getReference(coordinate) << ", " << getReference(lod) << ")";
 		references[result] = str.str();
 		break;
 	}
