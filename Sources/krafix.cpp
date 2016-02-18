@@ -872,6 +872,7 @@ krafix::TargetSystem getSystem(const char* system) {
 	if (strcmp(system, "ios") == 0) return krafix::iOS;
 	if (strcmp(system, "android") == 0) return krafix::Android;
 	if (strcmp(system, "html5") == 0) return krafix::HTML5;
+    if (strcmp(system, "debug-html5") == 0) return krafix::HTML5;
 	if (strcmp(system, "flash") == 0) return krafix::Flash;
 	if (strcmp(system, "unity") == 0) return krafix::Unity;
 	return krafix::Unknown;
