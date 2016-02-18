@@ -35,7 +35,7 @@ Instruction::Instruction(std::vector<unsigned>& spirv, unsigned& index) {
 	index += wordCount;
 }
 
-Translator::Translator(std::vector<unsigned>& spirv, EShLanguage stage) : stage(stage) {
+Translator::Translator(std::vector<unsigned>& spirv, EShLanguage stage) : stage(stage), spirv(spirv) {
 	if (spirv.size() < 5) { return; }
 
 	unsigned index = 0;

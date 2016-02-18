@@ -8,6 +8,7 @@
 
 namespace krafix {
 	enum TargetLanguage {
+		SpirV,
 		GLSL,
 		HLSL,
 		Metal,
@@ -51,6 +52,7 @@ namespace krafix {
 		virtual ~Translator() {}
 		virtual void outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) = 0;
 	protected:
+		std::vector<unsigned>& spirv;
 		std::vector<Instruction> instructions;
 		EShLanguage stage;
 	};

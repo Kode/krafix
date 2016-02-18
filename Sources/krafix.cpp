@@ -45,6 +45,7 @@
 #include "../SPIRV/doc.h"
 #include "../SPIRV/disassemble.h"
 
+#include "SpirVTranslator.h"
 #include "GlslTranslator.h"
 #include "HlslTranslator.h"
 #include "AgalTranslator.h"
@@ -810,6 +811,9 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
 					krafix::Translator* translator = NULL;
 					std::map<std::string, int> attributes;
 					switch (target.lang) {
+					case krafix::SpirV:
+						translator = new krafix::SpirVTranslator(spirv, (EShLanguage)stage);
+						break;
 					case krafix::GLSL:
 						translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
 						break;
@@ -909,7 +913,12 @@ int C_DECL main(int argc, char* argv[]) {
 	krafix::Target target;
 	target.system = getSystem(argv[5]);
 	target.es = false;
-	if (strcmp(argv[1], "d3d9") == 0) {
+	if (strcmp(argv[1], "spirv") == 0) {
+		target.lang = krafix::SpirV;
+		target.version = 1;
+		CompileAndLinkShaders(target, argv[3], tempdir, includer);
+	}
+	else if (strcmp(argv[1], "d3d9") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 9;
 		CompileAndLinkShaders(target, argv[3], tempdir, includer);
