@@ -1403,6 +1403,26 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
+	case OpDPdx: {
+		Type& resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		id p = inst.operands[2];
+		std::stringstream str;
+		str << "dFdx(" << getReference(p) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpDPdy: {
+		Type& resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		id p = inst.operands[2];
+		std::stringstream str;
+		str << "dFdy(" << getReference(p) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case OpUndef: {
 		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
