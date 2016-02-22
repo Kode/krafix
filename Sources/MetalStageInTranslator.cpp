@@ -14,10 +14,10 @@ void MetalVertexInStruct::padToOffset(unsigned offset) {
 
 void MetalStageInTranslator::outputCode(const Target& target,
 										const MetalStageInTranslatorRenderContext& renderContext,
-										std::ostream* pOutput,
+										std::ostream& output,
 										std::map<std::string, int>& attributes) {
-	out = pOutput;
-	_renderContext = renderContext;
+	out = &output;
+	_pRenderContext = (MetalStageInTranslatorRenderContext*)&renderContext;
 
 	tempNameIndex = 0;
 	_nextMTLBufferIndex = 0;
@@ -83,13 +83,13 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 					if (stage == EShLangVertex) {
 
 						// Set attribute parameters of this variable
-						MetalVertexAttribute& vtxAttr = _renderContext.vertexAttributesByLocation[v.location];
+						const MetalVertexAttribute& vtxAttr = _pRenderContext->vertexAttributesByLocation[v.location];
 						v.offset = vtxAttr.offset;
 						v.stride = vtxAttr.stride;
 						v.isPerInstance = vtxAttr.isPerInstance;
 						v.binding = vtxAttr.binding;
 
-						if (v.binding == _renderContext.vertexAttributeStageInBinding) {
+						if (v.binding == _pRenderContext->vertexAttributeStageInBinding) {
 							vPfx = "in.";
 						} else {
 							// Set the reference to use either vertex or instance index variable
@@ -171,7 +171,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 
 		case OpReturn:
 			if (_isEntryFunction && _hasStageOut) {
-				if (stage == EShLangVertex && _renderContext.shouldFlipVertexY) {
+				if (stage == EShLangVertex && _pRenderContext->shouldFlipVertexY) {
 					output(out);
 					(*out) << "out." << positionName << ".y = -out." << positionName << ".y;\t\t// Invert Y-axis for Metal\n";
 				}
@@ -240,7 +240,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 			Type& sType = types[sampler];
 			std::stringstream str;
 			std::string tcRef = getReference(coordinate);
-			if (_renderContext.shouldFlipFragmentY) {
+			if (_pRenderContext->shouldFlipFragmentY) {
 				switch (sType.imageDim) {
 					case Dim2D:
 						tcRef = "float2(" + tcRef + ".x, " + "(1.0 - " + tcRef + ".y))";
@@ -327,6 +327,11 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 		(*out) << "constant " << funcName << "_uniforms& uniforms [[buffer(0)]]";
 	}
 
+	// Remember what the resource indices at this point
+	unsigned origMTLBufferIndex = _nextMTLBufferIndex;
+	unsigned origMTLTextureIndex = _nextMTLTextureIndex;
+	unsigned origMTLSamplerIndex = _nextMTLSamplerIndex;
+
 	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		unsigned id = v->first;
 		Variable& variable = v->second;
@@ -364,6 +369,14 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 			needsComma = paramComma(out, needsComma);
 			(*out) << builtInTypeName(variable) << " " << varName << " [[" << builtInName(variable.builtinType) << "]]";
 		}
+	}
+
+	// If this is the function declaration, restore the resource indices
+	// so the same indices will be used for the function definition.
+	if (asDeclaration) {
+		_nextMTLBufferIndex = origMTLBufferIndex;
+		_nextMTLTextureIndex = origMTLTextureIndex;
+		_nextMTLSamplerIndex = origMTLSamplerIndex;
 	}
 
 	outputFunctionParameters(asDeclaration, needsComma);
@@ -465,7 +478,7 @@ void MetalStageInTranslator::outputVertexInStructs() {
 	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		Variable& variable = v->second;
 		if ((variable.storage == StorageClassInput) &&
-			(variable.binding != _renderContext.vertexAttributeStageInBinding) &&
+			(variable.binding != _pRenderContext->vertexAttributeStageInBinding) &&
 			!variable.builtin) {
 
 			inVars.push_back(&(*v));
@@ -520,7 +533,7 @@ bool MetalStageInTranslator::outputStageInStruct() {
 	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		Variable& variable = v->second;
 		if ((variable.storage == StorageClassInput) &&
-			((stage == EShLangFragment) || (variable.binding == _renderContext.vertexAttributeStageInBinding)) &&
+			((stage == EShLangFragment) || (variable.binding == _pRenderContext->vertexAttributeStageInBinding)) &&
 			!variable.builtin) {
 
 			inVars.push_back(&(*v));
@@ -596,7 +609,7 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 								positionName = member.name;
 								break;
 							case spv::BuiltInPointSize:
-								if (_renderContext.isRenderingPoints) {
+								if (_pRenderContext->isRenderingPoints) {
 									tmpOut << " [[" << builtInName(member.builtinType) << "]]";
 								}
 								break;
@@ -622,7 +635,7 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 							positionName = varName;
 							break;
 						case spv::BuiltInPointSize:
-							if (_renderContext.isRenderingPoints) {
+							if (_pRenderContext->isRenderingPoints) {
 								tmpOut << " [[" << builtInName(variable.builtinType) << "]]";
 							}
 							break;
