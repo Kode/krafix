@@ -54,7 +54,7 @@ namespace krafix {
 		/** Outputs code to the specified stream. */
 		virtual void outputCode(const Target& target,
 								const MetalStageInTranslatorRenderContext& renderContext,
-								std::ostream* pOutput,
+								std::ostream& output,
 								std::map<std::string, int>& attributes);
 
 		/** Output the specified instruction.  */
@@ -82,7 +82,7 @@ namespace krafix {
 		bool isUniformBufferMember(Variable& var, Type& type);
 		bool paramComma(std::ostream* out, bool needsComma);
 
-		MetalStageInTranslatorRenderContext _renderContext;
+		MetalStageInTranslatorRenderContext* _pRenderContext;
 		std::unordered_map<unsigned, MetalVertexInStruct> _vertexInStructs;
 		unsigned _nextMTLBufferIndex;
 		unsigned _nextMTLTextureIndex;

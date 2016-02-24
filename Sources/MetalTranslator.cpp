@@ -456,20 +456,22 @@ const char* MetalTranslator::builtInName(spv::BuiltIn builtin) {
 	using namespace spv;
 	switch (builtin) {
 		// Vertex function in
-		case BuiltInVertexId: return "vertex_id";
-		case BuiltInInstanceId: return "instance_id";
+		case BuiltInVertexId:		return "vertex_id";
+		case BuiltInVertexIndex:	return "vertex_id";
+		case BuiltInInstanceId:		return "instance_id";
+		case BuiltInInstanceIndex:	return "instance_id";
 
 		// Vertex function out
-		case BuiltInClipDistance: return "clip_distance";
-		case BuiltInPointSize: return "point_size";
-		case BuiltInPosition: return "position";
+		case BuiltInClipDistance:	return "clip_distance";
+		case BuiltInPointSize:		return "point_size";
+		case BuiltInPosition:		return "position";
 
 		// Fragment function in
-		case BuiltInFrontFacing: return "front_facing";
-		case BuiltInPointCoord: return "point_coord";
-		case BuiltInSamplePosition: return "position";
-		case BuiltInSampleId: return "sample_id";
-		case BuiltInSampleMask: return "sample_mask";
+		case BuiltInFrontFacing:	return "front_facing";
+		case BuiltInPointCoord:		return "point_coord";
+		case BuiltInSamplePosition:	return "position";
+		case BuiltInSampleId:		return "sample_id";
+		case BuiltInSampleMask:		return "sample_mask";
 
 		// Fragment function out
 		case BuiltInFragDepth: {
@@ -491,8 +493,11 @@ const char* MetalTranslator::builtInName(spv::BuiltIn builtin) {
 std::string MetalTranslator::builtInTypeName(Variable& variable) {
 	using namespace spv;
 	switch (variable.builtinType) {
-		case BuiltInVertexId: return "uint";
-		case BuiltInInstanceId: return "uint";
+		case BuiltInVertexId:
+		case BuiltInVertexIndex:
+		case BuiltInInstanceId:
+		case BuiltInInstanceIndex:
+			return "uint";
 		default: {
 			Type t = types[variable.type];
 			if (t.ispointer) { t = types[t.baseType]; }
