@@ -78,7 +78,7 @@ std::string& CStyleTranslator::getFunctionName(unsigned id) {
 }
 
 std::string CStyleTranslator::getNextTempName() {
-	return "kfxT" + std::to_string(tempNameIndex++);
+	return tempNamePrefix + std::to_string(tempNameIndex++);
 }
 
 /** 
@@ -86,8 +86,8 @@ std::string CStyleTranslator::getNextTempName() {
  * and returns a referenct to the name of the temp variable. 
  */
 std::string CStyleTranslator::outputTempVar(std::ostream* out,
-											 std::string& tmpTypeName,
-											 const std::string& rhs) {
+											std::string& tmpTypeName,
+											const std::string& rhs) {
 	std::string tmpName = getNextTempName();
 	indent(out);
 	(*out) << tmpTypeName << " " << tmpName << " = " << rhs << ";\n";
