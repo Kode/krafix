@@ -18,7 +18,7 @@ namespace krafix {
 		unsigned type;
 		spv::BuiltIn builtinType;
 		spv::StorageClass storage;
-		unsigned location;
+		signed location;
 		unsigned descriptorSet;
 		unsigned binding;
 		unsigned offset;
@@ -27,7 +27,7 @@ namespace krafix {
 		bool builtin;
 		bool declared;
 
-		Variable() : id(0), type(0), builtin(false), location(0), descriptorSet(0),
+		Variable() : id(0), type(0), builtin(false), location(-1), descriptorSet(0),
 						binding(0), offset(0), stride(0), isPerInstance(false) {}
 	};
 
@@ -149,6 +149,7 @@ namespace krafix {
 		std::map<unsigned, std::vector<unsigned>> compositeInserts;
 		std::vector<Parameter> parameters;
 		std::vector<unsigned> callParameters;
+		std::string tempNamePrefix = "kfxT";
 		ExecutionModes executionModes;
 		int indentation = 0;
 		bool outputting = false;

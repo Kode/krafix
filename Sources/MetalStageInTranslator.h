@@ -93,13 +93,11 @@ namespace krafix {
 		bool _isEntryFunction;
 	};
 
-
 	/**
 	 * Cleans the specified shader function name so it can be used as as an MSL function name.
 	 * The cleansed name is returned. The original name is left unmodified.
 	 */
 	std::string& cleanMSLFuncName(std::string& funcName);
-
 
 	typedef std::pair<const unsigned, Variable> KrafixVarPair;
 

@@ -531,10 +531,10 @@ bool MetalStageInTranslator::outputStageInStruct() {
 
 	std::vector<std::pair<const unsigned, Variable>*> inVars;
 	for (auto v = variables.begin(); v != variables.end(); ++v) {
-		Variable& variable = v->second;
-		if ((variable.storage == StorageClassInput) &&
-			((stage == EShLangFragment) || (variable.binding == _pRenderContext->vertexAttributeStageInBinding)) &&
-			!variable.builtin) {
+		Variable& var = v->second;
+		if ((var.storage == StorageClassInput) &&
+			((stage == EShLangFragment) || (var.binding == _pRenderContext->vertexAttributeStageInBinding)) &&
+			!var.builtin) {
 
 			inVars.push_back(&(*v));
 		}
@@ -548,17 +548,20 @@ bool MetalStageInTranslator::outputStageInStruct() {
 	for (unsigned varIdx = 0; varIdx < varCnt; varIdx++) {
 		auto pVar = inVars[varIdx];
 		unsigned id = pVar->first;
-		Variable& variable = pVar->second;
+		Variable& var = pVar->second;
 
-		Type& t = types[variable.type];
+		Type& t = types[var.type];
 
 		indent(out);
 		(*out) << t.name << " " << getVariableName(id);
 		switch (stage) {
 			case EShLangVertex:
 				(*out) << " [[attribute("
-				<< std::max(variable.location, varIdx)	// Auto increment if locations were not specified
+				<< std::max(var.location, (signed)varIdx)	// Auto increment if locations were not specified
 				<< ")]]";
+				break;
+			case EShLangFragment:
+				if (var.location >= 0) { (*out) << " [[user(locn" << var.location << ")]]"; }
 				break;
 			default:
 				break;
@@ -582,10 +585,10 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 	++indentation;
 	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		unsigned id = v->first;
-		Variable& variable = v->second;
+		Variable& var = v->second;
 
-		if (variable.storage == StorageClassOutput) {
-			unsigned typeId = variable.type;
+		if (var.storage == StorageClassOutput) {
+			unsigned typeId = var.type;
 			Type t = types[typeId];
 			if (t.ispointer) {
 				typeId = t.baseType;
@@ -628,22 +631,30 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 				indent(&tmpOut);
 				tmpOut << t.name << " " << varName;
 				if (t.isarray) { tmpOut << "[" << t.length << "]"; }
-				if (variable.builtin) {
-					switch (variable.builtinType) {
+				if (var.builtin) {
+					switch (var.builtinType) {
 						case BuiltInPosition:
-							tmpOut << " [[" << builtInName(variable.builtinType) << "]]";
+							tmpOut << " [[" << builtInName(var.builtinType) << "]]";
 							positionName = varName;
 							break;
 						case spv::BuiltInPointSize:
 							if (_pRenderContext->isRenderingPoints) {
-								tmpOut << " [[" << builtInName(variable.builtinType) << "]]";
+								tmpOut << " [[" << builtInName(var.builtinType) << "]]";
 							}
 							break;
 						case BuiltInClipDistance:
 							tmpOut << "  /* [[clip_distance]] built-in unsupported under Metal */";
 							break;
 						default:
-							tmpOut << " [[" << builtInName(variable.builtinType) << "]]";
+							tmpOut << " [[" << builtInName(var.builtinType) << "]]";
+							break;
+					}
+				} else {
+					switch (stage) {
+						case EShLangVertex:
+							if (var.location >= 0) { tmpOut << " [[user(locn" << var.location << ")]]"; }
+							break;
+						default:
 							break;
 					}
 				}
@@ -714,7 +725,6 @@ bool MetalStageInTranslator::paramComma(std::ostream* out, bool needsComma) {
 	if (needsComma) { (*out) << ", "; }
 	return true;
 }
-
 
 std::string& krafix::cleanMSLFuncName(std::string& funcName) {
 	static std::string _cleanMainFuncName = "mmain";
