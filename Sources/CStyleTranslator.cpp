@@ -668,8 +668,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type& t = types[id];
 		t.opcode = inst.opcode;
 		bool video = inst.length >= 8 && inst.operands[8] == 1;
+		bool depth = inst.length >= 3 && inst.operands[3] == 1;
 		if (video && target.system == Android) {
 			t.name = "samplerExternalOES";
+		}
+		else if (depth) {
+			t.name = "sampler2DShadow";
 		}
 		else {
 			t.name = "sampler2D";
@@ -1403,6 +1407,24 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
+	case OpImageSampleDrefImplicitLod: {
+        Type& resultType = types[inst.operands[0]];
+        id result = inst.operands[1];
+        types[result] = resultType;
+        id sampler = inst.operands[2];
+        id coordinate = inst.operands[3];
+        std::stringstream str;
+        if (target.version < 300) str << "shadow2D";
+        else str << "texture";
+        str << "(" << getReference(sampler) << ", " << getReference(coordinate);
+        if (inst.length > 5) {
+            id bias = inst.operands[5];
+            str << ", " << getReference(bias);
+        }
+        str << ")";
+        references[result] = str.str();
+        break;
+    }
 	case OpDPdx: {
 		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
