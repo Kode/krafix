@@ -4,8 +4,11 @@
 #include <SPIRV/GLSL.std.450.h>
 #include <fstream>
 #include <sstream>
+#include <array>
 
 namespace krafix {
+
+	typedef std::array<std::string, 8> ImageOperandsArray;
 
 	typedef enum {
 		kSampledImageUnknown = 0,
@@ -171,6 +174,7 @@ namespace krafix {
 		std::string getReference(unsigned _id);
 		inline unsigned getMemberId(unsigned typeId, unsigned member) { return (typeId << 16) + member; }
 		void addUniqueName(unsigned id, const char* name);
+		virtual void extractImageOperands(ImageOperandsArray& imageOperands, Instruction& inst, unsigned opIdxStart);
 		std::string& getUniqueName(unsigned id, const char* prefix);
 		std::string& getVariableName(unsigned id);
 		std::string& getFunctionName(unsigned id);

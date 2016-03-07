@@ -77,6 +77,7 @@ namespace krafix {
 		virtual void outputVertexInStructs();
 		virtual bool outputStageInStruct();
 		virtual bool outputStageOutStruct();
+		virtual void addSamplerReference(Instruction& inst);
 		virtual signed getMetalResourceIndex(Variable& variable, spv::Op rezType);
 		EShLanguage stageFromSPIRVExecutionModel(spv::ExecutionModel execModel);
 		bool isUniformBufferMember(Variable& var, Type& type);

@@ -160,6 +160,42 @@ void CStyleTranslator::endFunction() {
 	}
 }
 
+/**
+ * Populates the specified array of image operands from the specified instruction,
+ * by reading optional instruction operands, starting at the specified operand index.
+ */
+void CStyleTranslator::extractImageOperands(ImageOperandsArray& imageOperands, Instruction& inst, unsigned opIdxStart) {
+
+	if (inst.length <= opIdxStart) { return; }	// No image operands
+
+	// The first operand contains a bit mask of image operands to follow.
+	// For each possible image operand bit position, see if the bit has been set,
+	// and add the reference string derived from the cooresponding operand ID.
+	// Operand ID's are pulled from the list of instruction operands in the order
+	// of the active bit mask bit positions.
+	unsigned opIdx = opIdxStart;
+	unsigned imgOps = inst.operands[opIdx++];
+	unsigned opShCnt = (unsigned)imageOperands.size();
+	std::string imgOpArgs;
+	for (unsigned opShIdx = 0; opShIdx < opShCnt; opShIdx++) {
+		imgOpArgs.clear();
+		unsigned imgOpMask = ((unsigned)0x1) << opShIdx;
+		if ((imgOps & imgOpMask) == imgOpMask) {
+			switch (opShIdx) {		// Pull two image operand values
+				case spv::ImageOperandsGradShift:
+					imgOpArgs.append(references[inst.operands[opIdx++]]);
+					imgOpArgs.append(", ");
+					imgOpArgs.append(references[inst.operands[opIdx++]]);
+					break;
+				default:			// Pull one image operand value
+					imgOpArgs.append(references[inst.operands[opIdx++]]);
+					break;
+			}
+		}
+		imageOperands[opShIdx] = imgOpArgs;
+	}
+}
+
 void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSLstd450 entrypoint) {
 	id result = inst.operands[1];
 	switch (entrypoint) {
