@@ -49,8 +49,8 @@ void MetalStageInTranslator::outputHeader() {
 }
 
 void MetalStageInTranslator::outputInstruction(const Target& target,
-										   std::map<std::string, int>& attributes,
-										   Instruction& inst) {
+											   std::map<std::string, int>& attributes,
+											   Instruction& inst) {
 	switch (inst.opcode) {
 
 		case OpEntryPoint: {
@@ -233,28 +233,9 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 			break;
 		}
 
-		case OpImageSampleImplicitLod: {
-			unsigned result = inst.operands[1];
-			unsigned sampler = inst.operands[2];
-			unsigned coordinate = inst.operands[3];
-			Type& sType = types[sampler];
-			std::stringstream str;
-			std::string tcRef = getReference(coordinate);
-			if (_pRenderContext->shouldFlipFragmentY) {
-				switch (sType.imageDim) {
-					case Dim2D:
-						tcRef = "float2(" + tcRef + ".x, " + "(1.0 - " + tcRef + ".y))";
-						break;
-					case Dim3D:
-					case DimCube:
-						tcRef = "float3(" + tcRef + ".x, " + "(1.0 - " + tcRef + ".y), " + tcRef + ".z)";
-						break;
-					default:
-						break;
-				}
-			}
-			str << getReference(sampler) << ".sample(" << getReference(sampler) << "Sampler, " << tcRef << ")";
-			references[result] = str.str();
+		case OpImageSampleImplicitLod:
+		case OpImageSampleExplicitLod: {
+			addSamplerReference(inst);
 			break;
 		}
 
@@ -669,6 +650,72 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 
 	if (hasStageOut) { (*out) << tmpOut.str(); }
 	return hasStageOut;
+}
+
+/** Builds and adds a reference for a sampler, based on the specified instruction. */
+void MetalStageInTranslator::addSamplerReference(Instruction& inst) {
+	unsigned result = inst.operands[1];
+	unsigned sampler = inst.operands[2];
+	unsigned coordinate = inst.operands[3];
+	Type& sType = types[sampler];
+	std::string tcRef = getReference(coordinate);
+	if (_pRenderContext->shouldFlipFragmentY) {
+		switch (sType.imageDim) {
+			case Dim2D:
+				tcRef = "float2(" + tcRef + ".x, " + "(1.0 - " + tcRef + ".y))";
+				break;
+			case Dim3D:
+			case DimCube:
+				tcRef = "float3(" + tcRef + ".x, " + "(1.0 - " + tcRef + ".y), " + tcRef + ".z)";
+				break;
+			default:
+				break;
+		}
+	}
+	std::stringstream refStrm;
+	refStrm << getReference(sampler) << ".sample(" << getReference(sampler) << "Sampler, " << tcRef;
+
+	// Add any image sampling qualifiers derived from the image operands in the instruction
+	std::string imgOpRef;
+	ImageOperandsArray imageOperands;
+	extractImageOperands(imageOperands, inst, 4);
+
+	// Sampling bias
+	imgOpRef = imageOperands[ImageOperandsBiasShift];
+	if ( !imgOpRef.empty() ) { refStrm << ", bias(" << imgOpRef << ")"; }
+
+	// Sampling LOD
+	imgOpRef = imageOperands[ImageOperandsLodShift];
+	if ( !imgOpRef.empty() ) { refStrm << ", level(" << imgOpRef << ")"; }
+
+	// Sampling gradient
+	imgOpRef = imageOperands[ImageOperandsGradShift];
+	if ( !imgOpRef.empty() ) {
+		switch (sType.imageDim) {
+			case Dim2D:
+				refStrm << ", gradient2d(" << imgOpRef << ")";
+				break;
+			case Dim3D:
+				refStrm << ", gradient3d(" << imgOpRef << ")";
+				break;
+			case DimCube:
+				refStrm << ", gradientcube(" << imgOpRef << ")";
+				break;
+			default:
+				break;
+		}
+	}
+
+	// Sampling offset
+	imgOpRef = imageOperands[ImageOperandsOffsetShift];
+	if ( !imgOpRef.empty() ) { refStrm << "," << imgOpRef; }
+
+	// Sampling offset
+	imgOpRef = imageOperands[ImageOperandsConstOffsetsShift];
+	if ( !imgOpRef.empty() ) { refStrm << "," << imgOpRef; }
+
+	refStrm << ")";
+	references[result] = refStrm.str();
 }
 
 /** Returns the shader stage corresponding to the specified SPIRV execution model. */
