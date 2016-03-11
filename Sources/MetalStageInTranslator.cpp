@@ -74,8 +74,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 						  v.storage == StorageClassPushConstant);
 
 			std::string varName = getVariableName(id);
-			Type t = types[v.type];
-			if (t.ispointer) { t = types[t.baseType]; }
+			Type& t = getBaseType(v.type);
 
 			if (v.storage == StorageClassInput) {
 				std::string vPfx;
@@ -317,8 +316,7 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 		unsigned id = v->first;
 		Variable& variable = v->second;
 
-		Type t = types[variable.type];
-		if (t.ispointer) { t = types[t.baseType]; }
+		Type& t = getBaseType(variable.type);
 		std::string varName = getVariableName(id);
 
 		if (variable.storage == StorageClassUniform ||
@@ -400,8 +398,7 @@ bool MetalStageInTranslator::outputLooseUniformStruct() {
 		unsigned id = v->first;
 		Variable& variable = v->second;
 
-		Type t = types[variable.type];
-		if (t.ispointer) { t = types[t.baseType]; }
+		Type& t = getBaseType(variable.type);
 
 		if (isUniformBufferMember(variable, t)) {
 			tmpOut << t.name << " " << getVariableName(id);
@@ -424,12 +421,8 @@ void MetalStageInTranslator::outputUniformBuffers() {
 	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		Variable& variable = v->second;
 
-		unsigned typeId = variable.type;
-		Type t = types[typeId];
-		if (t.ispointer) {
-			typeId = t.baseType;
-			t = types[typeId];
-		}
+		unsigned typeId = getBaseTypeID(variable.type);
+		Type& t = types[typeId];
 
 		if ((t.opcode == OpTypeStruct) && (variable.storage != StorageClassOutput)) {
 			indent(out);
@@ -487,8 +480,7 @@ void MetalStageInTranslator::outputVertexInStructs() {
 			inStruct.byteSize = variable.offset;
 		}
 
-		Type t = types[variable.type];
-		if (t.ispointer) { t = types[t.baseType]; }
+		Type& t = getBaseType(variable.type);
 		indent(&inStruct.body);
 		if (t.opcode == OpTypeVector) { inStruct.body << "packed_"; }
 		inStruct.body << t.name << " " << getVariableName(id) << ";\n";
@@ -569,12 +561,8 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 		Variable& var = v->second;
 
 		if (var.storage == StorageClassOutput) {
-			unsigned typeId = var.type;
-			Type t = types[typeId];
-			if (t.ispointer) {
-				typeId = t.baseType;
-				t = types[typeId];
-			}
+			unsigned typeId = getBaseTypeID(var.type);
+			Type& t = types[typeId];
 			std::string varName = getVariableName(id);
 
 			if (t.opcode == OpTypeStruct) {
