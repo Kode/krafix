@@ -47,7 +47,7 @@ void CStyleTranslator::addUniqueName(unsigned id, const char* name) {
 	uniqueNames[id] = uqName;				// If not found, add name unchanged
 }
 
-/** 
+/**
  * Returns the name associated with the specified ID. If a name does not yet 
  * exist for the ID, a unique name is created from the ID and the prefix string.
  * This is necessary if the SPIR-V does not contain names, or contains duplicates.
@@ -62,6 +62,7 @@ std::string& CStyleTranslator::getUniqueName(unsigned id, const char* prefix) {
 	}
 	return uqName;
 }
+
 /** Returns the name of the specified variable, creating a unique name if necessary. */
 std::string& CStyleTranslator::getVariableName(unsigned id) {
 	return getUniqueName(id, "var");
@@ -79,6 +80,16 @@ std::string& CStyleTranslator::getFunctionName(unsigned id) {
 
 std::string CStyleTranslator::getNextTempName() {
 	return tempNamePrefix + std::to_string(tempNameIndex++);
+}
+
+unsigned CStyleTranslator::getBaseTypeID(unsigned typeID) {
+	Type& t = types[typeID];
+	return t.ispointer ? t.baseType : typeID;
+}
+
+Type& CStyleTranslator::getBaseType(unsigned typeID) {
+	Type& t = types[typeID];
+	return t.ispointer ? types[t.baseType] : t;
 }
 
 /** 

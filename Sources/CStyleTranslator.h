@@ -179,6 +179,8 @@ namespace krafix {
 		std::string& getVariableName(unsigned id);
 		std::string& getFunctionName(unsigned id);
 		std::string getNextTempName();
+		unsigned getBaseTypeID(unsigned typeID);
+		Type& getBaseType(unsigned typeID);
 		std::string outputTempVar(std::ostream* out, std::string& tmpTypeName, const std::string& rhs);
 	};
 }

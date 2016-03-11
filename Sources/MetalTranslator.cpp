@@ -136,12 +136,9 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			std::stringstream str;
 			str << getReference(base);
 
-			unsigned typeId = variables[base].type;
-			Type t = types[typeId];
-			if (t.ispointer) { typeId = t.baseType; }
-
+			unsigned typeId = getBaseTypeID(variables[base].type);
 			for (unsigned i = 3; i < inst.length; ++i) {
-				t = types[typeId];
+				Type t = types[typeId];
 				unsigned elemRef = inst.operands[i];
 				switch (t.opcode) {
 					case OpTypeStruct: {
@@ -440,10 +437,30 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			unsigned refId = inst.operands[0];
 			Variable& v = variables[refId];
 			if (v.type != 0 && !v.declared) {
-				(*out) << types[v.type].name << " ";
-				v.declared = true;
+				Type& t = getBaseType(v.type);
+				(*out) << t.name << " "<< getReference(refId);
+				if (t.isarray) { (*out) << "[" << t.length << "]"; }
+
+			} else {
+				(*out) << getReference(refId);
 			}
-			(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+			(*out) << " = " << getReference(inst.operands[1]) << ";";
+			break;
+		}
+		case OpConstantComposite: {
+			Type resultType = types[inst.operands[0]];
+			id result = inst.operands[1];
+			types[result] = resultType;
+
+			std::stringstream str;
+			str << "{";
+			for (unsigned i = 2; i < inst.length; ++i) {
+				str << getReference(inst.operands[i]);
+				if (i < inst.length - 1) str << ", ";
+			}
+			str << "}";
+
+			references[result] = str.str();
 			break;
 		}
 		default:
@@ -499,9 +516,7 @@ std::string MetalTranslator::builtInTypeName(Variable& variable) {
 		case BuiltInInstanceIndex:
 			return "uint";
 		default: {
-			Type t = types[variable.type];
-			if (t.ispointer) { t = types[t.baseType]; }
-			return t.name;
+			return getBaseType(variable.type).name;
 		}
 	}
 }
