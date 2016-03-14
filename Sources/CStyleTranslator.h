@@ -167,6 +167,7 @@ namespace krafix {
 		std::vector<Function*> functions;
 		std::ostream* tempout = NULL;
 		
+		void preprocessInstruction(Instruction& inst);
 		virtual std::string indexName(Type& type, const std::vector<std::string>& indices);
 		std::string indexName(Type& type, const std::vector<unsigned>& indices);
 		void indent(std::ostream* out);
@@ -182,5 +183,8 @@ namespace krafix {
 		unsigned getBaseTypeID(unsigned typeID);
 		Type& getBaseType(unsigned typeID);
 		std::string outputTempVar(std::ostream* out, std::string& tmpTypeName, const std::string& rhs);
+
+		// Preprocessed
+		bool isFragDepthUsed = false;
 	};
 }

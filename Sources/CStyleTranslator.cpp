@@ -16,7 +16,12 @@ namespace {
 	int unnamedCount = 0;
 }
 
-CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {}
+CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {
+	for (unsigned i = 0; i < instructions.size(); ++i) {
+		Instruction& inst = instructions[i];
+		preprocessInstruction(inst);
+	}
+}
 
 CStyleTranslator::~CStyleTranslator() {
 	// Delete any function objects that were added to the function pointer vector
@@ -24,6 +29,27 @@ CStyleTranslator::~CStyleTranslator() {
 		delete *iter;
 	}
 	functions.clear();
+}
+
+void CStyleTranslator::preprocessInstruction(Instruction& inst) {
+	using namespace spv;
+
+	switch (inst.opcode) {
+	case OpDecorate: {
+		Decoration decoration = (Decoration)inst.operands[1];
+		switch (decoration) {
+		case DecorationBuiltIn: {
+			unsigned builtinType = (BuiltIn)inst.operands[2];
+			if (builtinType == BuiltInFragDepth) { isFragDepthUsed = true; }
+			break;
+		}
+		default:
+			break;
+		}
+	}
+	default:
+		break;
+	}
 }
 
 /** 
@@ -750,7 +776,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		v.declared = true; //v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
 		if (names.find(result) != names.end()) {
 			if (target.version >= 300 && v.storage == StorageClassOutput && stage == EShLangFragment) {
-				names[result].name = "krafix_FragColor";
+				if (isFragDepthUsed) names[result].name = "krafix_FragDepth";
+				else names[result].name = "krafix_FragColor";
 			}
 			std::stringstream name;
 			name << names[result].name;
@@ -1519,12 +1546,14 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		}
 		else if (stage == EShLangFragment && v.storage == StorageClassOutput && target.version < 300) {
 			output(out);
+			if (isFragDepthUsed) (*out) << "gl_FragDepth";
+			else (*out) << "gl_FragColor";
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
 				Type type;
-				(*out) << "gl_FragColor" << indexName(type, compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << indexName(type, compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
 			}
 			else {
-				(*out) << "gl_FragColor" << " = " << getReference(inst.operands[1]) << ";";
+				(*out) << " = " << getReference(inst.operands[1]) << ";";
 			}
 		}
 		else {

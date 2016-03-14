@@ -108,7 +108,8 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 
 				if (target.version >= 300 && stage == EShLangFragment) {
-					(*out) << "out vec4 krafix_FragColor;\n";
+					if (isFragDepthUsed) (*out) << "out float krafix_FragDepth;\n";
+					else (*out) << "out vec4 krafix_FragColor;\n";
 				}
 
 				if (target.es) (*out) << "precision mediump float;\n";
