@@ -92,6 +92,9 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				if (target.system == Android && stage == EShLangFragment) {
 					(*out) << "#extension GL_OES_EGL_image_external : require\n";
 				}
+				else if (target.system == HTML5 && stage == EShLangFragment) {
+					if (isFragDepthUsed) (*out) << "#extension GL_EXT_frag_depth : require\n";
+				}
 
 				for (std::map<unsigned, Type>::iterator it = types.begin(); it != types.end(); ++it) {
 					Type& type = it->second;

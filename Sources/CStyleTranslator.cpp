@@ -1546,7 +1546,10 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		}
 		else if (stage == EShLangFragment && v.storage == StorageClassOutput && target.version < 300) {
 			output(out);
-			if (isFragDepthUsed) (*out) << "gl_FragDepth";
+			if (isFragDepthUsed) {
+				if (target.system == HTML5) (*out) << "gl_FragDepthEXT";
+				else (*out) << "gl_FragDepth";
+			}
 			else (*out) << "gl_FragColor";
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
 				Type type;
