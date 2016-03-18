@@ -19,7 +19,7 @@ namespace {
 CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
-		preprocessInstruction(inst);
+		preprocessInstruction(stage, inst);
 	}
 }
 
@@ -31,7 +31,7 @@ CStyleTranslator::~CStyleTranslator() {
 	functions.clear();
 }
 
-void CStyleTranslator::preprocessInstruction(Instruction& inst) {
+void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& inst) {
 	using namespace spv;
 
 	switch (inst.opcode) {
@@ -46,6 +46,27 @@ void CStyleTranslator::preprocessInstruction(Instruction& inst) {
 		default:
 			break;
 		}
+	}
+	case OpName: {
+		unsigned id = inst.operands[0];
+		if (stage == EShLangFragment && fragDataNameId == -1 && strcmp(inst.string, "gl_FragData") == 0) { 
+			fragDataNameId = id;
+			isFragDataUsed = true;
+		}
+		break;
+	}
+	case OpAccessChain: {
+		id base = inst.operands[2];
+		// fragData[] size is number of all unique accesses to it
+		if (fragDataNameId == base) {
+			for (unsigned i = 3; i < inst.length; ++i) {
+				id index = inst.operands[i];
+				if (std::find(fragDataIndexIds.begin(), fragDataIndexIds.end(), index) == fragDataIndexIds.end()) {
+					fragDataIndexIds.push_back(index);
+				}
+			}
+		}
+		break;
 	}
 	default:
 		break;
@@ -777,6 +798,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		if (names.find(result) != names.end()) {
 			if (target.version >= 300 && v.storage == StorageClassOutput && stage == EShLangFragment) {
 				if (isFragDepthUsed) names[result].name = "krafix_FragDepth";
+				else if (isFragDataUsed) names[result].name = "krafix_FragData";
 				else names[result].name = "krafix_FragColor";
 			}
 			std::stringstream name;

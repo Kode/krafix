@@ -94,6 +94,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 				else if (target.system == HTML5 && stage == EShLangFragment) {
 					if (isFragDepthUsed) (*out) << "#extension GL_EXT_frag_depth : require\n";
+					if (isFragDataUsed) (*out) << "#extension GL_EXT_draw_buffers : require\n";
 				}
 
 				for (std::map<unsigned, Type>::iterator it = types.begin(); it != types.end(); ++it) {
@@ -112,6 +113,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 				if (target.version >= 300 && stage == EShLangFragment) {
 					if (isFragDepthUsed) (*out) << "out float krafix_FragDepth;\n";
+					else if (isFragDataUsed) (*out) << "out float krafix_FragData[" << fragDataIndexIds.size() << "];\n";
 					else (*out) << "out vec4 krafix_FragColor;\n";
 				}
 
