@@ -115,7 +115,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 				if (target.version >= 300 && stage == EShLangFragment) {
 					if (isFragDepthUsed) (*out) << "out float krafix_FragDepth;\n";
-					else if (isFragDataUsed) (*out) << "out float krafix_FragData[" << fragDataIndexIds.size() << "];\n";
+					else if (isFragDataUsed) (*out) << "out vec4 krafix_FragData[" << fragDataIndexIds.size() << "];\n";
 					else (*out) << "out vec4 krafix_FragColor;\n";
 				}
 
