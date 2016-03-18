@@ -49,12 +49,13 @@ void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& ins
 	}
 	case OpName: {
 		unsigned id = inst.operands[0];
-		if (stage == EShLangFragment && fragDataNameId == -1 && strcmp(inst.string, "gl_FragData") == 0) { 
+		if (stage == EShLangFragment && fragDataNameId == -1 && inst.string != NULL && strcmp(inst.string, "gl_FragData") == 0) { 
 			fragDataNameId = id;
 			isFragDataUsed = true;
 		}
 		break;
 	}
+	return;
 	case OpAccessChain: {
 		id base = inst.operands[2];
 		// fragData[] size is number of all unique accesses to it
