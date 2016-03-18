@@ -95,6 +95,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				else if (target.system == HTML5 && stage == EShLangFragment) {
 					if (isFragDepthUsed) (*out) << "#extension GL_EXT_frag_depth : require\n";
 					if (isFragDataUsed) (*out) << "#extension GL_EXT_draw_buffers : require\n";
+					if (isTextureLodUsed) (*out) << "#extension GL_EXT_shader_texture_lod : require\n";
 				}
 
 				for (std::map<unsigned, Type>::iterator it = types.begin(); it != types.end(); ++it) {

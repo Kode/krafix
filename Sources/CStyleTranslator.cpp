@@ -68,6 +68,9 @@ void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& ins
 		}
 		break;
 	}
+	case OpImageSampleExplicitLod: {
+		isTextureLodUsed = true;
+	}
 	default:
 		break;
 	}
