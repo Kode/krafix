@@ -55,7 +55,6 @@ void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& ins
 		}
 		break;
 	}
-	return;
 	case OpAccessChain: {
 		id base = inst.operands[2];
 		// fragData[] size is number of all unique accesses to it
