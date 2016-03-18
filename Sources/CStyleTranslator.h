@@ -190,5 +190,6 @@ namespace krafix {
 		int fragDataNameId = -1;
 		std::vector<unsigned> fragDataIndexIds;
 		bool isTextureLodUsed = false;
+		bool isDerivativesUsed = false;
 	};
 }
