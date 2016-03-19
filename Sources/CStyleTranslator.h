@@ -167,7 +167,7 @@ namespace krafix {
 		std::vector<Function*> functions;
 		std::ostream* tempout = NULL;
 		
-		void preprocessInstruction(Instruction& inst);
+		void preprocessInstruction(EShLanguage stage, Instruction& inst);
 		virtual std::string indexName(Type& type, const std::vector<std::string>& indices);
 		std::string indexName(Type& type, const std::vector<unsigned>& indices);
 		void indent(std::ostream* out);
@@ -186,5 +186,10 @@ namespace krafix {
 
 		// Preprocessed
 		bool isFragDepthUsed = false;
+		bool isFragDataUsed = false;
+		int fragDataNameId = -1;
+		std::vector<unsigned> fragDataIndexIds;
+		bool isTextureLodUsed = false;
+		bool isDerivativesUsed = false;
 	};
 }

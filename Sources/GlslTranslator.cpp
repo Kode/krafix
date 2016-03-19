@@ -92,6 +92,12 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				if (target.system == Android && stage == EShLangFragment) {
 					(*out) << "#extension GL_OES_EGL_image_external : require\n";
 				}
+				else if (target.system == HTML5 && stage == EShLangFragment) {
+					if (isFragDepthUsed) (*out) << "#extension GL_EXT_frag_depth : require\n";
+					if (isFragDataUsed) (*out) << "#extension GL_EXT_draw_buffers : require\n";
+					if (isTextureLodUsed) (*out) << "#extension GL_EXT_shader_texture_lod : require\n";
+					if (isDerivativesUsed) (*out) << "#extension OES_standard_derivatives : require\n";
+				}
 
 				for (std::map<unsigned, Type>::iterator it = types.begin(); it != types.end(); ++it) {
 					Type& type = it->second;
@@ -109,6 +115,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 				if (target.version >= 300 && stage == EShLangFragment) {
 					if (isFragDepthUsed) (*out) << "out float krafix_FragDepth;\n";
+					else if (isFragDataUsed) (*out) << "out vec4 krafix_FragData[" << fragDataIndexIds.size() << "];\n";
 					else (*out) << "out vec4 krafix_FragColor;\n";
 				}
 
