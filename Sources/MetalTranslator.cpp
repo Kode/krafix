@@ -453,12 +453,19 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			types[result] = resultType;
 
 			std::stringstream str;
-			str << "{";
+			std::string closer;
+			if (resultType.isarray) {
+				str << "{";
+				closer = "}";
+			} else {
+				str << resultType.name << "(";
+				closer = ")";
+			}
 			for (unsigned i = 2; i < inst.length; ++i) {
 				str << getReference(inst.operands[i]);
 				if (i < inst.length - 1) str << ", ";
 			}
-			str << "}";
+			str << closer;
 
 			references[result] = str.str();
 			break;
