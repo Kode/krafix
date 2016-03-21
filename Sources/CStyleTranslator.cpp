@@ -1421,9 +1421,8 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		types[result] = resultType;
 		unsigned value = inst.operands[2];
 		std::stringstream str;
-		str << "!" << getReference(value);
+		str << "!(" << getReference(value) << ")";
 		references[result] = str.str();
-		break;
 		break;
 	}
 	case OpEmitVertex:
