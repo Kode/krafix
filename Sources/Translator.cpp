@@ -39,10 +39,10 @@ Translator::Translator(std::vector<unsigned>& spirv, EShLanguage stage) : stage(
 	if (spirv.size() < 5) { return; }
 
 	unsigned index = 0;
-	unsigned magicNumber = spirv[index++];
-	unsigned version = spirv[index++];
-	unsigned generator = spirv[index++];
-	unsigned bound = spirv[index++];
+	magicNumber = spirv[index++];
+	version = spirv[index++];
+	generator = spirv[index++];
+	bound = spirv[index++];
 	index++;
 
 	while (index < spirv.size()) {

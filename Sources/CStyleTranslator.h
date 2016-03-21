@@ -172,13 +172,14 @@ namespace krafix {
 		std::string indexName(Type& type, const std::vector<unsigned>& indices);
 		void indent(std::ostream* out);
 		void output(std::ostream* out);
-		std::string getReference(unsigned _id);
+		virtual std::string getReference(unsigned _id);
 		inline unsigned getMemberId(unsigned typeId, unsigned member) { return (typeId << 16) + member; }
 		void addUniqueName(unsigned id, const char* name);
 		virtual void extractImageOperands(ImageOperandsArray& imageOperands, Instruction& inst, unsigned opIdxStart);
 		std::string& getUniqueName(unsigned id, const char* prefix);
 		std::string& getVariableName(unsigned id);
 		std::string& getFunctionName(unsigned id);
+		std::string makeTempName(unsigned id);
 		std::string getNextTempName();
 		unsigned getBaseTypeID(unsigned typeID);
 		Type& getBaseType(unsigned typeID);

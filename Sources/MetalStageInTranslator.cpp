@@ -19,7 +19,7 @@ void MetalStageInTranslator::outputCode(const Target& target,
 	out = &output;
 	_pRenderContext = (MetalStageInTranslatorRenderContext*)&renderContext;
 
-	tempNameIndex = 0;
+	tempNameIndex = bound;
 	_nextMTLBufferIndex = 0;
 	_nextMTLTextureIndex = 0;
 	_nextMTLSamplerIndex = 0;

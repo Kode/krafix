@@ -134,8 +134,12 @@ std::string& CStyleTranslator::getFunctionName(unsigned id) {
 	return funcName;
 }
 
+std::string CStyleTranslator::makeTempName(unsigned id) {
+	return tempNamePrefix + std::to_string(id);
+}
+
 std::string CStyleTranslator::getNextTempName() {
-	return tempNamePrefix + std::to_string(tempNameIndex++);
+	return makeTempName(tempNameIndex++);
 }
 
 unsigned CStyleTranslator::getBaseTypeID(unsigned typeID) {
@@ -150,7 +154,7 @@ Type& CStyleTranslator::getBaseType(unsigned typeID) {
 
 /** 
  * Outputs a line containing a unique temp variable assigned from the RHS, 
- * and returns a referenct to the name of the temp variable. 
+ * and returns a reference to the name of the temp variable.
  */
 std::string CStyleTranslator::outputTempVar(std::ostream* out,
 											std::string& tmpTypeName,
