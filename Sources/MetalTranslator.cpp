@@ -440,7 +440,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 				Type& t = getBaseType(v.type);
 				(*out) << t.name << " "<< getReference(refId);
 				if (t.isarray) { (*out) << "[" << t.length << "]"; }
-
+				v.declared = true;
 			} else {
 				(*out) << getReference(refId);
 			}

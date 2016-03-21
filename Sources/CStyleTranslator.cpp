@@ -831,8 +831,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		Type resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
 		types[result] = resultType;
+
+		std::string rsltRef = getReference(result);		// Combining these two lines can cause race...
+		references[result] = rsltRef;					// ...condition during template optimization
+
 		output(out);
-		(*out) << resultType.name << " " << getReference(result) << ";\n";
+		(*out) << resultType.name << " " << rsltRef << ";\n";
 
 		bool first = true;
 		
@@ -846,7 +850,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 				(*out) << labelStarts[parent] << "\n";
 				++indentation;
 				indent(out);
-				(*out) << getReference(result) << " = " << getReference(variable) << ";\n";
+				(*out) << rsltRef << " = " << getReference(variable) << ";\n";
 				--indentation;
 
 				first = false;
@@ -862,12 +866,11 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 				(*out) << "else\n";
 				++indentation;
 				indent(out);
-				(*out) << getReference(result) << " = " << getReference(variable) << ";\n";
+				(*out) << rsltRef << " = " << getReference(variable) << ";\n";
 				--indentation;
 			}
 		}
 
-		references[result] = getReference(result);
 		break;
 	}
 	case OpCompositeExtract: {
