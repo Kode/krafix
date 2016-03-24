@@ -55,5 +55,11 @@ namespace krafix {
 		std::vector<unsigned>& spirv;
 		std::vector<Instruction> instructions;
 		EShLanguage stage;
+
+		unsigned magicNumber;
+		unsigned version;
+		unsigned generator;
+		unsigned bound;
+		unsigned schema;
 	};
 }
