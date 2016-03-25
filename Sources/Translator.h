@@ -39,6 +39,7 @@ namespace krafix {
 	class Instruction {
 	public:
 		Instruction(std::vector<unsigned>& spirv, unsigned& index);
+		Instruction(spv::Op opcode, unsigned* operands, unsigned length);
 
 		spv::Op opcode;
 		unsigned* operands;
