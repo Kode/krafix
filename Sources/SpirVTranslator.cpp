@@ -35,6 +35,8 @@ namespace {
 	struct Var {
 		std::string name;
 		unsigned id;
+		unsigned type;
+		unsigned pointertype;
 	};
 
 	bool varcompare(const Var& a, const Var& b) {
@@ -70,6 +72,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 	std::vector<Var> invars;
 	std::vector<Var> outvars;
 	std::vector<Var> images;
+	std::vector<Var> uniforms;
 	std::map<unsigned, bool> imageTypes;
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
@@ -116,12 +119,16 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 			Var var;
 			var.name = names[id];
 			var.id = id;
+			var.type = type;
 			if (var.name != "") {
 				if (storage == StorageClassInput) invars.push_back(var);
 				if (storage == StorageClassOutput) outvars.push_back(var);
 				if (storage == StorageClassUniformConstant) {
 					if (imageTypes[type]) {
 						images.push_back(var);
+					}
+					else {
+						uniforms.push_back(var);
 					}
 				}
 			}
@@ -136,8 +143,10 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 
 	SpirVState state = SpirVStart;
 	std::vector<Instruction> newinstructions;
-	unsigned instructionsData[1024];
+	unsigned instructionsData[4096];
 	unsigned instructionsDataIndex = 0;
+	unsigned currentId = bound;
+	unsigned structid;
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
 		
@@ -186,13 +195,90 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 			break;
 		case SpirVTypes:
 			if (inst.opcode == OpFunction) {
+				Instruction typestruct(OpTypeStruct, &instructionsData[instructionsDataIndex], 1 + uniforms.size());
+				unsigned structtype = instructionsData[instructionsDataIndex++] = currentId++;
+				for (unsigned i = 0; i < uniforms.size(); ++i) {
+					instructionsData[instructionsDataIndex++] = uniforms[i].type;
+				}
+				newinstructions.push_back(typestruct);
+				Instruction typepointer(OpTypePointer, &instructionsData[instructionsDataIndex], 3);
+				unsigned pointertype = instructionsData[instructionsDataIndex++] = currentId++;
+				instructionsData[instructionsDataIndex++] = StorageClassUniform;
+				instructionsData[instructionsDataIndex++] = structtype;
+				newinstructions.push_back(typepointer);
+				Instruction variable(OpVariable, &instructionsData[instructionsDataIndex], 3);
+				instructionsData[instructionsDataIndex++] = pointertype;
+				structid = instructionsData[instructionsDataIndex++] = currentId++;
+				instructionsData[instructionsDataIndex++] = StorageClassUniform;
+				newinstructions.push_back(variable);
+
+				Instruction typeint(OpTypeInt, &instructionsData[instructionsDataIndex], 3);
+				unsigned type = instructionsData[instructionsDataIndex++] = currentId++;
+				instructionsData[instructionsDataIndex++] = 32;
+				instructionsData[instructionsDataIndex++] = 0;
+				newinstructions.push_back(typeint);
+				for (unsigned i = 0; i < uniforms.size(); ++i) {
+					Instruction constant(OpConstant, &instructionsData[instructionsDataIndex], 3);
+					instructionsData[instructionsDataIndex++] = type;
+					instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = i;
+					newinstructions.push_back(constant);
+					Instruction typepointer(OpTypePointer, &instructionsData[instructionsDataIndex], 3);
+					uniforms[i].pointertype = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = StorageClassUniform;
+					instructionsData[instructionsDataIndex++] = uniforms[i].type;
+					newinstructions.push_back(typepointer);
+				}
 				state = SpirVFunctions;
 			}
 			break;
 		}
 		
-		newinstructions.push_back(inst);
+		if (inst.opcode == OpVariable) {
+			unsigned type = inst.operands[0];
+			unsigned id = inst.operands[1];
+			StorageClass storage = (StorageClass)inst.operands[2];
+			if (storage != StorageClassUniformConstant || imageTypes[id]) {
+				newinstructions.push_back(inst);
+			}
+		}
+		else if (inst.opcode == OpLoad) {
+			unsigned type = inst.operands[0];
+			unsigned id = inst.operands[1];
+			unsigned pointer = inst.operands[2];
+			Var uniform;
+			unsigned index;
+			bool found = false;
+			for (unsigned i = 0; i < uniforms.size(); ++i) {
+				if (uniforms[i].id == pointer) {
+					uniform = uniforms[i];
+					index = i;
+					found = true;
+					break;
+				}
+			}
+			if (found) {
+				Instruction access(OpAccessChain, &instructionsData[instructionsDataIndex], 4);
+				instructionsData[instructionsDataIndex++] = uniform.pointertype;
+				unsigned pointer = instructionsData[instructionsDataIndex++] = currentId++;
+				instructionsData[instructionsDataIndex++] = structid;
+				instructionsData[instructionsDataIndex++] = index;
+				newinstructions.push_back(access);
+				Instruction load(OpLoad, &instructionsData[instructionsDataIndex], 3);
+				instructionsData[instructionsDataIndex++] = type;
+				instructionsData[instructionsDataIndex++] = id;
+				instructionsData[instructionsDataIndex++] = pointer;
+				newinstructions.push_back(load);
+			}
+			else {
+				newinstructions.push_back(inst);
+			}
+		}
+		else {
+			newinstructions.push_back(inst);
+		}
 	}
 	
+	bound = currentId + 1;
 	writeInstructions(filename, newinstructions);
 }
