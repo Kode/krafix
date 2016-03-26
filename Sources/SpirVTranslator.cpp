@@ -172,7 +172,8 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 	unsigned instructionsDataIndex = 0;
 	unsigned currentId = bound;
 	unsigned structid;
-	unsigned structtypeindex1, structtypeindex2, structvarindex;
+	std::vector<unsigned> structtypeindices;
+	unsigned structvarindex;
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
 		
@@ -185,7 +186,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 		case SpirVDebugInformation:
 			if (isAnnotation(inst)) {
 				Instruction structtypename(OpName, &instructionsData[instructionsDataIndex], 0);
-				structtypeindex1 = instructionsDataIndex;
+				structtypeindices.push_back(instructionsDataIndex);
 				instructionsData[instructionsDataIndex++] = 0;
 				structtypename.length = 1 + copyname("_k_global_uniform_buffer_type", instructionsData, instructionsDataIndex);
 				newinstructions.push_back(structtypename);
@@ -198,7 +199,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 
 				for (unsigned i = 0; i < uniforms.size(); ++i) {
 					Instruction name(OpMemberName, &instructionsData[instructionsDataIndex], 0);
-					structtypeindex2 = instructionsDataIndex;
+					structtypeindices.push_back(instructionsDataIndex);
 					instructionsData[instructionsDataIndex++] = 0;
 					instructionsData[instructionsDataIndex++] = i;
 					name.length = 2 + copyname(uniforms[i].name, instructionsData, instructionsDataIndex);
@@ -236,6 +237,17 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 					newinstructions.push_back(newinst);
 					++binding;
 				}
+				unsigned offset = 0;
+				for (unsigned i = 0; i < uniforms.size(); ++i) {
+					Instruction newinst(OpMemberDecorate, &instructionsData[instructionsDataIndex], 4);
+					structtypeindices.push_back(instructionsDataIndex);
+					instructionsData[instructionsDataIndex++] = 0;
+					instructionsData[instructionsDataIndex++] = i;
+					instructionsData[instructionsDataIndex++] = DecorationOffset;
+					instructionsData[instructionsDataIndex++] = offset;
+					newinstructions.push_back(newinst);
+					++offset; // TODO: Calculate proper offsets
+				}
 				state = SpirVTypes;
 			}
 			break;
@@ -246,8 +258,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 				for (unsigned i = 0; i < uniforms.size(); ++i) {
 					instructionsData[instructionsDataIndex++] = pointers[uniforms[i].type];
 				}
-				instructionsData[structtypeindex1] = structtype;
-				instructionsData[structtypeindex2] = structtype;
+				for (auto index : structtypeindices) instructionsData[index] = structtype;
 				newinstructions.push_back(typestruct);
 				Instruction typepointer(OpTypePointer, &instructionsData[instructionsDataIndex], 3);
 				unsigned pointertype = instructionsData[instructionsDataIndex++] = currentId++;
