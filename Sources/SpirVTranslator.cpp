@@ -42,6 +42,28 @@ namespace {
 	bool varcompare(const Var& a, const Var& b) {
 		return strcmp(a.name.c_str(), b.name.c_str()) < 0;
 	}
+
+	unsigned copyname(const std::string& name, unsigned* instructionsData, unsigned& instructionsDataIndex) {
+		unsigned length = 0;
+		bool zeroset = false;
+		for (unsigned i2 = 0; i2 < name.size(); i2 += 4) {
+			char* data = (char*)&instructionsData[instructionsDataIndex];
+			for (unsigned i3 = 0; i3 < 4; ++i3) {
+				if (i2 + i3 < name.size()) data[i3] = name[i2 + i3];
+				else {
+					data[i3] = 0;
+					zeroset = true;
+				}
+			}
+			++length;
+			++instructionsDataIndex;
+		}
+		if (!zeroset) {
+			instructionsData[instructionsDataIndex++] = 0;
+			++length;
+		}
+		return length;
+	}
 }
 
 void SpirVTranslator::writeInstructions(const char* filename, std::vector<Instruction>& instructions) {
@@ -74,6 +96,8 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 	std::vector<Var> images;
 	std::vector<Var> uniforms;
 	std::map<unsigned, bool> imageTypes;
+	std::map<unsigned, unsigned> pointers;
+	std::map<unsigned, unsigned> constants;
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
@@ -110,6 +134,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 			unsigned id = inst.operands[0];
 			unsigned type = inst.operands[2];
 			if (imageTypes[type]) imageTypes[id] = true;
+			pointers[id] = type;
 			break;
 		}
 		case OpVariable: {
@@ -147,6 +172,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 	unsigned instructionsDataIndex = 0;
 	unsigned currentId = bound;
 	unsigned structid;
+	unsigned structtypeindex1, structtypeindex2, structvarindex;
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
 		
@@ -158,6 +184,26 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 			break;
 		case SpirVDebugInformation:
 			if (isAnnotation(inst)) {
+				Instruction structtypename(OpName, &instructionsData[instructionsDataIndex], 0);
+				structtypeindex1 = instructionsDataIndex;
+				instructionsData[instructionsDataIndex++] = 0;
+				structtypename.length = 1 + copyname("_k_global_uniform_buffer_type", instructionsData, instructionsDataIndex);
+				newinstructions.push_back(structtypename);
+
+				Instruction structname(OpName, &instructionsData[instructionsDataIndex], 0);
+				structvarindex = instructionsDataIndex;
+				instructionsData[instructionsDataIndex++] = 0;
+				structname.length = 1 + copyname("_k_global_uniform_buffer", instructionsData, instructionsDataIndex);
+				newinstructions.push_back(structname);
+
+				for (unsigned i = 0; i < uniforms.size(); ++i) {
+					Instruction name(OpMemberName, &instructionsData[instructionsDataIndex], 0);
+					structtypeindex2 = instructionsDataIndex;
+					instructionsData[instructionsDataIndex++] = 0;
+					instructionsData[instructionsDataIndex++] = i;
+					name.length = 2 + copyname(uniforms[i].name, instructionsData, instructionsDataIndex);
+					newinstructions.push_back(name);
+				}
 				state = SpirVAnnotations;
 			}
 			break;
@@ -198,8 +244,10 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 				Instruction typestruct(OpTypeStruct, &instructionsData[instructionsDataIndex], 1 + uniforms.size());
 				unsigned structtype = instructionsData[instructionsDataIndex++] = currentId++;
 				for (unsigned i = 0; i < uniforms.size(); ++i) {
-					instructionsData[instructionsDataIndex++] = uniforms[i].type;
+					instructionsData[instructionsDataIndex++] = pointers[uniforms[i].type];
 				}
+				instructionsData[structtypeindex1] = structtype;
+				instructionsData[structtypeindex2] = structtype;
 				newinstructions.push_back(typestruct);
 				Instruction typepointer(OpTypePointer, &instructionsData[instructionsDataIndex], 3);
 				unsigned pointertype = instructionsData[instructionsDataIndex++] = currentId++;
@@ -209,6 +257,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 				Instruction variable(OpVariable, &instructionsData[instructionsDataIndex], 3);
 				instructionsData[instructionsDataIndex++] = pointertype;
 				structid = instructionsData[instructionsDataIndex++] = currentId++;
+				instructionsData[structvarindex] = structid;
 				instructionsData[instructionsDataIndex++] = StorageClassUniform;
 				newinstructions.push_back(variable);
 
@@ -220,13 +269,15 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 				for (unsigned i = 0; i < uniforms.size(); ++i) {
 					Instruction constant(OpConstant, &instructionsData[instructionsDataIndex], 3);
 					instructionsData[instructionsDataIndex++] = type;
-					instructionsData[instructionsDataIndex++] = currentId++;
+					unsigned constantid = currentId++;
+					instructionsData[instructionsDataIndex++] = constantid;
+					constants[i] = constantid;
 					instructionsData[instructionsDataIndex++] = i;
 					newinstructions.push_back(constant);
 					Instruction typepointer(OpTypePointer, &instructionsData[instructionsDataIndex], 3);
 					uniforms[i].pointertype = instructionsData[instructionsDataIndex++] = currentId++;
 					instructionsData[instructionsDataIndex++] = StorageClassUniform;
-					instructionsData[instructionsDataIndex++] = uniforms[i].type;
+					instructionsData[instructionsDataIndex++] = pointers[uniforms[i].type];
 					newinstructions.push_back(typepointer);
 				}
 				state = SpirVFunctions;
@@ -262,7 +313,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 				instructionsData[instructionsDataIndex++] = uniform.pointertype;
 				unsigned pointer = instructionsData[instructionsDataIndex++] = currentId++;
 				instructionsData[instructionsDataIndex++] = structid;
-				instructionsData[instructionsDataIndex++] = index;
+				instructionsData[instructionsDataIndex++] = constants[index];
 				newinstructions.push_back(access);
 				Instruction load(OpLoad, &instructionsData[instructionsDataIndex], 3);
 				instructionsData[instructionsDataIndex++] = type;
