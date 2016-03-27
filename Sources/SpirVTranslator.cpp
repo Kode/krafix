@@ -248,6 +248,30 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 					instructionsData[instructionsDataIndex++] = DecorationOffset;
 					instructionsData[instructionsDataIndex++] = offset;
 					newinstructions.push_back(newinst);
+
+					Instruction dec1(OpDecorate, &instructionsData[instructionsDataIndex], 3);
+					structtypeindices.push_back(instructionsDataIndex);
+					instructionsData[instructionsDataIndex++] = 0;
+					instructionsData[instructionsDataIndex++] = i;
+					instructionsData[instructionsDataIndex++] = DecorationBlock;
+					newinstructions.push_back(dec1);
+
+					// TODO: Next two only for matrices
+					Instruction dec2(OpMemberDecorate, &instructionsData[instructionsDataIndex], 3);
+					structtypeindices.push_back(instructionsDataIndex);
+					instructionsData[instructionsDataIndex++] = 0;
+					instructionsData[instructionsDataIndex++] = i;
+					instructionsData[instructionsDataIndex++] = DecorationColMajor;
+					newinstructions.push_back(dec2);
+
+					Instruction dec3(OpMemberDecorate, &instructionsData[instructionsDataIndex], 4);
+					structtypeindices.push_back(instructionsDataIndex);
+					instructionsData[instructionsDataIndex++] = 0;
+					instructionsData[instructionsDataIndex++] = i;
+					instructionsData[instructionsDataIndex++] = DecorationMatrixStride;
+					instructionsData[instructionsDataIndex++] = 16;
+					newinstructions.push_back(dec3);
+
 					++offset; // TODO: Calculate proper offsets
 				}
 				state = SpirVTypes;
@@ -368,6 +392,10 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 			else {
 				newinstructions.push_back(inst);
 			}
+		}
+		else if (inst.opcode == OpReturn) {
+			//gl_Position.z = (gl_Position.z + gl_Position.w) * 0.5;
+			newinstructions.push_back(inst);
 		}
 		else {
 			newinstructions.push_back(inst);
