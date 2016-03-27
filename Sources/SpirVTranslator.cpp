@@ -179,6 +179,12 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 	std::vector<unsigned> structtypeindices;
 	unsigned structvarindex;
 	unsigned tempposition;
+	unsigned floattype;
+	unsigned floatpointertype;
+	unsigned dotfive;
+	unsigned two;
+	unsigned three;
+	unsigned vec4type;
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
 		
@@ -325,24 +331,60 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 					}
 				}
 
-				/*if (stage == EShLangVertex) {
-					// TODO
-					Instruction floattype(OpTypeFloat, &instructionsData[instructionsDataIndex], 0);
+				if (stage == EShLangVertex) {
+					Instruction floaty(OpTypeFloat, &instructionsData[instructionsDataIndex], 2);
+					floattype = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = 32;
+					newinstructions.push_back(floaty);
 
-					newinstructions.push_back(floattype);
+					Instruction floatpointer(OpTypePointer, &instructionsData[instructionsDataIndex], 3);
+					floatpointertype = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = StorageClassPrivate;
+					instructionsData[instructionsDataIndex++] = floattype;
+					newinstructions.push_back(floatpointer);
 
-					Instruction vec4type(OpTypeFloat, &instructionsData[instructionsDataIndex], 0);
-					unsigned vec4typeid;
-					newinstructions.push_back(vec4type);
+					Instruction dotfiveconstant(OpConstant, &instructionsData[instructionsDataIndex], 3);
+					instructionsData[instructionsDataIndex++] = floattype;
+					dotfive = instructionsData[instructionsDataIndex++] = currentId++;
+					*(float*)&instructionsData[instructionsDataIndex++] = 0.5f;
+					newinstructions.push_back(dotfiveconstant);
 
-					OpTypePointer;
+					Instruction inty(OpTypeInt, &instructionsData[instructionsDataIndex], 3);
+					unsigned inttype = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = 32;
+					instructionsData[instructionsDataIndex++] = 0;
+					newinstructions.push_back(inty);
 
-					Instruction varinst(OpVariable, &instructionsData[instructionsDataIndex], 0);
-					instructionsData[instructionsDataIndex++] = vec4typeid;
+					Instruction twoconstant(OpConstant, &instructionsData[instructionsDataIndex], 3);
+					instructionsData[instructionsDataIndex++] = inttype;
+					two = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = 2;
+					newinstructions.push_back(twoconstant);
+
+					Instruction threeconstant(OpConstant, &instructionsData[instructionsDataIndex], 3);
+					instructionsData[instructionsDataIndex++] = inttype;
+					three = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = 3;
+					newinstructions.push_back(threeconstant);
+					
+					Instruction vec4(OpTypeVector, &instructionsData[instructionsDataIndex], 3);
+					vec4type = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = floattype;
+					instructionsData[instructionsDataIndex++] = 4;
+					newinstructions.push_back(vec4);
+					
+					Instruction vec4pointer(OpTypePointer, &instructionsData[instructionsDataIndex], 3);
+					unsigned vec4pointertype = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = StorageClassPrivate;
+					instructionsData[instructionsDataIndex++] = vec4type;
+					newinstructions.push_back(vec4pointer);
+
+					Instruction varinst(OpVariable, &instructionsData[instructionsDataIndex], 3);
+					instructionsData[instructionsDataIndex++] = vec4pointertype;
 					tempposition = instructionsData[instructionsDataIndex++] = currentId++;
 					instructionsData[instructionsDataIndex++] = StorageClassPrivate;
 					newinstructions.push_back(varinst);
-				}*/
+				}
 
 				state = SpirVFunctions;
 			}
@@ -418,39 +460,89 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 				newinstructions.push_back(inst);
 			}
 		}
-		/*else if (inst.opcode == OpStore) {
+		else if (inst.opcode == OpStore) {
 			if (stage == EShLangVertex) {
 				//gl_Position.z = (gl_Position.z + gl_Position.w) * 0.5;
 				unsigned to = inst.operands[0];
 				unsigned from = inst.operands[1];
 				if (to == position) {
-					Instruction store1(OpStore, &instructionsData[instructionsDataIndex], 3);
+					//OpStore tempposition from
+					Instruction store1(OpStore, &instructionsData[instructionsDataIndex], 2);
 					instructionsData[instructionsDataIndex++] = tempposition;
 					instructionsData[instructionsDataIndex++] = from;
 					newinstructions.push_back(store1);
 
-					Instruction access1(OpAccessChain, &instructionsData[instructionsDataIndex], 3);
+					//%27 = OpAccessChain floatpointer tempposition two
+					Instruction access1(OpAccessChain, &instructionsData[instructionsDataIndex], 4);
+					instructionsData[instructionsDataIndex++] = floatpointertype;
+					unsigned _27 = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = tempposition;
+					instructionsData[instructionsDataIndex++] = two;
 					newinstructions.push_back(access1);
 
-					Instruction access2(OpAccessChain, &instructionsData[instructionsDataIndex], 3);
+					//%28 = OpLoad float %27
+					Instruction load1(OpLoad, &instructionsData[instructionsDataIndex], 3);
+					instructionsData[instructionsDataIndex++] = floattype;
+					unsigned _28 = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = _27;
+					newinstructions.push_back(load1);
+
+					//%30 = OpAccessChain floatpointer tempposition three
+					Instruction access2(OpAccessChain, &instructionsData[instructionsDataIndex], 4);
+					instructionsData[instructionsDataIndex++] = floatpointertype;
+					unsigned _30 = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = tempposition;
+					instructionsData[instructionsDataIndex++] = three;
 					newinstructions.push_back(access2);
 
-					Instruction add(OpFAdd, &instructionsData[instructionsDataIndex], 3);
+					//%31 = OpLoad float %30
+					Instruction load2(OpLoad, &instructionsData[instructionsDataIndex], 3);
+					instructionsData[instructionsDataIndex++] = floattype;
+					unsigned _31 = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = _30;
+					newinstructions.push_back(load2);
+
+					//%32 = OpFAdd float %28 %31
+					Instruction add(OpFAdd, &instructionsData[instructionsDataIndex], 4);
+					instructionsData[instructionsDataIndex++] = floattype;
+					unsigned _32 = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = _28;
+					instructionsData[instructionsDataIndex++] = _31;
 					newinstructions.push_back(add);
 
-					Instruction mult(OpFMul, &instructionsData[instructionsDataIndex], 3);
+					//%34 = OpFMul float %32 dotfive
+					Instruction mult(OpFMul, &instructionsData[instructionsDataIndex], 4);
+					instructionsData[instructionsDataIndex++] = floattype;
+					unsigned _34 = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = _32;
+					instructionsData[instructionsDataIndex++] = dotfive;
 					newinstructions.push_back(mult);
 
-					Instruction access3(OpAccessChain, &instructionsData[instructionsDataIndex], 3);
+					//%35 = OpAccessChain floatpointer tempposition two
+					Instruction access3(OpAccessChain, &instructionsData[instructionsDataIndex], 4);
+					instructionsData[instructionsDataIndex++] = floatpointertype;
+					unsigned _35 = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = tempposition;
+					instructionsData[instructionsDataIndex++] = two;
 					newinstructions.push_back(access3);
 
-					Instruction store2(OpStore, &instructionsData[instructionsDataIndex], 3);
+					//OpStore %35 %34
+					Instruction store2(OpStore, &instructionsData[instructionsDataIndex], 2);
+					instructionsData[instructionsDataIndex++] = _35;
+					instructionsData[instructionsDataIndex++] = _34;
 					newinstructions.push_back(store2);
 
-					Instruction load(OpLoad, &instructionsData[instructionsDataIndex], 3);
-					newinstructions.push_back(load);
+					//%38 = OpLoad vec4 tempposition
+					Instruction load3(OpLoad, &instructionsData[instructionsDataIndex], 3);
+					instructionsData[instructionsDataIndex++] = vec4type;
+					unsigned _38 = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = tempposition;
+					newinstructions.push_back(load3);
 
-					Instruction store3(OpStore, &instructionsData[instructionsDataIndex], 3);
+					//OpStore position %38
+					Instruction store3(OpStore, &instructionsData[instructionsDataIndex], 2);
+					instructionsData[instructionsDataIndex++] = position;
+					instructionsData[instructionsDataIndex++] = _38;
 					newinstructions.push_back(store3);
 				}
 				else {
@@ -460,7 +552,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 			else {
 				newinstructions.push_back(inst);
 			}
-		}*/
+		}
 		else {
 			newinstructions.push_back(inst);
 		}
