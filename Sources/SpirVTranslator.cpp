@@ -98,6 +98,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 	std::map<unsigned, bool> imageTypes;
 	std::map<unsigned, unsigned> pointers;
 	std::map<unsigned, unsigned> constants;
+	unsigned position;
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
@@ -112,7 +113,10 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 		case OpDecorate: {
 			unsigned id = inst.operands[0];
 			Decoration decoration = (Decoration)inst.operands[1];
-			if (decoration == DecorationBuiltIn) names[id] = "";
+			if (decoration == DecorationBuiltIn) {
+				names[id] = "";
+				if (inst.operands[2] == 0) position = id;
+			}
 			break;
 		}
 		case OpTypeSampledImage: {
@@ -174,6 +178,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 	unsigned structid;
 	std::vector<unsigned> structtypeindices;
 	unsigned structvarindex;
+	unsigned tempposition;
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
 		
@@ -249,13 +254,6 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 					instructionsData[instructionsDataIndex++] = offset;
 					newinstructions.push_back(newinst);
 
-					Instruction dec1(OpDecorate, &instructionsData[instructionsDataIndex], 3);
-					structtypeindices.push_back(instructionsDataIndex);
-					instructionsData[instructionsDataIndex++] = 0;
-					instructionsData[instructionsDataIndex++] = i;
-					instructionsData[instructionsDataIndex++] = DecorationBlock;
-					newinstructions.push_back(dec1);
-
 					// TODO: Next two only for matrices
 					Instruction dec2(OpMemberDecorate, &instructionsData[instructionsDataIndex], 3);
 					structtypeindices.push_back(instructionsDataIndex);
@@ -273,6 +271,13 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 					newinstructions.push_back(dec3);
 
 					++offset; // TODO: Calculate proper offsets
+				}
+				if (uniforms.size() > 0) {
+					Instruction dec1(OpDecorate, &instructionsData[instructionsDataIndex], 2);
+					structtypeindices.push_back(instructionsDataIndex);
+					instructionsData[instructionsDataIndex++] = 0;
+					instructionsData[instructionsDataIndex++] = DecorationBlock;
+					newinstructions.push_back(dec1);
 				}
 				state = SpirVTypes;
 			}
@@ -319,6 +324,26 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 						newinstructions.push_back(typepointer);
 					}
 				}
+
+				/*if (stage == EShLangVertex) {
+					// TODO
+					Instruction floattype(OpTypeFloat, &instructionsData[instructionsDataIndex], 0);
+
+					newinstructions.push_back(floattype);
+
+					Instruction vec4type(OpTypeFloat, &instructionsData[instructionsDataIndex], 0);
+					unsigned vec4typeid;
+					newinstructions.push_back(vec4type);
+
+					OpTypePointer;
+
+					Instruction varinst(OpVariable, &instructionsData[instructionsDataIndex], 0);
+					instructionsData[instructionsDataIndex++] = vec4typeid;
+					tempposition = instructionsData[instructionsDataIndex++] = currentId++;
+					instructionsData[instructionsDataIndex++] = StorageClassPrivate;
+					newinstructions.push_back(varinst);
+				}*/
+
 				state = SpirVFunctions;
 			}
 			break;
@@ -393,10 +418,49 @@ void SpirVTranslator::outputCode(const Target& target, const char* filename, std
 				newinstructions.push_back(inst);
 			}
 		}
-		else if (inst.opcode == OpReturn) {
-			//gl_Position.z = (gl_Position.z + gl_Position.w) * 0.5;
-			newinstructions.push_back(inst);
-		}
+		/*else if (inst.opcode == OpStore) {
+			if (stage == EShLangVertex) {
+				//gl_Position.z = (gl_Position.z + gl_Position.w) * 0.5;
+				unsigned to = inst.operands[0];
+				unsigned from = inst.operands[1];
+				if (to == position) {
+					Instruction store1(OpStore, &instructionsData[instructionsDataIndex], 3);
+					instructionsData[instructionsDataIndex++] = tempposition;
+					instructionsData[instructionsDataIndex++] = from;
+					newinstructions.push_back(store1);
+
+					Instruction access1(OpAccessChain, &instructionsData[instructionsDataIndex], 3);
+					newinstructions.push_back(access1);
+
+					Instruction access2(OpAccessChain, &instructionsData[instructionsDataIndex], 3);
+					newinstructions.push_back(access2);
+
+					Instruction add(OpFAdd, &instructionsData[instructionsDataIndex], 3);
+					newinstructions.push_back(add);
+
+					Instruction mult(OpFMul, &instructionsData[instructionsDataIndex], 3);
+					newinstructions.push_back(mult);
+
+					Instruction access3(OpAccessChain, &instructionsData[instructionsDataIndex], 3);
+					newinstructions.push_back(access3);
+
+					Instruction store2(OpStore, &instructionsData[instructionsDataIndex], 3);
+					newinstructions.push_back(store2);
+
+					Instruction load(OpLoad, &instructionsData[instructionsDataIndex], 3);
+					newinstructions.push_back(load);
+
+					Instruction store3(OpStore, &instructionsData[instructionsDataIndex], 3);
+					newinstructions.push_back(store3);
+				}
+				else {
+					newinstructions.push_back(inst);
+				}
+			}
+			else {
+				newinstructions.push_back(inst);
+			}
+		}*/
 		else {
 			newinstructions.push_back(inst);
 		}
