@@ -1,6 +1,7 @@
 #include "CStyleTranslator.h"
 #include <stdio.h>
 #include <string.h>
+#include <algorithm>
 
 using namespace krafix;
 
@@ -49,7 +50,7 @@ void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& ins
 	}
 	case OpName: {
 		unsigned id = inst.operands[0];
-		if (stage == EShLangFragment && fragDataNameId == -1 && inst.string != NULL && strcmp(inst.string, "gl_FragData") == 0) { 
+		if (stage == EShLangFragment && fragDataNameId == -1 && inst.string != NULL && strcmp(inst.string, "gl_FragData") == 0) {
 			fragDataNameId = id;
 			isFragDataUsed = true;
 		}
@@ -82,8 +83,8 @@ void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& ins
 	}
 }
 
-/** 
- * Associate the specified name with the specified ID, 
+/**
+ * Associate the specified name with the specified ID,
  * and ensure the name is unique by appending the ID if needed.
  * This is necessary if the SPIR-V contains duplicate names for intermediate variables.
  */
@@ -104,7 +105,7 @@ void CStyleTranslator::addUniqueName(unsigned id, const char* name) {
 }
 
 /**
- * Returns the name associated with the specified ID. If a name does not yet 
+ * Returns the name associated with the specified ID. If a name does not yet
  * exist for the ID, a unique name is created from the ID and the prefix string.
  * This is necessary if the SPIR-V does not contain names, or contains duplicates.
  */
@@ -148,9 +149,9 @@ Type& CStyleTranslator::getBaseType(unsigned typeID) {
 	return t.ispointer ? types[t.baseType] : t;
 }
 
-/** 
- * Outputs a line containing a unique temp variable assigned from the RHS, 
- * and returns a referenct to the name of the temp variable. 
+/**
+ * Outputs a line containing a unique temp variable assigned from the RHS,
+ * and returns a referenct to the name of the temp variable.
  */
 std::string CStyleTranslator::outputTempVar(std::ostream* out,
 											std::string& tmpTypeName,
@@ -507,7 +508,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpName: {
 		unsigned id = inst.operands[0];
 		const char* name = inst.string;
-		
+
 		Name n;
 		if (strcmp(inst.string, "") == 0) {
 			char unname[101];
@@ -578,7 +579,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			Type& mbrType = types[mbrTypeId];
 			t.byteSize += mbrType.byteSize;
 		}
-		
+
 		for (unsigned i = 1; i < inst.length; ++i) {
 			Type& membertype = types[inst.operands[i]];
 			std::get<1>(t.members[i - 1]) = membertype;
@@ -835,11 +836,11 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		(*out) << resultType.name << " " << getReference(result) << ";\n";
 
 		bool first = true;
-		
+
 		for (unsigned i = 2; i < inst.length; i += 2) {
 			id variable = inst.operands[i];
 			id parent = inst.operands[i + 1];
-		
+
 			if (labelStarts.find(parent) != labelStarts.end()) {
 				indent(out);
 				if (!first) (*out) << "else ";
@@ -856,7 +857,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		for (unsigned i = 2; i < inst.length; i += 2) {
 			id variable = inst.operands[i];
 			id parent = inst.operands[i + 1];
-			
+
 			if (labelStarts.find(parent) == labelStarts.end()) {
 				indent(out);
 				(*out) << "else\n";
