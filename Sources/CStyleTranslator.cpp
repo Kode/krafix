@@ -457,6 +457,15 @@ void CStyleTranslator::outputLibraryInstruction(const Target& target, std::map<s
 		references[result] = str.str();
 		break;
 	}
+	case GLSLstd450Refract: {
+		std::stringstream str;
+		id I = inst.operands[4];
+		id N = inst.operands[5];
+		id eta = inst.operands[6];
+		str << "refract(" << getReference(I) << ", " << getReference(N) << ", " << getReference(eta) << ")";
+		references[result] = str.str();
+		break;
+	}
 	case GLSLstd450Acos: {
 		id x = inst.operands[4];
 		std::stringstream str;
