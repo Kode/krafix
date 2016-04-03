@@ -3,6 +3,7 @@
 #include <map>
 #include <sstream>
 #include <string.h>
+#include "GlslFunctionStrings.h"
 
 using namespace krafix;
 
@@ -242,6 +243,13 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					}
 				}
 				(*out) << "\n";
+				
+				if (target.system == HTML5) {
+					if (isTransposeUsed) (*out) << transposeFunctionString;
+					if (isMatrixInverseUsed) (*out) << matrixInverseFunctionString;
+					(*out) << "\n";
+				}
+
 				firstFunction = false;
 			}
 
