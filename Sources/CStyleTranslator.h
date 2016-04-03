@@ -191,5 +191,7 @@ namespace krafix {
 		std::vector<unsigned> fragDataIndexIds;
 		bool isTextureLodUsed = false;
 		bool isDerivativesUsed = false;
+		bool isTransposeUsed = false;
+		bool isMatrixInverseUsed = false;
 	};
 }

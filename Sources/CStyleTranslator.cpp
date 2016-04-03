@@ -47,6 +47,7 @@ void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& ins
 		default:
 			break;
 		}
+		break;
 	}
 	case OpName: {
 		unsigned id = inst.operands[0];
@@ -76,6 +77,22 @@ void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& ins
 	case OpDPdx:
 	case OpDPdy: {
 		isDerivativesUsed = true;
+		break;
+	}
+	case OpTranspose: {
+		isTransposeUsed = true;
+		break;
+	}
+	case OpExtInst: {
+		GLSLstd450 instruction = (GLSLstd450)inst.operands[3];
+		switch (instruction) {
+		case GLSLstd450MatrixInverse: {
+			isMatrixInverseUsed = true;
+			break;
+		}
+		default:
+			break;
+		}
 		break;
 	}
 	default:
