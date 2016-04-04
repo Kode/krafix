@@ -3,6 +3,7 @@ var project = new Project("krafix");
 
 solution.setCmd();
 
+project.cpp11 = true;
 // bison glslang.y --defines=glslang_tab.cpp.h -o glslang_tab.cpp
 
 project.addExclude('.git/**');
