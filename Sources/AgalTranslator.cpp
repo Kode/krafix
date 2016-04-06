@@ -10,6 +10,14 @@ using namespace krafix;
 namespace {
 	typedef unsigned id;
 
+    struct ConstantVariable {
+        unsigned id;
+        unsigned type;
+        std::vector<std::string> operands;
+
+        ConstantVariable() {}
+    };
+
 	struct Variable {
 		unsigned id;
 		unsigned type;
@@ -29,6 +37,7 @@ namespace {
 
 	std::map<unsigned, Variable> variables;
 	std::map<unsigned, Type> types;
+    std::vector<ConstantVariable> constants;
 
 	enum Opcode {
 		con, // pseudo instruction for constants
@@ -37,6 +46,8 @@ namespace {
 		mov,
 		m44,
 		tex,
+        cos,
+        sin,
 		unknown
 	};
 
@@ -60,6 +71,26 @@ namespace {
 		Register() : type(Unused), number(-1), swizzle("xyzw"), size(1), spirIndex(0) { }
 
 		Register(EShLanguage stage, unsigned spirIndex, const std::string& swizzle = "xyzw", int size = 1) : number(-1), swizzle(swizzle), size(size), spirIndex(spirIndex) {
+            bool isConstant = false;
+            int constantID = 0;
+
+            for (unsigned i = 0; i < constants.size(); i++)
+            {
+                if (constants[i].id == spirIndex)
+                {
+                    constantID = i;
+                    isConstant = true;
+                    break;
+                }
+            }
+
+            if (isConstant)
+            {
+                number = constantID;
+                type = Constant;
+                return;
+            }
+
 			if (variables.find(spirIndex) == variables.end()) {
 				type = Temporary;
 			}
@@ -276,7 +307,8 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	using namespace spv;
 
 	std::map<unsigned, Name> names;
-	std::vector<std::string> constants;
+	std::map<unsigned, std::string> tmp_constants;
+    constants.clear();
 	types.clear();
 	variables.clear();
 	unsigned vertexOutput = 0;
@@ -288,7 +320,15 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 		Register reg(stage, 99999);
 		reg.type = Constant;
 		agal.push_back(Agal(con, reg, Register()));
-		constants.push_back("0.5");
+
+        tmp_constants[99999] = "0.5";
+
+        ConstantVariable variable;
+        variable.id = 99999;
+        variable.type = 0;
+        variable.operands.push_back("0.5");
+
+        constants.push_back(variable);
 	}
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
@@ -362,11 +402,21 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 				value = strvalue.str();
 			}
 
-			constants.push_back(value);
-
+            tmp_constants[result] = value;
+            
 			Register reg(stage, result);
 			reg.type = Constant;
 			agal.push_back(Agal(con, reg, Register()));
+
+            //todo: clean out the unused constants at the end (for example, because they are used in a composite constant).
+            ConstantVariable variable;
+            variable.id = inst.operands[1];
+            variable.type = inst.operands[0];
+            variable.operands.push_back(value);
+            variable.operands.push_back(value);
+            variable.operands.push_back(value);
+            variable.operands.push_back(value);
+            constants.push_back(variable);
 
 			break;
 		}
@@ -375,6 +425,17 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			id result = inst.operands[1];
 			types[result] = resultType;
 
+            ConstantVariable variable;
+            variable.id = inst.operands[1];
+            variable.type = inst.operands[0];
+            
+            for (unsigned i = 2; i < inst.length; i++)
+            {
+                variable.operands.push_back(tmp_constants[inst.operands[i]]);
+            }
+
+            constants.push_back(variable);
+            //result = vec4(inst.operands[2], inst.operands[3], inst.operands[4], inst.operands[5])
 			break;
 		}
 		case OpTypeArray: {
@@ -471,7 +532,6 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			break;
 		}
 		case OpFunction:
-
 			break;
 		case OpFunctionEnd:
 			break;
@@ -637,6 +697,21 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			}
 			break;
 		}
+        case OpExtInst: {
+            Type& resultType = types[inst.operands[0]];
+            id result = inst.operands[1];
+            types[result] = resultType;
+            id set = inst.operands[2];
+            {
+                /*GLSLstd450 instruction = (GLSLstd450)inst.operands[3];
+                switch (instruction)
+                {
+                    case GLSLstd450Cos:
+                        agal.push_back(Agal(Opcode::cos, ))
+                }*/
+            }
+            break;
+        }
 		case OpAccessChain: {
 			std::stringstream swizzle;
 			for (unsigned i = 3; i < inst.length; ++i) {
@@ -677,6 +752,10 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	}
 
 	std::map<unsigned, Register> assigned;
+    for (unsigned i = 0; i < constants.size(); i++)
+    {
+        assigned[constants[i].id] = Register(stage, constants[i].id);
+    }
 	assignRegisterNumbers(agal, assigned, names);
 
 	std::ofstream out;
@@ -702,7 +781,22 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 	
 	out << "\t\"consts\": {\n";
 	for (unsigned i = 0; i < constants.size(); ++i) {
-		out << "\t\t\"vc" << i << "\": [" << constants[i] << ", " << constants[i] << ", " << constants[i] << ", " << constants[i] << "]";
+        if (stage == EShLangVertex)
+        {
+            out << "\t\t\"vc" << i << "\": [";
+        }
+        else 
+        {
+            out << "\t\t\"fc" << i << "\": [";
+        }
+
+        for (unsigned j = 0; j < constants[i].operands.size(); j++)
+        {
+            if (j != 0) out << ", ";
+            out << constants[i].operands[j];
+        }
+        out << "]";
+
 		if (i < constants.size() - 1) out << ",";
 		out << "\n";
 	}
@@ -733,6 +827,12 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
 			case tex:
 				out << "tex";
 				break;
+            case Opcode::cos:
+                out << "cos";
+                break;
+            case Opcode::sin:
+                out << "sin";
+                break;
 			case unknown:
 				out << "unknown";
 				break;
