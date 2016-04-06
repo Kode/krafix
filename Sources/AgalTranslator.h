@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Translator.h"
+#include <SPIRV/GLSL.std.450.h>
 
 namespace krafix {
 	class AgalTranslator : public Translator {
