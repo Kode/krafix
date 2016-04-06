@@ -703,12 +703,18 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
             types[result] = resultType;
             id set = inst.operands[2];
             {
-                /*GLSLstd450 instruction = (GLSLstd450)inst.operands[3];
+                GLSLstd450 instruction = (GLSLstd450)inst.operands[3];
                 switch (instruction)
                 {
                     case GLSLstd450Cos:
-                        agal.push_back(Agal(Opcode::cos, ))
-                }*/
+                        agal.push_back(Agal(Opcode::cos, Register(stage, inst.operands[1]), Register(stage, inst.operands[4])));
+                        break;
+                    case GLSLstd450Sin:
+                        agal.push_back(Agal(Opcode::sin, Register(stage, inst.operands[1]), Register(stage, inst.operands[4])));
+                        break;
+                    default:
+                        printf("Unknown extinst '%i' in the agal translator.\n", instruction);
+                }
             }
             break;
         }
@@ -757,6 +763,129 @@ void AgalTranslator::outputCode(const Target& target, const char* filename, std:
         assigned[constants[i].id] = Register(stage, constants[i].id);
     }
 	assignRegisterNumbers(agal, assigned, names);
+
+    //Optimize, todo: optimize this optimize pass
+    std::map<int, int> firstUsed;
+    std::map<int, int> lastUsed;
+    for (int i = agal.size() - 1; i >= 0; i--)
+    {
+        Agal& instruction = agal[i];
+        if (instruction.opcode == unknown) {
+            continue;
+        }
+
+        if (instruction.source1.type == Temporary)
+        {
+            firstUsed[instruction.source1.spirIndex] = i;
+            if (lastUsed.find(instruction.source1.spirIndex) == lastUsed.end())
+            {
+                lastUsed[instruction.source1.spirIndex] = i;
+            }
+        }
+
+        if (instruction.source2.type == Temporary)
+        {
+            firstUsed[instruction.source2.spirIndex] = i;
+            if (lastUsed.find(instruction.source2.spirIndex) == lastUsed.end())
+            {
+                lastUsed[instruction.source2.spirIndex] = i;
+            }
+        }
+
+        if (instruction.destination.type == Temporary)
+        {
+            firstUsed[instruction.destination.spirIndex] = i;
+            if (lastUsed.find(instruction.destination.spirIndex) == lastUsed.end())
+            {
+                lastUsed[instruction.destination.spirIndex] = i;
+            }
+        }
+    }
+
+    std::map<int, int> currentlyUsed;
+    std::vector<bool> tempRegisters;
+    for (unsigned i = 0; i < 26; i++)
+    {
+        tempRegisters.push_back(false);
+    }
+
+    auto free_register = [&](int size = 1) {
+        for (int i = 0; i < 26; i++)
+        {
+            bool found = true;
+            for (int j = 0; j < size; j++)
+            {
+                if (tempRegisters[i + j])
+                {
+                    found = false;
+                    break;
+                }
+            }
+
+            if (found)
+                return i;
+        }
+
+        return -1;
+    };
+
+    for (unsigned i = 0; i < agal.size(); i++)
+    {
+        Agal& instruction = agal[i];
+
+        if (instruction.opcode == unknown) {
+            continue;
+        }
+
+        if (instruction.source1.type == Temporary)
+        {
+            instruction.source1.number = currentlyUsed[instruction.source1.spirIndex];
+            if (i == lastUsed[instruction.source1.spirIndex])
+            {
+                for (unsigned j = 0; j < instruction.source1.size; j++)
+                    tempRegisters[currentlyUsed[instruction.source1.spirIndex] + j] = false;
+            }
+        }
+
+        if (instruction.source2.type == Temporary)
+        {
+            instruction.source2.number = currentlyUsed[instruction.source2.spirIndex];
+            if (i == lastUsed[instruction.source2.spirIndex])
+            {
+                for (unsigned j = 0; j < instruction.source2.size; j++)
+                    tempRegisters[currentlyUsed[instruction.source2.spirIndex] + j] = false;
+            }
+        }
+
+        if (instruction.destination.type == Temporary)
+        {
+            if (currentlyUsed.find(instruction.destination.spirIndex) == currentlyUsed.end())
+            {
+                int tmpRegister = free_register(instruction.destination.size);
+                //todo: handle out of temporaries
+
+                currentlyUsed[instruction.destination.spirIndex] = tmpRegister;
+
+                for (unsigned j = 0; j < instruction.destination.size; j++)
+                    tempRegisters[tmpRegister + j] = true;
+            }
+
+            instruction.destination.number = currentlyUsed[instruction.destination.spirIndex];
+            if (i == lastUsed[instruction.destination.spirIndex])
+            {
+                for (unsigned j = 0; j < instruction.destination.size; j++)
+                    tempRegisters[currentlyUsed[instruction.destination.spirIndex] + j] = false;
+            }
+        }
+    }
+
+    for (auto it = assigned.begin(); it != assigned.end(); ++it) {
+        if (names.find(it->first) != names.end()) {
+            if (it->second.type == Temporary)
+                it->second.number = currentlyUsed[it->second.spirIndex];
+        }
+    }
+    //Optimize
 
 	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
