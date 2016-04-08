@@ -35,6 +35,10 @@ Instruction::Instruction(std::vector<unsigned>& spirv, unsigned& index) {
 	index += wordCount;
 }
 
+Instruction::Instruction(spv::Op opcode, unsigned* operands, unsigned length) : opcode(opcode), operands(operands), length(length), string(NULL) {
+	
+}
+
 Translator::Translator(std::vector<unsigned>& spirv, EShLanguage stage) : stage(stage), spirv(spirv) {
 	if (spirv.size() < 5) { return; }
 
@@ -43,7 +47,7 @@ Translator::Translator(std::vector<unsigned>& spirv, EShLanguage stage) : stage(
 	version = spirv[index++];
 	generator = spirv[index++];
 	bound = spirv[index++];
-	index++;
+	schema = index++;
 
 	while (index < spirv.size()) {
 		instructions.push_back(Instruction(spirv, index));

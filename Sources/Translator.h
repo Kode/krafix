@@ -39,6 +39,7 @@ namespace krafix {
 	class Instruction {
 	public:
 		Instruction(std::vector<unsigned>& spirv, unsigned& index);
+		Instruction(spv::Op opcode, unsigned* operands, unsigned length);
 
 		spv::Op opcode;
 		unsigned* operands;
@@ -53,12 +54,14 @@ namespace krafix {
 		virtual void outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) = 0;
 
 	protected:
+		std::vector<unsigned>& spirv;
+		std::vector<Instruction> instructions;
+		EShLanguage stage;
+
 		unsigned magicNumber;
 		unsigned version;
 		unsigned generator;
 		unsigned bound;
-		std::vector<unsigned>& spirv;
-		std::vector<Instruction> instructions;
-		EShLanguage stage;
+		unsigned schema;
 	};
 }
