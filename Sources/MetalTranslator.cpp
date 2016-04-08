@@ -141,8 +141,28 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 				Type t = types[typeId];
 				unsigned elemRef = inst.operands[i];
 				switch (t.opcode) {
+					case spv::OpTypeVector: {
+						unsigned mbrIdx = atoi(getReference(elemRef).c_str());
+						switch (mbrIdx) {
+							case 0:
+								str << ".x";
+								break;
+							case 1:
+								str << ".y";
+								break;
+							case 2:
+								str << ".z";
+								break;
+							case 3:
+								str << ".w";
+								break;
+							default:
+								break;
+						}
+						break;
+					}
 					case OpTypeStruct: {
-						unsigned mbrIdx = atoi(references[elemRef].c_str());
+						unsigned mbrIdx = atoi(getReference(elemRef).c_str());
 						unsigned mbrId = getMemberId(typeId, mbrIdx);
 						str << "." << getReference(mbrId);
 						Member mbr = members[mbrId];
