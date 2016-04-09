@@ -19,7 +19,7 @@ void MetalStageInTranslator::outputCode(const Target& target,
 	out = &output;
 	_pRenderContext = (MetalStageInTranslatorRenderContext*)&renderContext;
 
-	tempNameIndex = 0;
+	tempNameIndex = bound;
 	_nextMTLBufferIndex = 0;
 	_nextMTLTextureIndex = 0;
 	_nextMTLSamplerIndex = 0;
@@ -82,11 +82,13 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 					if (stage == EShLangVertex) {
 
 						// Set attribute parameters of this variable
-						const MetalVertexAttribute& vtxAttr = _pRenderContext->vertexAttributesByLocation[v.location];
+						MetalVertexAttribute& vtxAttr = _pRenderContext->vertexAttributesByLocation[v.location];
 						v.offset = vtxAttr.offset;
 						v.stride = vtxAttr.stride;
 						v.isPerInstance = vtxAttr.isPerInstance;
 						v.binding = vtxAttr.binding;
+
+						vtxAttr.isUsedByShader = true;
 
 						if (v.binding == _pRenderContext->vertexAttributeStageInBinding) {
 							vPfx = "in.";

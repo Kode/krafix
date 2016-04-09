@@ -18,8 +18,9 @@ namespace krafix {
 		unsigned offset;
 		unsigned stride;
 		bool isPerInstance;
+		bool isUsedByShader;
 
-		MetalVertexAttribute() : binding(0), offset(0), stride(0), isPerInstance(false) {}
+		MetalVertexAttribute() : binding(0), offset(0), stride(0), isPerInstance(false) , isUsedByShader(false){}
 	};
 
 	struct MetalVertexInStruct {
