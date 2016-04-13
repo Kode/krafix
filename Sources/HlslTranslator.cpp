@@ -348,10 +348,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 				if (target.system == Unity) {
 					if (stage == EShLangFragment) {
-						(*out) << "Output2 frag(Input2 input)\n";
+						(*out) << "OutputFrag frag(InputFrag input)\n";
 					}
 					else {
-						(*out) << "Output vert(Input input)\n";
+						(*out) << "OutputVert vert(InputVert input)\n";
 					}
 				}
 				else {
@@ -593,7 +593,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		t.name = "sampler2D";
 		types[id] = t;
 		break;
-	} 
+	}
 	case OpVariable: {
 		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
