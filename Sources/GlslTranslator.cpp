@@ -97,7 +97,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					if (isFragDepthUsed) (*out) << "#extension GL_EXT_frag_depth : require\n";
 					if (isFragDataUsed) (*out) << "#extension GL_EXT_draw_buffers : require\n";
 					if (isTextureLodUsed) (*out) << "#extension GL_EXT_shader_texture_lod : require\n";
-					if (isDerivativesUsed) (*out) << "#extension OES_standard_derivatives : require\n";
+					if (isDerivativesUsed) (*out) << "#extension GL_OES_standard_derivatives : require\n";
 				}
 
 				for (std::map<unsigned, Type>::iterator it = types.begin(); it != types.end(); ++it) {
