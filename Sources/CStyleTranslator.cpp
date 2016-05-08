@@ -75,7 +75,8 @@ void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& ins
 		break;
 	}
 	case OpDPdx:
-	case OpDPdy: {
+	case OpDPdy:
+	case OpFwidth: {
 		isDerivativesUsed = true;
 		break;
 	}
@@ -1580,6 +1581,16 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id p = inst.operands[2];
 		std::stringstream str;
 		str << "dFdy(" << getReference(p) << ")";
+		references[result] = str.str();
+		break;
+	}
+	case OpFwidth: {
+		Type& resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		id p = inst.operands[2];
+		std::stringstream str;
+		str << "fwidth(" << getReference(p) << ")";
 		references[result] = str.str();
 		break;
 	}
