@@ -1043,6 +1043,28 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
+	case OpSGreaterThan: {
+        Type& resultType = types[inst.operands[0]];
+        id result = inst.operands[1];
+        types[result] = resultType;
+        unsigned operand1 = inst.operands[2];
+        unsigned operand2 = inst.operands[3];
+        std::stringstream str;
+        str << getReference(operand1) << " > " << getReference(operand2);
+        references[result] = str.str();
+        break;
+    }
+    case OpSGreaterThanEqual: {
+        Type& resultType = types[inst.operands[0]];
+        id result = inst.operands[1];
+        types[result] = resultType;
+        unsigned operand1 = inst.operands[2];
+        unsigned operand2 = inst.operands[3];
+        std::stringstream str;
+        str << getReference(operand1) << " >= " << getReference(operand2);
+        references[result] = str.str();
+        break;
+    }
 	case OpLogicalAnd: {
 		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
