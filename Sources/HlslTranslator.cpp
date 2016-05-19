@@ -125,7 +125,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Name n = names[variable.id];
 
 					if (t.members.size() > 0) continue;
-					if (n.name.substr(0, 3) == "gl_") continue;
+					if (stage == EShLangVertex && n.name.substr(0, 3) == "gl_") continue;
 
 					if (variable.storage == StorageClassUniformConstant) {
 						indent(out);
@@ -297,14 +297,14 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 				index = 0;
 
-				/*for (unsigned i = 0; i < sortedVariables.size(); ++i) {
+				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
 
 					Type& t = types[variable.type];
 					Name n = names[variable.id];
 
 					if (variable.storage == StorageClassOutput) {
-						if (variable.builtin && stage == EShLangVertex) {
+						/*if (variable.builtin && stage == EShLangVertex) {
 							positionName = n.name;
 							indent(out);
 							if (target.version == 9) {
@@ -314,12 +314,12 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								(*out) << t.name << " " << n.name << " : SV_POSITION;\n";
 							}
 						}
-						else if (stage == EShLangFragment) {
+						else*/ if (stage == EShLangFragment) {
 							indent(out);
 							(*out) << t.name << " " << n.name << " : COLOR;\n";
 						}
 					}
-				}*/
+				}
 
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
