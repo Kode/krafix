@@ -162,7 +162,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else if (stage == EShLangGeometry) {
-							if (t.isarray) {
+							if (n.name == "gl_in") {
+								(*out) << "static float4 gl_Position" << "[" << t.length << "];\n";
+							}
+							else if (t.isarray) {
 								(*out) << "static " << t.name << " g_" << n.name << "[" << t.length << "];\n";
 							}
 							else {
@@ -202,6 +205,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "float4 gl_Position : SV_POSITION;\n";
 				}
 				else if ((stage == EShLangFragment && target.version == 9) || target.system == Unity) {
+					indent(out);
+					(*out) << "float4 gl_Position : POSITION;\n";
+				}
+				else if (stage == EShLangGeometry) {
 					indent(out);
 					(*out) << "float4 gl_Position : POSITION;\n";
 				}
@@ -295,6 +302,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					indent(out);
 					(*out) << "float4 gl_Position : POSITION;\n";
 				}
+				else if (stage == EShLangGeometry) {
+					indent(out);
+					(*out) << "float4 gl_Position : POSITION;\n";
+				}
 				index = 0;
 
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
@@ -337,6 +348,11 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						else if (stage == EShLangFragment) {
 
 						}
+						else if (stage == EShLangGeometry) {
+							indent(out);
+							(*out) << t.name << " g_" << n.name << " : TEXCOORD" << index << ";\n";
+							++index;
+						}
 						else {
 							indent(out);
 							(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
@@ -359,7 +375,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "void tese_main();\n\n";
 				}
 				else if (stage == EShLangGeometry) {
-					(*out) << "void geom_main();\n\n";
+					(*out) << "static OutputGeom _output;\n";
+					indent(out);
+					(*out) << "void geom_main(inout TriangleStream<OutputGeom> _output_stream);\n\n";
 				}
 				else {
 					(*out) << "void vert_main();\n\n";
@@ -384,7 +402,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						(*out) << "OutputTessE main(InputTessE input)\n";
 					}
 					else if (stage == EShLangGeometry) {
-						(*out) << "OutputGeom main(InputGeom input)\n";
+						(*out) << "[maxvertexcount(3)]\n";
+						indent(out);
+						(*out) << "void main(triangle InputGeom input[3], inout TriangleStream<OutputGeom> _output_stream)\n";
 					}
 					else {
 						(*out) << "OutputVert main(InputVert input)\n";
@@ -424,7 +444,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							(*out) << "te_" << n.name << " = input." << n.name << ";\n";
 						}
 						else if (stage == EShLangGeometry) {
-							(*out) << "g_" << n.name << " = input." << n.name << ";\n";
+							(*out) << "g_" << n.name << "[0] = input[0]." << n.name << ";\n"; indent(out);
+							(*out) << "g_" << n.name << "[1] = input[1]." << n.name << ";\n"; indent(out);
+							(*out) << "g_" << n.name << "[2] = input[2]." << n.name << ";\n";
 						}
 						else {
 							(*out) << "f_" << n.name << " = input." << n.name << ";\n";
@@ -443,7 +465,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "tese_main();\n";
 				}
 				else if (stage == EShLangGeometry) {
-					(*out) << "geom_main();\n";
+					(*out) << "geom_main(_output_stream);\n";
 				}
 				else {
 					(*out) << "vert_main();\n";
@@ -459,7 +481,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "OutputTessE output;\n";
 				}
 				else if (stage == EShLangGeometry) {
-					(*out) << "OutputGeometry output;\n";
+					(*out) << "\n";
 				}
 				else {
 					(*out) << "OutputVert output;\n";
@@ -489,7 +511,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							(*out) << "output." << n.name << " = te_" << n.name << ";\n";
 						}
 						else if (stage == EShLangGeometry) {
-							(*out) << "output." << n.name << " = g_" << n.name << ";\n";
+							(*out) << "\n";
 						}
 						else {
 							(*out) << "output." << n.name << " = f_" << n.name << ";\n";
@@ -508,7 +530,13 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "output." << positionName << ".z = (output." << positionName << ".z + output." << positionName << ".w) * 0.5;\n";
 					indent(out);
 				}
-				(*out) << "return output;\n";
+				
+				if (stage == EShLangGeometry) {
+					(*out) << "\n";
+				}
+				else {
+					(*out) << "return output;\n";
+				}
 
 				--indentation;
 				(*out) << "}\n\n";
@@ -530,6 +558,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			if (funcName == "main") {
 				if (stage == EShLangFragment) {
 					(*out) << "void frag_main()\n";
+				}
+				else if (stage == EShLangGeometry) {
+					(*out) << "void geom_main(inout TriangleStream<OutputGeom> _output_stream)\n";
 				}
 				else {
 					(*out) << "void vert_main()\n";
@@ -728,6 +759,14 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		references[result] = str.str();
 		break;
 	}
+	case OpEmitVertex:
+		output(out);
+		(*out) << "_output_stream.Append(_output);";
+		break;
+	case OpEndPrimitive:
+		output(out);
+		(*out) << "//_output_stream.RestartStrip();";
+		break;
 	case OpReturn:
 		output(out);
 		(*out) << "return;";
@@ -741,6 +780,15 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			output(out);
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
 				(*out) << getReference(inst.operands[0]) << indexName(types[inst.operands[0]], compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
+			}
+			else if (stage == EShLangGeometry) {
+				Variable& v = variables[inst.operands[0]];
+				if (v.storage == StorageClassOutput || getReference(inst.operands[0]) == "gl_Position") {
+					(*out) << "_output." << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+				}
+				else {
+					(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";
+				}
 			}
 			else {
 				(*out) << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";

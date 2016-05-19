@@ -1389,10 +1389,18 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		types[result] = resultType;
 		id base = inst.operands[2];
 		std::stringstream str;
-		if (strncmp(types[base].name.c_str(), "gl_", 3) != 0 || types[base].isarray) str << getReference(base);
+		std::string test = getReference(base);
+		if (target.lang == HLSL && stage == EShLangGeometry && getReference(base) == "g_gl_in") {
+			str << "gl_Position";
+		}
+		else if (strncmp(types[base].name.c_str(), "gl_", 3) != 0 || types[base].isarray) str << getReference(base);
 		if (target.lang == HLSL && stage == EShLangVertex) str << "v_";
 		std::vector<std::string> indices;
-		for (unsigned i = 3; i < inst.length; ++i) {
+		unsigned length = inst.length;
+		if (target.lang == HLSL && stage == EShLangGeometry && getReference(base) == "g_gl_in") {
+			--length;
+		}
+		for (unsigned i = 3; i < length; ++i) {
 			/*std::string reference = getReference(inst.operands[i]);
 			if (reference[0] >= '0' && reference[0] <= 9) indices.push_back(atoi(reference.c_str()));
 			else*/ indices.push_back(getReference(inst.operands[i]));

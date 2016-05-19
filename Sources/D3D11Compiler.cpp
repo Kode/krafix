@@ -11,6 +11,40 @@
 #include <iostream>
 #endif
 
+namespace {
+	const char* shaderString(EShLanguage stage, int version) {
+		if (version == 4) {
+			switch (stage) {
+			case EShLangVertex:
+				return "vs_4_0";
+			case EShLangFragment:
+				return "ps_4_0";
+			case EShLangGeometry:
+				return "gs_4_0";
+			case EShLangTessControl:
+			case EShLangTessEvaluation:
+			case EShLangCompute:
+				return "unsupported";
+			}
+		}
+		if (version == 4) {
+			switch (stage) {
+			case EShLangVertex:
+				return "vs_5_0";
+			case EShLangFragment:
+				return "ps_5_0";
+			case EShLangGeometry:
+				return "gs_5_0";
+			case EShLangTessControl:
+			case EShLangTessEvaluation:
+			case EShLangCompute:
+				return "unsupported";
+			}
+		}
+		return "unsupported";
+	}
+}
+
 int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage) {
 #ifdef SYS_WINDOWS
 	FILE* in = fopen(from, "rb");
@@ -30,8 +64,8 @@ int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::str
 
 	ID3DBlob* errorMessage;
 	ID3DBlob* shaderBuffer;
-	HRESULT hr = D3DCompile(data, length, from, nullptr, nullptr, "main", stage == EShLangVertex ? "vs_4_0" : "ps_4_0", /*D3DCOMPILE_DEBUG |*/ D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, 0, &shaderBuffer, &errorMessage);
-	if (hr != S_OK) hr = D3DCompile(data, length, from, nullptr, nullptr, "main", stage == EShLangVertex ? "vs_5_0" : "ps_5_0", /*D3DCOMPILE_DEBUG |*/ D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, 0, &shaderBuffer, &errorMessage);
+	HRESULT hr = D3DCompile(data, length, from, nullptr, nullptr, "main", shaderString(stage, 4), /*D3DCOMPILE_DEBUG |*/ D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, 0, &shaderBuffer, &errorMessage);
+	if (hr != S_OK) hr = D3DCompile(data, length, from, nullptr, nullptr, "main", shaderString(stage, 5), /*D3DCOMPILE_DEBUG |*/ D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, 0, &shaderBuffer, &errorMessage);
 	if (hr == S_OK) {
 		std::ofstream file(to, std::ios_base::binary);
 
