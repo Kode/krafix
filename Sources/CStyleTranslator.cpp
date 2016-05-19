@@ -1390,6 +1390,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id base = inst.operands[2];
 		std::stringstream str;
 		if (strncmp(types[base].name.c_str(), "gl_", 3) != 0 || types[base].isarray) str << getReference(base);
+		if (target.lang == HLSL && stage == EShLangVertex) str << "v_";
 		std::vector<std::string> indices;
 		for (unsigned i = 3; i < inst.length; ++i) {
 			/*std::string reference = getReference(inst.operands[i]);
