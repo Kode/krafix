@@ -710,6 +710,13 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 	case OpExecutionMode: {
 		output(out);
 		switch (inst.operands[1]) {
+		case ExecutionModeLocalSize: {
+			unsigned localSizeX = inst.operands[2];
+			unsigned localSizeY = inst.operands[3];
+			unsigned localSizeZ = inst.operands[4];
+			(*out) << "layout(local_size_x = " << localSizeX << ", local_size_y = " << localSizeY << ", local_size_z = " << localSizeZ << ") in;";
+			break;
+		}
 		case ExecutionModeInvocations:
 
 			break;
@@ -762,7 +769,19 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		t.opcode = inst.opcode;
 		t.name = "vec?";
 		Type subtype = types[inst.operands[1]];
-		if (subtype.name == "float" && inst.operands[2] == 2) {
+		if (subtype.name == "int" && inst.operands[2] == 2) {
+			t.name = "ivec2";
+			t.length = 2;
+		}
+		else if (subtype.name == "int" && inst.operands[2] == 3) {
+			t.name = "ivec3";
+			t.length = 3;
+		}
+		else if (subtype.name == "int" && inst.operands[2] == 4) {
+			t.name = "ivec4";
+			t.length = 4;
+		}
+		else if (subtype.name == "float" && inst.operands[2] == 2) {
 			t.name = "vec2";
 			t.length = 2;
 		}
@@ -811,7 +830,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			t.name = "sampler2DShadow";
 		}
 		else {
-			t.name = "sampler2D";
+			if (stage == EShLangCompute) {
+				t.name = "writeonly image2D";
+			}
+			else {
+				t.name = "sampler2D";
+			}
 		}
 		break;
 	}
@@ -1125,7 +1149,12 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id result = inst.operands[1];
 		id value = inst.operands[2];
 		std::stringstream str;
-		str << "float(" << getReference(value) << ")";
+		if (resultType.length > 1) {
+			str << "vec" << resultType.length << "(" << getReference(value) << ")";
+		}
+		else {
+			str << "float(" << getReference(value) << ")";
+		}
 		references[result] = str.str();
 		break;
 	}
@@ -1383,6 +1412,24 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		references[result] = str.str();
 		break;
 	}
+	case OpBitcast: {
+		Type& resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		id operand = inst.operands[2];
+		references[result] = references[operand];
+		break;
+	}
+	case OpConvertUToF: {
+		Type& resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		types[result] = resultType;
+		id value = inst.operands[2];
+		std::stringstream str;
+		str << "(float)" << getReference(value);
+		references[result] = str.str();
+		break;
+	}
 	case OpAccessChain: {
 		Type& resultType = types[inst.operands[0]];
 		id result = inst.operands[1];
@@ -1635,6 +1682,14 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		else {
 			references[result] = "0";
 		}
+		break;
+	}
+	case OpImageWrite: {
+		id image = inst.operands[0];
+		id coordinate = inst.operands[1];
+		id texels = inst.operands[2];
+		output(out);
+		(*out) << "imageStore(" << getReference(image) << ", " << getReference(coordinate) << ", " << getReference(texels) << ");\n";
 		break;
 	}
 	case OpReturn:

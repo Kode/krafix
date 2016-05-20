@@ -20,6 +20,10 @@ namespace {
 	std::string positionName = "gl_Position";
 	std::map<unsigned, Name> currentNames;
 
+	unsigned localSizeX = 1;
+	unsigned localSizeY = 1;
+	unsigned localSizeZ = 1;
+
 	bool compareVariables(const Variable& v1, const Variable& v2) {
 		Name n1 = currentNames[v1.id];
 		Name n2 = currentNames[v2.id];
@@ -131,6 +135,8 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					if (t.members.size() > 0) continue;
 					if (stage == EShLangVertex && n.name.substr(0, 3) == "gl_") continue;
 
+					if (n.name == "") continue;
+
 					if (variable.storage == StorageClassUniformConstant) {
 						indent(out);
 						if (t.isarray) {
@@ -174,6 +180,14 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 							else {
 								(*out) << "static " << t.name << " g_" << n.name << ";\n";
+							}
+						}
+						else if (stage == EShLangCompute) {
+							if (t.isarray) {
+								(*out) << "static " << t.name << " c_" << n.name << "[" << t.length << "];\n";
+							}
+							else {
+								(*out) << "static " << t.name << " c_" << n.name << ";\n";
 							}
 						}
 						else {
@@ -393,6 +407,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					indent(out);
 					(*out) << "void geom_main(inout TriangleStream<OutputGeom> _output_stream);\n\n";
 				}
+				else if (stage == EShLangCompute) {
+					(*out) << "void comp_main();\n\n";
+				}
 				else {
 					(*out) << "void vert_main();\n\n";
 				}
@@ -425,6 +442,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						(*out) << "[maxvertexcount(3)]\n"; indent(out);
 						(*out) << "void main(triangle InputGeom input[3], inout TriangleStream<OutputGeom> _output_stream)\n";
 					}
+					else if (stage == EShLangCompute) {
+						(*out) << "[numthreads(" << localSizeX << ", " << localSizeY << ", " << localSizeZ <<")]\n"; indent(out);
+						(*out) << "void main(uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID : SV_DispatchThreadID)\n";
+					}
 					else {
 						(*out) << "OutputVert main(InputVert input)\n";
 					}
@@ -435,12 +456,15 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				++indentation;
 
 				if (stage == EShLangTessEvaluation) {
-					indent(out);
-					(*out) << "te_gl_TessCoord = gl_TessCoord;\n";
+					indent(out); (*out) << "te_gl_TessCoord = gl_TessCoord;\n";
 				}
-				if (stage == EShLangTessControl) {
-					indent(out);
-					(*out) << "tc_gl_InvocationID = 0;\n";
+				else if (stage == EShLangTessControl) {
+					indent(out); (*out) << "tc_gl_InvocationID = 0;\n";
+				}
+				else if (stage == EShLangCompute) {
+					indent(out); (*out) << "c_gl_WorkGroupID = groupID;\n";
+					indent(out); (*out) << "c_gl_LocalInvocationID = groupThreadID;\n";
+					indent(out); (*out) << "c_gl_GlobalInvocationID = dispatchThreadID;\n";
 				}
 
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
@@ -497,6 +521,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				else if (stage == EShLangGeometry) {
 					(*out) << "geom_main(_output_stream);\n";
 				}
+				else if (stage == EShLangCompute) {
+					(*out) << "comp_main();\n";
+				}
 				else {
 					(*out) << "vert_main();\n";
 				}
@@ -511,6 +538,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "OutputTessE output;\n";
 				}
 				else if (stage == EShLangGeometry) {
+					(*out) << "\n";
+				}
+				else if (stage == EShLangCompute) {
 					(*out) << "\n";
 				}
 				else {
@@ -569,7 +599,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					indent(out);
 				}
 				
-				if (stage == EShLangGeometry) {
+				if (stage == EShLangGeometry || stage == EShLangCompute) {
 					(*out) << "\n";
 				}
 				else {
@@ -621,6 +651,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					(*out) << "void tesc_main()\n";
 				}
+				else if (stage == EShLangCompute) {
+					(*out) << "void comp_main()\n";
+				}
 				else {
 					(*out) << "void vert_main()\n";
 				}
@@ -644,8 +677,17 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		}
 		break;
 	}
-	case OpExecutionMode:
+	case OpExecutionMode: {
+		unsigned mode = inst.operands[1];
+		switch (mode) {
+		case ExecutionModeLocalSize:
+			localSizeX = inst.operands[2];
+			localSizeY = inst.operands[3];
+			localSizeZ = inst.operands[4];
+			break;
+		}
 		break;
+	}
 	case OpTypeArray: {
 		unsigned id = inst.operands[0];
 		Type& t = types[id];
@@ -672,7 +714,19 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		Type& t = types[id];
 		t.name = "float?";
 		Type& subtype = types[inst.operands[1]];
-		if (subtype.name == "float" && inst.operands[2] == 2) {
+		if (subtype.name == "int" && inst.operands[2] == 2) {
+			t.name = "int2";
+			t.length = 2;
+		}
+		else if (subtype.name == "int" && inst.operands[2] == 3) {
+			t.name = "int3";
+			t.length = 3;
+		}
+		else if (subtype.name == "int" && inst.operands[2] == 4) {
+			t.name = "int4";
+			t.length = 4;
+		}
+		else if (subtype.name == "float" && inst.operands[2] == 2) {
 			t.name = "float2";
 			t.length = 2;
 		}
@@ -708,8 +762,21 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpTypeImage: {
 		Type t;
 		unsigned id = inst.operands[0];
-		t.name = "sampler2D";
+		if (stage == EShLangCompute) {
+			t.name = "RWTexture2D<uint>";
+		}
+		else {
+			t.name = "sampler2D";
+		}
 		types[id] = t;
+		break;
+	}
+	case OpImageWrite: {
+		id image = inst.operands[0];
+		id coordinate = inst.operands[1];
+		id texels = inst.operands[2];
+		output(out);
+		(*out) << getReference(image) << "[" << getReference(coordinate) << "] = " << getReference(texels) << ";\n";
 		break;
 	}
 	case OpVariable: {
@@ -734,6 +801,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 				else if (stage == EShLangGeometry) {
 					references[result] = std::string("g_") + names[result].name;
+				}
+				else if (stage == EShLangCompute) {
+					references[result] = std::string("c_") + names[result].name;
 				}
 				else {
 					references[result] = std::string("f_") + names[result].name;
@@ -814,6 +884,20 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		}
 		else {
 			str << "tex2D(" << getReference(sampler) << ", " << getReference(coordinate) << ")";
+		}
+		references[result] = str.str();
+		break;
+	}
+	case OpConvertSToF: {
+		Type& resultType = types[inst.operands[0]];
+		id result = inst.operands[1];
+		id value = inst.operands[2];
+		std::stringstream str;
+		if (resultType.length > 1) {
+			str << "float" << resultType.length << "(" << getReference(value) << ")";
+		}
+		else {
+			str << "float(" << getReference(value) << ")";
 		}
 		references[result] = str.str();
 		break;

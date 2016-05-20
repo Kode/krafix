@@ -204,6 +204,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					case EShLangGeometry:
 					case EShLangTessControl:
 					case EShLangTessEvaluation:
+					case EShLangCompute:
 						if (variable.storage == StorageClassInput) {
 							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (t.isarray) {
