@@ -117,6 +117,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					indent(out);
 					(*out) << "static float4 v_gl_Position;\n";
 				}
+				else if (stage == EShLangTessEvaluation) {
+					indent(out);
+					(*out) << "static float4 gl_Position;\n";
+				}
 
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
@@ -306,6 +310,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					indent(out);
 					(*out) << "float4 gl_Position : POSITION;\n";
 				}
+				else if (stage == EShLangTessEvaluation) {
+					indent(out);
+					(*out) << "float4 gl_Position : SV_POSITION;\n";
+				}
 				index = 0;
 
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
@@ -399,7 +407,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						(*out) << "OutputTessC main(InputTessC input)\n";
 					}
 					else if (stage == EShLangTessEvaluation) {
-						(*out) << "OutputTessE main(InputTessE input)\n";
+						(*out) << "[domain(\"tri\")]\n";
+						indent(out);
+						(*out) << "OutputTessE main(float edges[3] : SV_TessFactor, float inside : SV_InsideTessFactor, float3 gl_TessCoord : SV_DomainLocation, const OutputPatch<InputTessE, 3> input)\n";
 					}
 					else if (stage == EShLangGeometry) {
 						(*out) << "[maxvertexcount(3)]\n";
@@ -414,6 +424,11 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				indent(out);
 				(*out) << "{\n";
 				++indentation;
+
+				if (stage == EShLangTessEvaluation) {
+					indent(out);
+					(*out) << "te_gl_TessCoord = gl_TessCoord;\n";
+				}
 
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
@@ -441,7 +456,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							(*out) << "tc_" << n.name << " = input." << n.name << ";\n";
 						}
 						else if (stage == EShLangTessEvaluation) {
-							(*out) << "te_" << n.name << " = input." << n.name << ";\n";
+							(*out) << "te_" << n.name << "[0] = input[0]." << n.name << ";\n"; indent(out);
+							(*out) << "te_" << n.name << "[1] = input[1]." << n.name << ";\n"; indent(out);
+							(*out) << "te_" << n.name << "[2] = input[2]." << n.name << ";\n";
 						}
 						else if (stage == EShLangGeometry) {
 							(*out) << "g_" << n.name << "[0] = input[0]." << n.name << ";\n"; indent(out);
@@ -490,6 +507,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				if (stage == EShLangVertex) {
 					indent(out);
 					(*out) << "output.gl_Position = v_gl_Position;\n";
+				}
+				if (stage == EShLangTessEvaluation) {
+					indent(out);
+					(*out) << "output.gl_Position = gl_Position;\n";
 				}
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
 					Variable variable = sortedVariables[i];
@@ -561,6 +582,9 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 				else if (stage == EShLangGeometry) {
 					(*out) << "void geom_main(inout TriangleStream<OutputGeom> _output_stream)\n";
+				}
+				else if (stage == EShLangTessEvaluation) {
+					(*out) << "void tese_main()\n";
 				}
 				else {
 					(*out) << "void vert_main()\n";

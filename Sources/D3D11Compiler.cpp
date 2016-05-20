@@ -22,12 +22,14 @@ namespace {
 			case EShLangGeometry:
 				return "gs_4_0";
 			case EShLangTessControl:
-			case EShLangTessEvaluation:
-			case EShLangCompute:
 				return "unsupported";
+			case EShLangTessEvaluation:
+				return "unsupported";
+			case EShLangCompute:
+				return "cs_4_0";
 			}
 		}
-		if (version == 4) {
+		else if (version == 5) {
 			switch (stage) {
 			case EShLangVertex:
 				return "vs_5_0";
@@ -36,9 +38,11 @@ namespace {
 			case EShLangGeometry:
 				return "gs_5_0";
 			case EShLangTessControl:
+				return "hs_5_0";
 			case EShLangTessEvaluation:
+				return "ds_5_0";
 			case EShLangCompute:
-				return "unsupported";
+				return "cs_5_0";
 			}
 		}
 		return "unsupported";
