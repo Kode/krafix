@@ -356,6 +356,12 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						else if (stage == EShLangFragment) {
 
 						}
+						else if (stage == EShLangTessControl) {
+							if (n.name.substr(0, 3) == "gl_") continue;
+							indent(out);
+							(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
+							++index;
+						}
 						else if (stage == EShLangGeometry) {
 							indent(out);
 							(*out) << t.name << " g_" << n.name << " : TEXCOORD" << index << ";\n";
@@ -404,16 +410,19 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						(*out) << "OutputFrag main(InputFrag input)\n";
 					}
 					else if (stage == EShLangTessControl) {
-						(*out) << "OutputTessC main(InputTessC input)\n";
+						(*out) << "[domain(\"tri\")]\n"; indent(out);
+						(*out) << "[partitioning(\"integer\")]\n"; indent(out);
+						(*out) << "[outputtopology(\"triangle_cw\")]\n"; indent(out);
+						(*out) << "[outputcontrolpoints(3)]\n"; indent(out);
+						(*out) << "[patchconstantfunc(\"patch\")]\n"; indent(out);
+						(*out) << "OutputTessC main(InputPatch<InputTessC, 3> input, uint pointId : SV_OutputControlPointID, uint patchId : SV_PrimitiveID)\n";
 					}
 					else if (stage == EShLangTessEvaluation) {
-						(*out) << "[domain(\"tri\")]\n";
-						indent(out);
+						(*out) << "[domain(\"tri\")]\n"; indent(out);
 						(*out) << "OutputTessE main(float edges[3] : SV_TessFactor, float inside : SV_InsideTessFactor, float3 gl_TessCoord : SV_DomainLocation, const OutputPatch<InputTessE, 3> input)\n";
 					}
 					else if (stage == EShLangGeometry) {
-						(*out) << "[maxvertexcount(3)]\n";
-						indent(out);
+						(*out) << "[maxvertexcount(3)]\n"; indent(out);
 						(*out) << "void main(triangle InputGeom input[3], inout TriangleStream<OutputGeom> _output_stream)\n";
 					}
 					else {
@@ -428,6 +437,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				if (stage == EShLangTessEvaluation) {
 					indent(out);
 					(*out) << "te_gl_TessCoord = gl_TessCoord;\n";
+				}
+				if (stage == EShLangTessControl) {
+					indent(out);
+					(*out) << "tc_gl_InvocationID = 0;\n";
 				}
 
 				for (unsigned i = 0; i < sortedVariables.size(); ++i) {
@@ -453,7 +466,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else if (stage == EShLangTessControl) {
-							(*out) << "tc_" << n.name << " = input." << n.name << ";\n";
+							(*out) << "tc_" << n.name << "[tc_gl_InvocationID] = input[patchId]." << n.name << ";\n";
 						}
 						else if (stage == EShLangTessEvaluation) {
 							(*out) << "te_" << n.name << "[0] = input[0]." << n.name << ";\n"; indent(out);
@@ -526,7 +539,11 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							(*out) << "output." << n.name << " = v_" << n.name << ";\n";
 						}
 						else if (stage == EShLangTessControl) {
-							(*out) << "output." << n.name << " = tc_" << n.name << ";\n";
+							if (n.name.substr(0, 3) == "gl_") {
+								(*out) << "\n";
+								continue;
+							}
+							(*out) << "output." << n.name << " = tc_" << n.name << "[tc_gl_InvocationID];\n";
 						}
 						else if (stage == EShLangTessEvaluation) {
 							(*out) << "output." << n.name << " = te_" << n.name << ";\n";
@@ -585,6 +602,24 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 				else if (stage == EShLangTessEvaluation) {
 					(*out) << "void tese_main()\n";
+				}
+				else if (stage == EShLangTessControl) {
+					(*out) << "struct PatchOutputTessC {\n"; ++indentation; indent(out);
+					(*out) << "float gl_TessLevelInner : SV_InsideTessFactor;\n"; indent(out);
+					(*out) << "float gl_TessLevelOuter[3] : SV_TessFactor;\n"; --indentation; indent(out);
+					(*out) << "};\n\n"; indent(out);
+
+					(*out) << "PatchOutputTessC patch() {\n"; ++indentation; indent(out);
+					(*out) << "PatchOutputTessC output;\n"; indent(out);
+					(*out) << "patch_main();\n"; indent(out);
+					(*out) << "output.gl_TessLevelInner = tc_gl_TessLevelInner[0];\n"; indent(out);
+					(*out) << "output.gl_TessLevelOuter[0] = tc_gl_TessLevelOuter[0];\n"; indent(out);
+					(*out) << "output.gl_TessLevelOuter[1] = tc_gl_TessLevelOuter[1];\n"; indent(out);
+					(*out) << "output.gl_TessLevelOuter[2] = tc_gl_TessLevelOuter[2];\n"; indent(out);
+					(*out) << "return output;\n"; --indentation; indent(out);
+					(*out) << "}\n\n"; indent(out);
+
+					(*out) << "void tesc_main()\n";
 				}
 				else {
 					(*out) << "void vert_main()\n";
