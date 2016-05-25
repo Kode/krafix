@@ -6,3 +6,7 @@
 	path = tests
 	url = ../krafix_tests
 	branch = master
+[submodule "sourcemap.cpp"]
+	path = sourcemap.cpp
+	url = ../sourcemap.cpp
+	branch = master
