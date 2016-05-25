@@ -11,6 +11,19 @@ project.addExclude('glslang/.git/**');
 project.addExclude('build/**');
 
 project.addFile('Sources/**');
+
+project.addFile('sourcemap.cpp/src/**.hpp');
+project.addFile('sourcemap.cpp/deps/json/json.cpp');
+project.addFile('sourcemap.cpp/deps/cencode/cencode.c');
+project.addFile('sourcemap.cpp/deps/cencode/cdecode.c');
+project.addFile('sourcemap.cpp/src/map_line.cpp');
+project.addFile('sourcemap.cpp/src/map_col.cpp');
+project.addFile('sourcemap.cpp/src/mappings.cpp');
+project.addFile('sourcemap.cpp/src/pos_idx.cpp');
+project.addFile('sourcemap.cpp/src/pos_txt.cpp');
+project.addFile('sourcemap.cpp/src/format/v3.cpp');
+project.addFile('sourcemap.cpp/src/document.cpp');
+
 project.addFile('glslang/glslang/GenericCodeGen/**');
 project.addFile('glslang/glslang/MachineIndependent/**');
 project.addFile('glslang/glslang/Include/**');
