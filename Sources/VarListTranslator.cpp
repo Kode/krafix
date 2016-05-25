@@ -30,7 +30,7 @@ namespace {
 	};
 }
 
-void VarListTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
+void VarListTranslator::outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) {
 	using namespace spv;
 
 	std::map<unsigned, Name> names;

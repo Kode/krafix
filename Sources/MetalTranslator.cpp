@@ -29,7 +29,7 @@ namespace {
 	}
 }
 
-void MetalTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
+void MetalTranslator::outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) {
 	name = extractFilename(filename);
 	name = name.substr(0, name.find_last_of("."));
 	name = replace(name, '-', '_');

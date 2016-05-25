@@ -51,6 +51,7 @@
 #include "AgalTranslator.h"
 #include "MetalTranslator.h"
 #include "VarListTranslator.h"
+#include "JavaScriptTranslator.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -727,7 +728,7 @@ private:
 //
 // Uses the new C++ interface instead of the old handle-based interface.
 //
-void CompileAndLinkShaders(krafix::Target target, const char* filename, const char* tempdir, const glslang::TShader::Includer& includer)
+void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, const char* filename, const char* tempdir, const glslang::TShader::Includer& includer)
 {
     // keep track of what to free
     std::list<glslang::TShader*> shaders;
@@ -829,11 +830,14 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
 					case krafix::VarList:
 						translator = new krafix::VarListTranslator(spirv, (EShLanguage)stage);
 						break;
+					case krafix::JavaScript:
+						translator = new krafix::JavaScriptTranslator(spirv, (EShLanguage)stage);
+						break;
 					}
 					
 					if (target.lang == krafix::HLSL && target.system != krafix::Unity) {
 						std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(workItem->name)) + ".hlsl";
-						translator->outputCode(target, temp.c_str(), attributes);
+						translator->outputCode(target, sourcefilename, temp.c_str(), attributes);
 						if (target.version == 9) {
 							compileHLSLToD3D9(temp.c_str(), filename, attributes, (EShLanguage)stage);
 						}
@@ -842,7 +846,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* filename, const ch
 						}
 					}
 					else {
-						translator->outputCode(target, filename, attributes);
+						translator->outputCode(target, sourcefilename, filename, attributes);
 					}
 
 					delete translator;
@@ -916,45 +920,50 @@ int C_DECL main(int argc, char* argv[]) {
 	if (strcmp(argv[1], "spirv") == 0) {
 		target.lang = krafix::SpirV;
 		target.version = 1;
-		CompileAndLinkShaders(target, argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "d3d9") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 9;
-		CompileAndLinkShaders(target, argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "d3d11") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 11;
-		CompileAndLinkShaders(target, argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "glsl") == 0) {
 		target.lang = krafix::GLSL;
 		if (target.system == krafix::Linux) target.version = 110;
 		else target.version = 330;
-		CompileAndLinkShaders(target, argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "essl") == 0) {
 		target.lang = krafix::GLSL;
 		target.version = 100;
 		target.es = true;
-		CompileAndLinkShaders(target, argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "agal") == 0) {
 		target.lang = krafix::AGAL;
 		target.version = 100;
 		target.es = true;
-		CompileAndLinkShaders(target, argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "metal") == 0) {
 		target.lang = krafix::Metal;
 		target.version = 1;
-		CompileAndLinkShaders(target, argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
 	}
 	else if (strcmp(argv[1], "varlist") == 0) {
 		target.lang = krafix::VarList;
 		target.version = 1;
-		CompileAndLinkShaders(target, argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
+	}
+	else if (strcmp(argv[1], "js") == 0 || strcmp(argv[1], "javascript") == 0) {
+		target.lang = krafix::JavaScript;
+		target.version = 1;
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
 	}
 	else {
 		std::cout << "Unknown profile " << argv[1] << std::endl;

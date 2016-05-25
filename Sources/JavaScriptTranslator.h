@@ -1,13 +1,21 @@
 #pragma once
 
 #include "CStyleTranslator.h"
+#include "../sourcemap.cpp/src/document.hpp"
 
 namespace krafix {
-	class HlslTranslator : public CStyleTranslator {
+	class JavaScriptTranslator : public CStyleTranslator {
 	public:
-		HlslTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : CStyleTranslator(spirv, stage) {}
+		JavaScriptTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : CStyleTranslator(spirv, stage) {
+			sourcemap = SourceMap::make_shared<SourceMap::SrcMapDoc>();
+		}
 		void outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes);
 		void outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst);
 		void outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSLstd450 entrypoint);
+	private:
+		SourceMap::SrcMapDocSP sourcemap;
+		int outputLine;
+		int originalLine;
+		char name[256];
 	};
 }

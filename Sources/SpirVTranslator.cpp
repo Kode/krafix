@@ -87,7 +87,7 @@ void SpirVTranslator::writeInstructions(const char* filename, std::vector<Instru
 	out.close();
 }
 
-void SpirVTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
+void SpirVTranslator::outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) {
 	using namespace spv;
 
 	std::map<unsigned, std::string> names;

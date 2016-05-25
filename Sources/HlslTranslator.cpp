@@ -31,7 +31,7 @@ namespace {
 	}
 }
 
-void HlslTranslator::outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) {
+void HlslTranslator::outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) {
 	std::ofstream file;
 	file.open(filename, std::ios::binary | std::ios::out);
 	out = &file;

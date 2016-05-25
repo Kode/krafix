@@ -13,7 +13,8 @@ namespace krafix {
 		HLSL,
 		Metal,
 		AGAL,
-		VarList
+		VarList,
+		JavaScript
 	};
 
 	enum TargetSystem {
@@ -51,7 +52,7 @@ namespace krafix {
 	public:
 		Translator(std::vector<unsigned>& spirv, EShLanguage stage);
 		virtual ~Translator() {}
-		virtual void outputCode(const Target& target, const char* filename, std::map<std::string, int>& attributes) = 0;
+		virtual void outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) = 0;
 
 	protected:
 		std::vector<unsigned>& spirv;
