@@ -887,6 +887,66 @@ krafix::TargetSystem getSystem(const char* system) {
 	return krafix::Unknown;
 }
 
+void compile(const char* targetlang, const char* from, std::string to, const char* tempdir, const char* system,
+			 KrafixIncluder& includer, std::string defines) {
+	krafix::Target target;
+	target.system = getSystem(system);
+	target.es = false;
+	if (strcmp(targetlang, "spirv") == 0) {
+		target.lang = krafix::SpirV;
+		target.version = 1;
+		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
+	}
+	else if (strcmp(targetlang, "d3d9") == 0) {
+		target.lang = krafix::HLSL;
+		target.version = 9;
+		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
+	}
+	else if (strcmp(targetlang, "d3d11") == 0) {
+		target.lang = krafix::HLSL;
+		target.version = 11;
+		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
+	}
+	else if (strcmp(targetlang, "glsl") == 0) {
+		target.lang = krafix::GLSL;
+		if (target.system == krafix::Linux) target.version = 110;
+		else target.version = 330;
+		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
+	}
+	else if (strcmp(targetlang, "essl") == 0) {
+		target.lang = krafix::GLSL;
+		target.version = 100;
+		target.es = true;
+		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
+	}
+	else if (strcmp(targetlang, "agal") == 0) {
+		target.lang = krafix::AGAL;
+		target.version = 100;
+		target.es = true;
+		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
+	}
+	else if (strcmp(targetlang, "metal") == 0) {
+		target.lang = krafix::Metal;
+		target.version = 1;
+		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
+	}
+	else if (strcmp(targetlang, "varlist") == 0) {
+		target.lang = krafix::VarList;
+		target.version = 1;
+		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
+	}
+	else if (strcmp(targetlang, "js") == 0 || strcmp(targetlang, "javascript") == 0) {
+		target.lang = krafix::JavaScript;
+		target.version = 1;
+		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
+	}
+	else {
+		std::cout << "Unknown profile " << targetlang << std::endl;
+		CompileFailed = true;
+	}
+	std::cout << "Compiled to " << to << std::endl;
+}
+
 int C_DECL main(int argc, char* argv[]) {
 	if (argc < 6) {
 		usage();
@@ -911,74 +971,101 @@ int C_DECL main(int argc, char* argv[]) {
 	}
 	
 	std::string defines;
+	std::vector<int> textureUnitCounts;
+	bool instancedoptional = false;
+	
 	for (int i = 6; i < argc; ++i) {
 		std::string arg = argv[i];
 		if (arg.substr(0, 2) == "-D") {
-			defines += "#define " + arg.substr(2);
+			defines += "#define " + arg.substr(2) + "\n";
+		}
+		else if (arg.substr(0, 2) == "-T") {
+			textureUnitCounts.push_back(atoi(arg.substr(2).c_str()));
+		}
+		else if (arg == "--instancedoptional") {
+			instancedoptional = true;
 		}
 	}
+
+	const char* targetlang = argv[1];
+	const char* from = argv[2];
+	std::string to = argv[3];
+	const char* system = argv[5];
 
 	ProcessConfigFile();
 
 	glslang::InitializeProcess();
 	
 	KrafixIncluder includer(name);
-	krafix::Target target;
-	target.system = getSystem(argv[5]);
-	target.es = false;
-	if (strcmp(argv[1], "spirv") == 0) {
-		target.lang = krafix::SpirV;
-		target.version = 1;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
+	
+	bool usesTextureUnitsCount = false;
+	bool usesInstancedoptional = false;
+	
+	if (textureUnitCounts.size() > 0 || instancedoptional) {
+		std::stringstream filecontentstream;
+		std::string line;
+		std::ifstream file(from);
+		if (file.is_open()) {
+			while (getline (file, line)) {
+				filecontentstream << line << '\n';
+			}
+			file.close();
+		}
+		std::string filecontent = filecontentstream.str();
+		
+		if (filecontent.find("MAX_TEXTURE_UNITS") != std::string::npos) {
+			usesTextureUnitsCount = true;
+		}
+		if (filecontent.find("INSTANCED_RENDERING") != std::string::npos) {
+			usesInstancedoptional = true;
+		}
 	}
-	else if (strcmp(argv[1], "d3d9") == 0) {
-		target.lang = krafix::HLSL;
-		target.version = 9;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
-	}
-	else if (strcmp(argv[1], "d3d11") == 0) {
-		target.lang = krafix::HLSL;
-		target.version = 11;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
-	}
-	else if (strcmp(argv[1], "glsl") == 0) {
-		target.lang = krafix::GLSL;
-		if (target.system == krafix::Linux) target.version = 110;
-		else target.version = 330;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
-	}
-	else if (strcmp(argv[1], "essl") == 0) {
-		target.lang = krafix::GLSL;
-		target.version = 100;
-		target.es = true;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
-	}
-	else if (strcmp(argv[1], "agal") == 0) {
-		target.lang = krafix::AGAL;
-		target.version = 100;
-		target.es = true;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
-	}
-	else if (strcmp(argv[1], "metal") == 0) {
-		target.lang = krafix::Metal;
-		target.version = 1;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
-	}
-	else if (strcmp(argv[1], "varlist") == 0) {
-		target.lang = krafix::VarList;
-		target.version = 1;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
-	}
-	else if (strcmp(argv[1], "js") == 0 || strcmp(argv[1], "javascript") == 0) {
-		target.lang = krafix::JavaScript;
-		target.version = 1;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
+	
+	std::string towithoutext = to.substr(0, to.find_last_of('.'));
+	std::string ext = to.substr(to.find_last_of('.'));
+	
+	if (textureUnitCounts.size() > 0 && usesTextureUnitsCount) {
+		if (instancedoptional && usesInstancedoptional) {
+			for (int i = 0; i < textureUnitCounts.size(); ++i) {
+				int texcount = textureUnitCounts[i];
+				std::stringstream toto;
+				toto << towithoutext << "-tex" << texcount << ext;
+				std::stringstream definesplustex;
+				definesplustex << defines << "#define MAX_TEXTURE_UNITS=" << texcount << "\n";
+				
+				std::stringstream tototo;
+				tototo << towithoutext << "-tex" << texcount << "-noinst" << ext;
+				compile(targetlang, from, tototo.str(), tempdir, system, includer, definesplustex.str());
+				std::stringstream totototo;
+				tototo << towithoutext << "-tex" << texcount << "-inst" << ext;
+				std::string definesplusinst = definesplustex.str() + "#define INSTANCED_RENDERING\n";
+				compile(targetlang, from, totototo.str(), tempdir, system, includer, definesplusinst);
+			}
+		}
+		else {
+			for (int i = 0; i < textureUnitCounts.size(); ++i) {
+				int texcount = textureUnitCounts[i];
+				std::stringstream toto;
+				toto << towithoutext << "-tex" << texcount << ext;
+				std::stringstream definesplustex;
+				definesplustex << defines << "#define MAX_TEXTURE_UNITS=" << texcount << "\n";
+				compile(targetlang, from, toto.str(), tempdir, system, includer, definesplustex.str());
+			}
+		}
 	}
 	else {
-		std::cout << "Unknown profile " << argv[1] << std::endl;
-		CompileFailed = true;
+		if (instancedoptional && usesInstancedoptional) {
+			std::string toto = towithoutext + "-noinst" + ext;
+			compile(targetlang, from, toto, tempdir, system, includer, defines);
+			toto = towithoutext + "-inst" + ext;
+			std::string definesplusinst = defines + "#define INSTANCED_RENDERING\n";
+			compile(targetlang, from, toto, tempdir, system, includer, definesplusinst);
+		}
+		else {
+			compile(targetlang, from, to, tempdir, system, includer, defines);
+		}
 	}
-
+	
 	glslang::FinalizeProcess();
 
 	if (CompileFailed)
