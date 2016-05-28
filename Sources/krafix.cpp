@@ -728,7 +728,7 @@ private:
 //
 // Uses the new C++ interface instead of the old handle-based interface.
 //
-void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, const char* filename, const char* tempdir, const glslang::TShader::Includer& includer)
+void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, const char* filename, const char* tempdir, const glslang::TShader::Includer& includer, const char* defines)
 {
     // keep track of what to free
     std::list<glslang::TShader*> shaders;
@@ -745,6 +745,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
     while (Worklist.remove(workItem)) {
         EShLanguage stage = FindLanguage(workItem->name);
         glslang::TShader* shader = new glslang::TShader(stage);
+		shader->setPreamble(defines);
         shaders.push_back(shader);
     
         char** shaderStrings = ReadFileData(workItem->name.c_str());
@@ -908,6 +909,14 @@ int C_DECL main(int argc, char* argv[]) {
 		Work[0] = new glslang::TWorkItem(name);
 		Worklist.add(Work[0]);
 	}
+	
+	std::string defines;
+	for (int i = 6; i < argc; ++i) {
+		std::string arg = argv[i];
+		if (arg.substr(0, 2) == "-D") {
+			defines += "#define " + arg.substr(2);
+		}
+	}
 
 	ProcessConfigFile();
 
@@ -920,50 +929,50 @@ int C_DECL main(int argc, char* argv[]) {
 	if (strcmp(argv[1], "spirv") == 0) {
 		target.lang = krafix::SpirV;
 		target.version = 1;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(argv[1], "d3d9") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 9;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(argv[1], "d3d11") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = 11;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(argv[1], "glsl") == 0) {
 		target.lang = krafix::GLSL;
 		if (target.system == krafix::Linux) target.version = 110;
 		else target.version = 330;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(argv[1], "essl") == 0) {
 		target.lang = krafix::GLSL;
 		target.version = 100;
 		target.es = true;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(argv[1], "agal") == 0) {
 		target.lang = krafix::AGAL;
 		target.version = 100;
 		target.es = true;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(argv[1], "metal") == 0) {
 		target.lang = krafix::Metal;
 		target.version = 1;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(argv[1], "varlist") == 0) {
 		target.lang = krafix::VarList;
 		target.version = 1;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(argv[1], "js") == 0 || strcmp(argv[1], "javascript") == 0) {
 		target.lang = krafix::JavaScript;
 		target.version = 1;
-		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer);
+		CompileAndLinkShaders(target, argv[2], argv[3], tempdir, includer, defines.c_str());
 	}
 	else {
 		std::cout << "Unknown profile " << argv[1] << std::endl;
