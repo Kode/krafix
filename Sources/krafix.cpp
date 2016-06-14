@@ -944,7 +944,6 @@ void compile(const char* targetlang, const char* from, std::string to, const cha
 		std::cout << "Unknown profile " << targetlang << std::endl;
 		CompileFailed = true;
 	}
-	std::cout << "Compiled to " << to << std::endl;
 }
 
 int C_DECL main(int argc, char* argv[]) {
