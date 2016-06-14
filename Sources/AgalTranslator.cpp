@@ -13,6 +13,7 @@ namespace {
     struct ConstantVariable {
         unsigned id;
         unsigned type;
+		int size;
         std::vector<std::string> operands;
 
         ConstantVariable() {}
@@ -74,14 +75,16 @@ namespace {
             bool isConstant = false;
             int constantID = 0;
 
+			int offset = 0;
             for (unsigned i = 0; i < constants.size(); i++)
             {
                 if (constants[i].id == spirIndex)
                 {
-                    constantID = i;
+                    constantID = offset;
                     isConstant = true;
                     break;
                 }
+				offset += constants[i].size;
             }
 
             if (isConstant)
@@ -319,6 +322,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 	{
 		Register reg(stage, 99999);
 		reg.type = Constant;
+		reg.size = 4;
 		agal.push_back(Agal(con, reg, Register()));
 
         tmp_constants[99999] = "0.5";
@@ -326,6 +330,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
         ConstantVariable variable;
         variable.id = 99999;
         variable.type = 0;
+		variable.size = 4;
         variable.operands.push_back("0.5");
 
         constants.push_back(variable);
@@ -406,11 +411,13 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
             
 			Register reg(stage, result);
 			reg.type = Constant;
+			reg.size = 1;
 			agal.push_back(Agal(con, reg, Register()));
 
             //todo: clean out the unused constants at the end (for example, because they are used in a composite constant).
             ConstantVariable variable;
             variable.id = inst.operands[1];
+			variable.size = 1;
             variable.type = inst.operands[0];
             variable.operands.push_back(value);
             variable.operands.push_back(value);
@@ -428,6 +435,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
             ConstantVariable variable;
             variable.id = inst.operands[1];
             variable.type = inst.operands[0];
+			variable.size=1;
             
             for (unsigned i = 2; i < inst.length; i++)
             {
@@ -909,25 +917,31 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 	out << "\n\t},\n";
 	
 	out << "\t\"consts\": {\n";
+	int counter = 0;
 	for (unsigned i = 0; i < constants.size(); ++i) {
-        if (stage == EShLangVertex)
-        {
-            out << "\t\t\"vc" << i << "\": [";
-        }
-        else 
-        {
-            out << "\t\t\"fc" << i << "\": [";
-        }
+		for (unsigned j = 0; j < constants[i].size; ++j) //fill all the registers to avoid overlap
+		{
+			if (stage == EShLangVertex)
+			{
+				out << "\t\t\"vc" << counter << "\": [";
+			}
+			else
+			{
+				out << "\t\t\"fc" << counter << "\": [";
+			}
 
-        for (unsigned j = 0; j < constants[i].operands.size(); j++)
-        {
-            if (j != 0) out << ", ";
-            out << constants[i].operands[j];
-        }
-        out << "]";
+			for (unsigned j = 0; j < constants[i].operands.size(); j++)
+			{
+				if (j != 0) out << ", ";
+				out << constants[i].operands[j];
+			}
+			out << "]";
 
-		if (i < constants.size() - 1) out << ",";
-		out << "\n";
+			if (i < constants.size() - 1) out << ",";
+			out << "\n";
+			++counter;
+		}
+		
 	}
 	out << "\t},\n";
 	
