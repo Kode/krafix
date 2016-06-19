@@ -793,6 +793,18 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			t.name = "vec4";
 			t.length = 4;
 		}
+        else if (subtype.name == "bool" && inst.operands[2] == 2) {
+            t.name = "bvec2";
+            t.length = 2;
+        }
+        else if (subtype.name == "bool" && inst.operands[2] == 3) {
+            t.name = "bvec3";
+            t.length = 3;
+        }
+        else if (subtype.name == "bool" && inst.operands[2] == 4) {
+            t.name = "bvec4";
+            t.length = 4;
+        }
 		t.byteSize = subtype.byteSize * t.length;
 		break;
 	}
