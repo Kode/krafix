@@ -93,7 +93,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				if (target.system == Android && stage == EShLangFragment) {
 					(*out) << "#extension GL_OES_EGL_image_external : require\n";
 				}
-				else if (target.system == HTML5 && stage == EShLangFragment) {
+				else if ((target.system == HTML5 || (target.es && target.version == 100)) && stage == EShLangFragment) {
 					if (isFragDepthUsed) (*out) << "#extension GL_EXT_frag_depth : require\n";
 					if (isFragDataUsed) (*out) << "#extension GL_EXT_draw_buffers : require\n";
 					if (isTextureLodUsed) (*out) << "#extension GL_EXT_shader_texture_lod : require\n";
