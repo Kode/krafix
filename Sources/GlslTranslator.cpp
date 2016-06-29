@@ -34,6 +34,7 @@ void GlslTranslator::outputCode(const Target& target, const char* sourcefilename
 	}
 	else {
 		(*out) << "#version " << target.version << "\n";
+		if (target.es && target.version >= 300) (*out) << " es\n";
 	}
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
@@ -114,13 +115,16 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "};\n";
 				}
 
+				if (target.es) {
+					if (target.version >= 300) (*out) << "precision highp float;\n";
+					else (*out) << "precision mediump float;\n";
+				}
+
 				if (target.version >= 300 && stage == EShLangFragment) {
 					if (isFragDepthUsed) (*out) << "out float krafix_FragDepth;\n";
 					else if (isFragDataUsed) (*out) << "out vec4 krafix_FragData[" << fragDataIndexIds.size() << "];\n";
 					else (*out) << "out vec4 krafix_FragColor;\n";
 				}
-
-				if (target.es) (*out) << "precision mediump float;\n";
 
 				for (std::map<unsigned, Variable>::iterator v = variables.begin(); v != variables.end(); ++v) {
 					unsigned id = v->first;
