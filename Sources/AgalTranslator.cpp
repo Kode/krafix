@@ -10,21 +10,21 @@ using namespace krafix;
 namespace {
 	typedef unsigned id;
 
-    struct ConstantVariable {
-        unsigned id;
-        unsigned type;
+	struct ConstantVariable {
+		unsigned id;
+		unsigned type;
 		int size;
-        std::vector<std::string> operands;
+		std::vector<std::string> operands;
 
-        ConstantVariable() {}
-    };
+		ConstantVariable() {}
+	};
 
 	struct Variable {
 		unsigned id;
 		unsigned type;
 		spv::StorageClass storage;
 		bool builtin;
-		
+
 		Variable() : builtin(false) {}
 	};
 
@@ -38,17 +38,20 @@ namespace {
 
 	std::map<unsigned, Variable> variables;
 	std::map<unsigned, Type> types;
-    std::vector<ConstantVariable> constants;
+	std::vector<ConstantVariable> constants;
 
 	enum Opcode {
 		con, // pseudo instruction for constants
 		add,
+		sub,
 		mul,
+		div,
 		mov,
 		m44,
 		tex,
-        cos,
-        sin,
+		cos,
+		sin,
+		nrm,
 		unknown
 	};
 
@@ -72,27 +75,27 @@ namespace {
 		Register() : type(Unused), number(-1), swizzle("xyzw"), size(1), spirIndex(0) { }
 
 		Register(EShLanguage stage, unsigned spirIndex, const std::string& swizzle = "xyzw", int size = 1) : number(-1), swizzle(swizzle), size(size), spirIndex(spirIndex) {
-            bool isConstant = false;
-            int constantID = 0;
+			bool isConstant = false;
+			int constantID = 0;
 
 			int offset = 0;
-            for (unsigned i = 0; i < constants.size(); i++)
-            {
-                if (constants[i].id == spirIndex)
-                {
-                    constantID = offset;
-                    isConstant = true;
-                    break;
-                }
+			for (unsigned i = 0; i < constants.size(); i++)
+			{
+				if (constants[i].id == spirIndex)
+				{
+					constantID = offset;
+					isConstant = true;
+					break;
+				}
 				offset += constants[i].size;
-            }
+			}
 
-            if (isConstant)
-            {
-                number = constantID;
-                type = Constant;
-                return;
-            }
+			if (isConstant)
+			{
+				number = constantID;
+				type = Constant;
+				return;
+			}
 
 			if (variables.find(spirIndex) == variables.end()) {
 				type = Temporary;
@@ -199,17 +202,35 @@ namespace {
 				nextConstant += reg.size;
 				break;
 			case Sampler:
-				reg.number = nextSampler;
-				if (reg.spirIndex != 0) assigned[reg.spirIndex] = reg;
-				nextSampler += reg.size;
 				break;
 			}
 		}
 	}
+	void addNameTo(std::string name, std::vector<std::string>& names) {
+		for (auto s : names) {
+			if (s == name) return;
+		}
+		names.push_back(name);
+	}
 
-	bool includes(const std::vector<std::string>& array, const std::string& value) {
-		for (auto s : array) {
-			if (s == value) return true;
+	bool reMapInstruction(Agal instruction, RegisterType type, std::map<std::string, int>& newNumbers, std::map<unsigned, Register>& assigned, std::map<unsigned, Name>& names) {
+		if (instruction.destination.type == type) {
+			std::string name = names[instruction.destination.spirIndex].name;
+			instruction.destination.number = newNumbers[name];
+			assigned[instruction.destination.spirIndex] = instruction.destination;
+			return true;
+		}
+		else if (instruction.source1.type == type) {
+			std::string name = names[instruction.source1.spirIndex].name;
+			instruction.source1.number = newNumbers[name];
+			assigned[instruction.source1.spirIndex] = instruction.source1;
+			return true;
+		}
+		else if (instruction.source2.type == type) {
+			std::string name = names[instruction.source2.spirIndex].name;
+			instruction.source2.number = newNumbers[name];
+			assigned[instruction.source2.spirIndex] = instruction.source2;
+			return true;
 		}
 		return false;
 	}
@@ -221,44 +242,45 @@ namespace {
 		int nextSampler = 0;
 
 		std::vector<std::string> varyings;
+		std::vector<std::string> samplers;
 		for (unsigned i = 0; i < agal.size(); ++i) {
 			Agal& instruction = agal[i];
 			if (instruction.destination.type == Varying) {
-				std::string name = names[instruction.destination.spirIndex].name;
-				if (!includes(varyings, name)) varyings.push_back(name);
+				addNameTo(names[instruction.destination.spirIndex].name, varyings);
 			}
 			else if (instruction.source1.type == Varying) {
-				std::string name = names[instruction.source1.spirIndex].name;
-				if (!includes(varyings, name)) varyings.push_back(name);
+				addNameTo(names[instruction.source1.spirIndex].name, varyings);
 			}
 			else if (instruction.source2.type == Varying) {
-				std::string name = names[instruction.source2.spirIndex].name;
-				if (!includes(varyings, name)) varyings.push_back(name);
+				addNameTo(names[instruction.source2.spirIndex].name, varyings);
+			}
+			else if (instruction.destination.type == Sampler) {
+				addNameTo(names[instruction.destination.spirIndex].name, samplers);
+			}
+			else if (instruction.source1.type == Sampler) {
+				addNameTo(names[instruction.source1.spirIndex].name, samplers);
+			}
+			else if (instruction.source2.type == Sampler) {
+				addNameTo(names[instruction.source2.spirIndex].name, samplers);
 			}
 		}
 		std::sort(varyings.begin(), varyings.end());
+		std::sort(samplers.begin(), samplers.end());
 		std::map<std::string, int> varyingNumbers;
+		std::map<std::string, int> samplerNumbers;
 		for (unsigned i = 0; i < varyings.size(); ++i) {
 			varyingNumbers[varyings[i]] = i;
+		}
+		for (unsigned i = 0; i < samplers.size(); ++i) {
+			samplerNumbers[samplers[i]] = i;
 		}
 
 		for (unsigned i = 0; i < agal.size(); ++i) {
 			Agal& instruction = agal[i];
 			if (instruction.opcode == unknown) continue;
-			if (instruction.destination.type == Varying) {
-				std::string name = names[instruction.destination.spirIndex].name;
-				instruction.destination.number = varyingNumbers[name];
-				assigned[instruction.destination.spirIndex] = instruction.destination;
-			}
-			else if (instruction.source1.type == Varying) {
-				std::string name = names[instruction.source1.spirIndex].name;
-				instruction.source1.number = varyingNumbers[name];
-				assigned[instruction.source1.spirIndex] = instruction.source1;
-			}
-			else if (instruction.source2.type == Varying) {
-				std::string name = names[instruction.source2.spirIndex].name;
-				instruction.source2.number = varyingNumbers[name];
-				assigned[instruction.source2.spirIndex] = instruction.source2;
+			if (!reMapInstruction(instruction, Varying, varyingNumbers, assigned, names))
+			{
+				reMapInstruction(instruction, Sampler, samplerNumbers, assigned, names);
 			}
 		}
 
@@ -311,7 +333,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 
 	std::map<unsigned, Name> names;
 	std::map<unsigned, std::string> tmp_constants;
-    constants.clear();
+	constants.clear();
 	types.clear();
 	variables.clear();
 	unsigned vertexOutput = 0;
@@ -325,19 +347,20 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 		reg.size = 4;
 		agal.push_back(Agal(con, reg, Register()));
 
-        tmp_constants[99999] = "0.5";
+		tmp_constants[99999] = "0.5";
 
-        ConstantVariable variable;
-        variable.id = 99999;
-        variable.type = 0;
+		ConstantVariable variable;
+		variable.id = 99999;
+		variable.type = 0;
 		variable.size = 4;
-        variable.operands.push_back("0.5");
+		variable.operands.push_back("0.5");
 
-        constants.push_back(variable);
+		constants.push_back(variable);
 	}
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
+		printf("'%i',", inst.opcode);
 		switch (inst.opcode) {
 		case OpName: {
 			unsigned id = inst.operands[0];
@@ -407,23 +430,23 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 				value = strvalue.str();
 			}
 
-            tmp_constants[result] = value;
-            
+			tmp_constants[result] = value;
+
 			Register reg(stage, result);
 			reg.type = Constant;
 			reg.size = 1;
 			agal.push_back(Agal(con, reg, Register()));
 
-            //todo: clean out the unused constants at the end (for example, because they are used in a composite constant).
-            ConstantVariable variable;
-            variable.id = inst.operands[1];
+			//todo: clean out the unused constants at the end (for example, because they are used in a composite constant).
+			ConstantVariable variable;
+			variable.id = inst.operands[1];
 			variable.size = 1;
-            variable.type = inst.operands[0];
-            variable.operands.push_back(value);
-            variable.operands.push_back(value);
-            variable.operands.push_back(value);
-            variable.operands.push_back(value);
-            constants.push_back(variable);
+			variable.type = inst.operands[0];
+			variable.operands.push_back(value);
+			variable.operands.push_back(value);
+			variable.operands.push_back(value);
+			variable.operands.push_back(value);
+			constants.push_back(variable);
 
 			break;
 		}
@@ -432,18 +455,18 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			id result = inst.operands[1];
 			types[result] = resultType;
 
-            ConstantVariable variable;
-            variable.id = inst.operands[1];
-            variable.type = inst.operands[0];
-			variable.size=1;
-            
-            for (unsigned i = 2; i < inst.length; i++)
-            {
-                variable.operands.push_back(tmp_constants[inst.operands[i]]);
-            }
+			ConstantVariable variable;
+			variable.id = inst.operands[1];
+			variable.type = inst.operands[0];
+			variable.size = 1;
 
-            constants.push_back(variable);
-            //result = vec4(inst.operands[2], inst.operands[3], inst.operands[4], inst.operands[5])
+			for (unsigned i = 2; i < inst.length; i++)
+			{
+				variable.operands.push_back(tmp_constants[inst.operands[i]]);
+			}
+
+			constants.push_back(variable);
+			//result = vec4(inst.operands[2], inst.operands[3], inst.operands[4], inst.operands[5])
 			break;
 		}
 		case OpTypeArray: {
@@ -556,6 +579,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
 			unsigned composite = inst.operands[2];
+			
 			agal.push_back(Agal(mov, Register(stage, result, "xyzw"), Register(stage, composite, indexName4(inst.operands[3]))));
 			break;
 		}
@@ -615,6 +639,31 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			agal.push_back(Agal(mul, Register(stage, result), Register(stage, operand1), Register(stage, operand2)));
 			break;
 		}
+		case OpFAdd: {
+			Type resultType = types[inst.operands[0]];
+			unsigned result = inst.operands[1];
+			unsigned operand1 = inst.operands[2];
+			unsigned operand2 = inst.operands[3];
+			agal.push_back(Agal(add, Register(stage, result), Register(stage, operand1), Register(stage, operand2)));
+			break;
+		}
+		case OpFSub: {
+			Type resultType = types[inst.operands[0]];
+			unsigned result = inst.operands[1];
+			unsigned operand1 = inst.operands[2];
+			unsigned operand2 = inst.operands[3];
+			agal.push_back(Agal(sub, Register(stage, result), Register(stage, operand1), Register(stage, operand2)));
+			break;
+		}
+		case OpFDiv: {
+			Type resultType = types[inst.operands[0]];
+			unsigned result = inst.operands[1];
+			unsigned operand1 = inst.operands[2];
+			unsigned operand2 = inst.operands[3];
+			agal.push_back(Agal(Opcode::div, Register(stage, result), Register(stage, operand1), Register(stage, operand2)));
+			break;
+		}
+
 		case OpVectorTimesScalar: {
 			Type resultType = types[inst.operands[0]];
 			unsigned result = inst.operands[1];
@@ -705,32 +754,37 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			}
 			break;
 		}
-        case OpExtInst: {
-            Type& resultType = types[inst.operands[0]];
-            id result = inst.operands[1];
-            types[result] = resultType;
-            id set = inst.operands[2];
-            {
-                GLSLstd450 instruction = (GLSLstd450)inst.operands[3];
-                switch (instruction)
-                {
-                    case GLSLstd450Cos:
-                        agal.push_back(Agal(Opcode::cos, Register(stage, inst.operands[1]), Register(stage, inst.operands[4])));
-                        break;
-                    case GLSLstd450Sin:
-                        agal.push_back(Agal(Opcode::sin, Register(stage, inst.operands[1]), Register(stage, inst.operands[4])));
-                        break;
-                    default:
-                        printf("Unknown extinst '%i' in the agal translator.\n", instruction);
-                }
-            }
-            break;
-        }
-		case OpAccessChain: {
+		case OpExtInst: {
+			Type& resultType = types[inst.operands[0]];
+			id result = inst.operands[1];
+			types[result] = resultType;
+			id set = inst.operands[2];
+			{
+				GLSLstd450 instruction = (GLSLstd450)inst.operands[3];
+				switch (instruction)
+				{
+				case GLSLstd450Cos:
+					agal.push_back(Agal(Opcode::cos, Register(stage, inst.operands[1]), Register(stage, inst.operands[4])));
+					break;
+				case GLSLstd450Sin:
+					agal.push_back(Agal(Opcode::sin, Register(stage, inst.operands[1]), Register(stage, inst.operands[4])));
+					break;
+				case GLSLstd450Normalize:
+					agal.push_back(Agal(nrm, Register(stage, inst.operands[1], "xyz"), Register(stage, inst.operands[3])));
+					break;
+				default:
+					printf("Unknown extinst '%i' in the agal translator.\n", instruction);
+				}
+			}
+			break;
+		}
+		case OpAccessChain: { ///test this
 			std::stringstream swizzle;
+			printf("length is'%i',", inst.length);
 			for (unsigned i = 3; i < inst.length; ++i) {
 				swizzle << indexName(inst.operands[3]);
 			}
+			printf("value is'%i'?,", inst.operands[3]);
 			agal.push_back(Agal(mov, Register(stage, inst.operands[1]), Register(stage, inst.operands[2], swizzle.str())));
 			break;
 		}
@@ -756,7 +810,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 		reg.type = Constant;
 		reg.swizzle = "x";
 		agal.push_back(Agal(mul, posz, reg, Register(stage, 99998, "x")));
-		
+
 		Register op(stage, 0);
 		op.type = Output;
 		op.number = 0;
@@ -766,140 +820,141 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 	}
 
 	std::map<unsigned, Register> assigned;
-    for (unsigned i = 0; i < constants.size(); i++)
-    {
-        assigned[constants[i].id] = Register(stage, constants[i].id);
-    }
+	for (unsigned i = 0; i < constants.size(); i++)
+	{
+		assigned[constants[i].id] = Register(stage, constants[i].id);
+	}
 	assignRegisterNumbers(agal, assigned, names);
 
-    //Optimize, todo: optimize this optimize pass
-    std::map<int, int> firstUsed;
-    std::map<int, int> lastUsed;
-    for (int i = agal.size() - 1; i >= 0; i--)
-    {
-        Agal& instruction = agal[i];
-        if (instruction.opcode == unknown) {
-            continue;
-        }
+	//Optimize, todo: optimize this optimize pass
+	std::map<int, int> firstUsed;
+	std::map<int, int> lastUsed;
+	for (int i = agal.size() - 1; i >= 0; i--)
+	{
+		Agal& instruction = agal[i];
+		if (instruction.opcode == unknown) {
+			continue;
+		}
 
-        if (instruction.source1.type == Temporary)
-        {
-            firstUsed[instruction.source1.spirIndex] = i;
-            if (lastUsed.find(instruction.source1.spirIndex) == lastUsed.end())
-            {
-                lastUsed[instruction.source1.spirIndex] = i;
-            }
-        }
+		if (instruction.source1.type == Temporary)
+		{
+			firstUsed[instruction.source1.spirIndex] = i;
+			if (lastUsed.find(instruction.source1.spirIndex) == lastUsed.end())
+			{
+				lastUsed[instruction.source1.spirIndex] = i;
+			}
+		}
 
-        if (instruction.source2.type == Temporary)
-        {
-            firstUsed[instruction.source2.spirIndex] = i;
-            if (lastUsed.find(instruction.source2.spirIndex) == lastUsed.end())
-            {
-                lastUsed[instruction.source2.spirIndex] = i;
-            }
-        }
+		if (instruction.source2.type == Temporary)
+		{
+			firstUsed[instruction.source2.spirIndex] = i;
+			if (lastUsed.find(instruction.source2.spirIndex) == lastUsed.end())
+			{
+				lastUsed[instruction.source2.spirIndex] = i;
+			}
+		}
 
-        if (instruction.destination.type == Temporary)
-        {
-            firstUsed[instruction.destination.spirIndex] = i;
-            if (lastUsed.find(instruction.destination.spirIndex) == lastUsed.end())
-            {
-                lastUsed[instruction.destination.spirIndex] = i;
-            }
-        }
-    }
+		if (instruction.destination.type == Temporary)
+		{
+			firstUsed[instruction.destination.spirIndex] = i;
+			if (lastUsed.find(instruction.destination.spirIndex) == lastUsed.end())
+			{
+				lastUsed[instruction.destination.spirIndex] = i;
+			}
+		}
+	}
 
-    std::map<int, int> currentlyUsed;
-    std::vector<bool> tempRegisters;
-    for (unsigned i = 0; i < 26; i++)
-    {
-        tempRegisters.push_back(false);
-    }
+	std::map<int, int> currentlyUsed;
+	std::vector<bool> tempRegisters;
+	for (unsigned i = 0; i < 26; i++)
+	{
+		tempRegisters.push_back(false);
+	}
 
-    auto free_register = [&](int size = 1) {
-        for (int i = 0; i < 26; i++)
-        {
-            bool found = true;
-            for (int j = 0; j < size; j++)
-            {
-                if (tempRegisters[i + j])
-                {
-                    found = false;
-                    break;
-                }
-            }
+	auto free_register = [&](int size = 1) {
+		for (int i = 0; i < 26; i++)
+		{
+			bool found = true;
+			for (int j = 0; j < size; j++)
+			{
+				if (tempRegisters[i + j])
+				{
+					found = false;
+					break;
+				}
+			}
 
-            if (found)
-                return i;
-        }
+			if (found)
+				return i;
+		}
 
-        return -1;
-    };
+		return -1;
+	};
 
-    for (unsigned i = 0; i < agal.size(); i++)
-    {
-        Agal& instruction = agal[i];
+	for (unsigned i = 0; i < agal.size(); i++)
+	{
+		Agal& instruction = agal[i];
 
-        if (instruction.opcode == unknown) {
-            continue;
-        }
+		if (instruction.opcode == unknown) {
+			continue;
+		}
 
-        if (instruction.source1.type == Temporary)
-        {
-            instruction.source1.number = currentlyUsed[instruction.source1.spirIndex];
-            if (i == lastUsed[instruction.source1.spirIndex])
-            {
-                for (unsigned j = 0; j < instruction.source1.size; j++)
-                    tempRegisters[currentlyUsed[instruction.source1.spirIndex] + j] = false;
-            }
-        }
+		if (instruction.source1.type == Temporary)
+		{
+			instruction.source1.number = currentlyUsed[instruction.source1.spirIndex];
+			if (i == lastUsed[instruction.source1.spirIndex])
+			{
+				for (unsigned j = 0; j < instruction.source1.size; j++)
+					tempRegisters[currentlyUsed[instruction.source1.spirIndex] + j] = false;
+			}
+		}
 
-        if (instruction.source2.type == Temporary)
-        {
-            instruction.source2.number = currentlyUsed[instruction.source2.spirIndex];
-            if (i == lastUsed[instruction.source2.spirIndex])
-            {
-                for (unsigned j = 0; j < instruction.source2.size; j++)
-                    tempRegisters[currentlyUsed[instruction.source2.spirIndex] + j] = false;
-            }
-        }
+		if (instruction.source2.type == Temporary)
+		{
+			instruction.source2.number = currentlyUsed[instruction.source2.spirIndex];
+			if (i == lastUsed[instruction.source2.spirIndex])
+			{
+				for (unsigned j = 0; j < instruction.source2.size; j++)
+					tempRegisters[currentlyUsed[instruction.source2.spirIndex] + j] = false;
+			}
+		}
 
-        if (instruction.destination.type == Temporary)
-        {
-            if (currentlyUsed.find(instruction.destination.spirIndex) == currentlyUsed.end())
-            {
-                int tmpRegister = free_register(instruction.destination.size);
-                //todo: handle out of temporaries
+		if (instruction.destination.type == Temporary)
+		{
+			if (currentlyUsed.find(instruction.destination.spirIndex) == currentlyUsed.end())
+			{
+				int tmpRegister = free_register(instruction.destination.size);
+				//todo: handle out of temporaries
 
-                currentlyUsed[instruction.destination.spirIndex] = tmpRegister;
+				currentlyUsed[instruction.destination.spirIndex] = tmpRegister;
 
-                for (unsigned j = 0; j < instruction.destination.size; j++)
-                    tempRegisters[tmpRegister + j] = true;
-            }
+				for (unsigned j = 0; j < instruction.destination.size; j++)
+					tempRegisters[tmpRegister + j] = true;
+			}
 
-            instruction.destination.number = currentlyUsed[instruction.destination.spirIndex];
-            if (i == lastUsed[instruction.destination.spirIndex])
-            {
-                for (unsigned j = 0; j < instruction.destination.size; j++)
-                    tempRegisters[currentlyUsed[instruction.destination.spirIndex] + j] = false;
-            }
-        }
-    }
+			instruction.destination.number = currentlyUsed[instruction.destination.spirIndex];
+			if (i == lastUsed[instruction.destination.spirIndex])
+			{
+				for (unsigned j = 0; j < instruction.destination.size; j++)
+					tempRegisters[currentlyUsed[instruction.destination.spirIndex] + j] = false;
+			}
+		}
+	}
 
-    for (auto it = assigned.begin(); it != assigned.end(); ++it) {
-        if (names.find(it->first) != names.end()) {
-            if (it->second.type == Temporary)
-                it->second.number = currentlyUsed[it->second.spirIndex];
-        }
-    }
-    //Optimize
+	for (auto it = assigned.begin(); it != assigned.end(); ++it) {
+		if (names.find(it->first) != names.end()) {
+			if (it->second.type == Temporary)
+				it->second.number = currentlyUsed[it->second.spirIndex];
+		}
+	}
+
+	//Optimize
 
 	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
 
 	out << "{\n";
-	
+
 	out << "\t\"varnames\": {\n";
 	bool first = true;
 	for (auto it = assigned.begin(); it != assigned.end(); ++it) {
@@ -915,7 +970,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 		}
 	}
 	out << "\n\t},\n";
-	
+
 	out << "\t\"consts\": {\n";
 	int counter = 0;
 	for (unsigned i = 0; i < constants.size(); ++i) {
@@ -941,10 +996,10 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			out << "\n";
 			++counter;
 		}
-		
+
 	}
 	out << "\t},\n";
-	
+
 	out << "\t\"agalasm\": \"";
 	for (unsigned i = 0; i < agal.size(); ++i) {
 		Agal instruction = agal[i];
@@ -961,8 +1016,14 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			case add:
 				out << "add";
 				break;
+			case sub:
+				out << "sub";
+				break;
 			case mul:
 				out << "mul";
+				break;
+			case Opcode::div:
+				out << "div";
 				break;
 			case m44:
 				out << "m44";
@@ -970,12 +1031,15 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			case tex:
 				out << "tex";
 				break;
-            case Opcode::cos:
-                out << "cos";
-                break;
-            case Opcode::sin:
-                out << "sin";
-                break;
+			case Opcode::cos:
+				out << "cos";
+				break;
+			case Opcode::sin:
+				out << "sin";
+				break;
+			case nrm:
+				out << "nrm";
+				break;
 			case unknown:
 				out << "unknown";
 				break;
