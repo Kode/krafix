@@ -793,6 +793,18 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			t.name = "vec4";
 			t.length = 4;
 		}
+        else if (subtype.name == "bool" && inst.operands[2] == 2) {
+            t.name = "bvec2";
+            t.length = 2;
+        }
+        else if (subtype.name == "bool" && inst.operands[2] == 3) {
+            t.name = "bvec3";
+            t.length = 3;
+        }
+        else if (subtype.name == "bool" && inst.operands[2] == 4) {
+            t.name = "bvec4";
+            t.length = 4;
+        }
 		t.byteSize = subtype.byteSize * t.length;
 		break;
 	}
@@ -1618,6 +1630,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id lod = inst.operands[5];
 		std::stringstream str;
 		if (target.system == HTML5) str << "texture2DLodEXT";
+		else if (target.es && target.version == 100) str << "texture2DLodEXT";
 		else if (target.version < 300) str << "texture2DLod";
 		else str << "textureLod";
 		str << "(" << getReference(sampler) << ", " << getReference(coordinate) << ", " << getReference(lod) << ")";
@@ -1709,6 +1722,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			output(out);
 			if (isFragDepthUsed) {
 				if (target.system == HTML5) (*out) << "gl_FragDepthEXT";
+				else if (target.es && target.version == 100) (*out) << "gl_FragDepthEXT";
 				else (*out) << "gl_FragDepth";
 			}
 			else (*out) << "gl_FragColor";

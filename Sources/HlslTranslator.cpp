@@ -218,7 +218,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "struct InputVert {\n";
 				}
 				++indentation;
-				if (stage == EShLangFragment && target.version > 9) {
+				if ((stage == EShLangFragment || stage ==EShLangTessControl) && target.version > 9) {
 					indent(out);
 					(*out) << "float4 gl_Position : SV_POSITION;\n";
 				}
@@ -436,7 +436,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					}
 					else if (stage == EShLangTessEvaluation) {
 						(*out) << "[domain(\"tri\")]\n"; indent(out);
-						(*out) << "OutputTessE main(float edges[3] : SV_TessFactor, float inside : SV_InsideTessFactor, float3 gl_TessCoord : SV_DomainLocation, const OutputPatch<InputTessE, 3> input)\n";
+						(*out) << "OutputTessE main(float inside : SV_InsideTessFactor, float edges[3] : SV_TessFactor, float3 gl_TessCoord : SV_DomainLocation, const OutputPatch<InputTessE, 3> input)\n";
 					}
 					else if (stage == EShLangGeometry) {
 						(*out) << "[maxvertexcount(3)]\n"; indent(out);
