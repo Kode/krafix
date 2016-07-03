@@ -326,6 +326,18 @@ namespace {
 			out << "." << reg.swizzle;
 		}
 	}
+
+	ConstantVariable findConstant(unsigned id) {
+		for (int i = 0; i < constants.size(); ++i) {
+			if (constants[i].id == id) {
+				return constants[i];
+			}
+		}
+		ConstantVariable invalid;
+		invalid.id = 0;
+		invalid.size = 0;
+		return invalid;
+	}
 }
 
 void AgalTranslator::outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) {
@@ -340,8 +352,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 
 	std::vector<Agal> agal;
 
-	if (stage == EShLangVertex)
-	{
+	if (stage == EShLangVertex) {
 		Register reg(stage, 99999);
 		reg.type = Constant;
 		reg.size = 4;
@@ -778,13 +789,12 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			}
 			break;
 		}
-		case OpAccessChain: { ///test this
+		case OpAccessChain: {
 			std::stringstream swizzle;
-			printf("length is'%i',", inst.length);
 			for (unsigned i = 3; i < inst.length; ++i) {
-				swizzle << indexName(inst.operands[3]);
+				ConstantVariable constvar = findConstant(inst.operands[i]);
+				swizzle << indexName(atoi(constvar.operands[0].c_str()));
 			}
-			printf("value is'%i'?,", inst.operands[3]);
 			agal.push_back(Agal(mov, Register(stage, inst.operands[1]), Register(stage, inst.operands[2], swizzle.str())));
 			break;
 		}
@@ -797,8 +807,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 	}
 
 	//adjust clip space
-	if (stage == EShLangVertex)
-	{
+	if (stage == EShLangVertex) {
 		Register poszzzz(stage, vertexOutput, "zzzz");
 		poszzzz.type = Temporary;
 		Register poswwww(stage, vertexOutput, "wwww");
@@ -820,8 +829,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 	}
 
 	std::map<unsigned, Register> assigned;
-	for (unsigned i = 0; i < constants.size(); i++)
-	{
+	for (unsigned i = 0; i < constants.size(); ++i) {
 		assigned[constants[i].id] = Register(stage, constants[i].id);
 	}
 	assignRegisterNumbers(agal, assigned, names);
