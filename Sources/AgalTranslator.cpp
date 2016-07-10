@@ -371,7 +371,6 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
-		printf("'%i',", inst.opcode);
 		switch (inst.opcode) {
 		case OpName: {
 			unsigned id = inst.operands[0];
