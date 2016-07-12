@@ -798,9 +798,9 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			break;
 		}
 		default:
-			Agal instruction(unknown, Register(stage, inst.opcode), Register(stage, inst.opcode));
-			instruction.destination.number = inst.opcode;
-			agal.push_back(instruction);
+			//Agal instruction(unknown, Register(stage, inst.opcode), Register(stage, inst.opcode));
+			//instruction.destination.number = inst.opcode;
+			//agal.push_back(instruction);
 			break;
 		}
 	}
