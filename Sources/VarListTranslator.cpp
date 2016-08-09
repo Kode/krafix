@@ -1,4 +1,6 @@
 #include "VarListTranslator.h"
+#include <SPIRV/spirv.hpp>
+#include "../glslang/glslang/Public/ShaderLang.h"
 #include <fstream>
 #include <string.h>
 #include <iostream>
@@ -51,22 +53,22 @@ void VarListTranslator::outputCode(const Target& target, const char* sourcefilen
 	std::ostream out(buf);
 
 	switch (stage) {
-	case EShLangVertex:
+	case StageVertex:
 		out << "vertex\n";
 		break;
-	case EShLangFragment:
+	case StageFragment:
 		out << "fragment\n";
 		break;
-	case EShLangGeometry:
+	case StageGeometry:
 		out << "geometry\n";
 		break;
-	case EShLangTessControl:
+	case StageTessControl:
 		out << "tesscontrol\n";
 		break;
-	case EShLangTessEvaluation:
+	case StageTessEvaluation:
 		out << "tessevaluation\n";
 		break;
-	case EShLangCompute:
+	case StageCompute:
 		out << "compute\n";
 		break;
 	}

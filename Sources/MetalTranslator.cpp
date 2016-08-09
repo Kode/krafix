@@ -271,7 +271,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			v.declared = v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
 			if (names.find(id) != names.end()) {
 				if (v.storage == StorageClassInput) {
-					if (stage == EShLangVertex) {
+					if (stage == StageVertex) {
 						Type& type = types[v.type];
 						if (type.name == "float2" || type.name == "float3" || type.name == "float4") references[id] = type.name + std::string("(vertices[vid].") + names[id].name + ")";
 						else references[id] = std::string("vertices[vid].") + names[id].name;
@@ -281,7 +281,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 					}
 				}
 				else if (v.storage == StorageClassOutput) {
-					if (stage == EShLangVertex) references[id] = std::string("output.") + names[id].name;
+					if (stage == StageVertex) references[id] = std::string("output.") + names[id].name;
 					else references[id] = "output";
 				}
 				else if (v.storage == StorageClassUniformConstant) {
@@ -335,7 +335,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 
 				if (variable.storage == StorageClassInput) {
 					indent(out);
-					if (stage == EShLangVertex) {
+					if (stage == StageVertex) {
 						(*out) << "packed_" << t.name << " " << n.name << ";\n";
 					}
 					else {
@@ -348,7 +348,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			indent(out);
 			(*out) << "};\n\n";
 
-			if (stage == EShLangVertex) {
+			if (stage == StageVertex) {
 				indent(out);
 				(*out) << "struct " << name << "_out {\n";
 				++indentation;
@@ -361,12 +361,12 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 					Name n = names[id];
 
 					if (variable.storage == StorageClassOutput) {
-						if (variable.builtin && stage == EShLangVertex) {
+						if (variable.builtin && stage == StageVertex) {
 							positionName = n.name;
 							indent(out);
 							(*out) << t.name << " " << n.name << " [[position]];\n";
 						}
-						else if (variable.builtin && stage == EShLangFragment) {
+						else if (variable.builtin && stage == StageFragment) {
 							indent(out);
 							(*out) << t.name << " " << n.name << " : COLOR;\n";
 						}
@@ -383,7 +383,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			}
 
 			indent(out);
-			if (stage == EShLangVertex) {
+			if (stage == StageVertex) {
 				(*out) << "vertex " << name << "_out " << name << "_main(device " << name << "_in* vertices [[buffer(0)]]"
 					<< ", constant " << name << "_uniforms& uniforms [[buffer(1)]]"
 					<< ", unsigned int vid [[vertex_id]]) {\n";
@@ -414,7 +414,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 			}
 			++indentation;
 			indent(out);
-			if (stage == EShLangVertex) (*out) << name << "_out output;";
+			if (stage == StageVertex) (*out) << name << "_out output;";
 			else (*out) << "float4 output;";
 			break;
 		}
@@ -440,7 +440,7 @@ void MetalTranslator::outputInstruction(const Target& target, std::map<std::stri
 		}
 		case OpReturn:
 			output(out);
-			if (stage == EShLangVertex) {
+			if (stage == StageVertex) {
 				if (target.version == 9) {
 					//out << "output." << positionName << ".x = output." << positionName << ".x - dx_ViewAdjust.x * output." << positionName << ".w;\n";
 					//indent(out);

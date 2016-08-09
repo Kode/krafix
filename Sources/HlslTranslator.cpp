@@ -104,7 +104,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					(*out) << "}\n\n";
 				}
 
-				if (stage == EShLangVertex && target.version == 9) {
+				if (stage == StageVertex && target.version == 9) {
 					(*out) << "uniform float4 dx_ViewAdjust;";
 				}
 				(*out) << "\n";
@@ -117,11 +117,11 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				currentNames = names;
 				std::sort(sortedVariables.begin(), sortedVariables.end(), compareVariables);
 
-				if (stage == EShLangVertex) {
+				if (stage == StageVertex) {
 					indent(out);
 					(*out) << "static float4 v_gl_Position;\n";
 				}
-				else if (stage == EShLangTessEvaluation) {
+				else if (stage == StageTessEvaluation) {
 					indent(out);
 					(*out) << "static float4 gl_Position;\n";
 				}
@@ -133,7 +133,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Name n = names[variable.id];
 
 					if (t.members.size() > 0) continue;
-					if (stage == EShLangVertex && n.name.substr(0, 3) == "gl_") continue;
+					if (stage == StageVertex && n.name.substr(0, 3) == "gl_") continue;
 
 					if (n.name == "") continue;
 
@@ -147,7 +147,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						}
 					}
 					else {
-						if (stage == EShLangVertex) {
+						if (stage == StageVertex) {
 							if (t.isarray) {
 								(*out) << "static " << t.name << " v_" << n.name << "[" << t.length << "];\n";
 							}
@@ -155,7 +155,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								(*out) << "static " << t.name << " v_" << n.name << ";\n";
 							}
 						}
-						else if (stage == EShLangTessControl) {
+						else if (stage == StageTessControl) {
 							if (t.isarray) {
 								(*out) << "static " << t.name << " tc_" << n.name << "[" << t.length << "];\n";
 							}
@@ -163,7 +163,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								(*out) << "static " << t.name << " tc_" << n.name << ";\n";
 							}
 						}
-						else if (stage == EShLangTessEvaluation) {
+						else if (stage == StageTessEvaluation) {
 							if (t.isarray) {
 								(*out) << "static " << t.name << " te_" << n.name << "[" << t.length << "];\n";
 							}
@@ -171,7 +171,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								(*out) << "static " << t.name << " te_" << n.name << ";\n";
 							}
 						}
-						else if (stage == EShLangGeometry) {
+						else if (stage == StageGeometry) {
 							if (n.name == "gl_in") {
 								(*out) << "static float4 gl_Position" << "[" << t.length << "];\n";
 							}
@@ -182,7 +182,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								(*out) << "static " << t.name << " g_" << n.name << ";\n";
 							}
 						}
-						else if (stage == EShLangCompute) {
+						else if (stage == StageCompute) {
 							if (t.isarray) {
 								(*out) << "static " << t.name << " c_" << n.name << "[" << t.length << "];\n";
 							}
@@ -202,31 +202,31 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 				(*out) << "\n";
 
-				if (stage == EShLangFragment) {
+				if (stage == StageFragment) {
 					(*out) << "struct InputFrag {\n";
 				}
-				else if (stage == EShLangTessControl) {
+				else if (stage == StageTessControl) {
 					(*out) << "struct InputTessC {\n";
 				}
-				else if (stage == EShLangTessEvaluation) {
+				else if (stage == StageTessEvaluation) {
 					(*out) << "struct InputTessE {\n";
 				}
-				else if (stage == EShLangGeometry) {
+				else if (stage == StageGeometry) {
 					(*out) << "struct InputGeom {\n";
 				}
 				else {
 					(*out) << "struct InputVert {\n";
 				}
 				++indentation;
-				if ((stage == EShLangFragment || stage ==EShLangTessControl) && target.version > 9) {
+				if ((stage == StageFragment || stage ==StageTessControl) && target.version > 9) {
 					indent(out);
 					(*out) << "float4 gl_Position : SV_POSITION;\n";
 				}
-				else if ((stage == EShLangFragment && target.version == 9) || target.system == Unity) {
+				else if ((stage == StageFragment && target.version == 9) || target.system == Unity) {
 					indent(out);
 					(*out) << "float4 gl_Position : POSITION;\n";
 				}
-				else if (stage == EShLangGeometry) {
+				else if (stage == StageGeometry) {
 					indent(out);
 					(*out) << "float4 gl_Position : POSITION;\n";
 				}
@@ -241,7 +241,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					if (variable.storage == StorageClassInput && strncmp(n.name.c_str(), "gl_", 3) != 0) {
 						indent(out);
-						if (stage == EShLangVertex && target.system == Unity) {
+						if (stage == StageVertex && target.system == Unity) {
 							if (t.name == "float") {
 								(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
 								++uvindex;
@@ -264,7 +264,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						else {
-							if (t.name == "float4x4" && stage == EShLangVertex) {
+							if (t.name == "float4x4" && stage == StageVertex) {
 								for (int i = 0; i < 4; ++i) {
 									char name[101];
 									strcpy(name, n.name.c_str());
@@ -273,7 +273,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 									_itoa(i, &name[length], 10);
 									name[length + 1] = 0;
 									(*out) << "float4 " << name << " : TEXCOORD" << index << ";\n";
-									if (stage == EShLangVertex) {
+									if (stage == StageVertex) {
 										attributes[name] = index;
 									}
 									if (i != 3) indent(out);
@@ -283,7 +283,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 							else {
 								(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
-								if (stage == EShLangVertex) {
+								if (stage == StageVertex) {
 									attributes[n.name] = index;
 								}
 							}
@@ -296,35 +296,35 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				(*out) << "};\n\n";
 
 				indent(out);
-				if (stage == EShLangFragment) {
+				if (stage == StageFragment) {
 					(*out) << "struct OutputFrag {\n";
 				}
-				else if (stage == EShLangTessControl) {
+				else if (stage == StageTessControl) {
 					(*out) << "struct OutputTessC {\n";
 				}
-				else if (stage == EShLangTessEvaluation) {
+				else if (stage == StageTessEvaluation) {
 					(*out) << "struct OutputTessE {\n";
 				}
-				else if (stage == EShLangGeometry) {
+				else if (stage == StageGeometry) {
 					(*out) << "struct OutputGeom {\n";
 				}
 				else {
 					(*out) << "struct OutputVert {\n";
 				}
 				++indentation;
-				if (stage == EShLangVertex && target.version > 9) {
+				if (stage == StageVertex && target.version > 9) {
 					indent(out);
 					(*out) << "float4 gl_Position : SV_POSITION;\n";
 				}
-				else if ((stage == EShLangVertex && target.version == 9) || target.system == Unity) {
+				else if ((stage == StageVertex && target.version == 9) || target.system == Unity) {
 					indent(out);
 					(*out) << "float4 gl_Position : POSITION;\n";
 				}
-				else if (stage == EShLangGeometry) {
+				else if (stage == StageGeometry) {
 					indent(out);
 					(*out) << "float4 gl_Position : POSITION;\n";
 				}
-				else if (stage == EShLangTessEvaluation) {
+				else if (stage == StageTessEvaluation) {
 					indent(out);
 					(*out) << "float4 gl_Position : SV_POSITION;\n";
 				}
@@ -337,7 +337,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					Name n = names[variable.id];
 
 					if (variable.storage == StorageClassOutput) {
-						/*if (variable.builtin && stage == EShLangVertex) {
+						/*if (variable.builtin && stage == StageVertex) {
 							positionName = n.name;
 							indent(out);
 							if (target.version == 9) {
@@ -347,7 +347,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								(*out) << t.name << " " << n.name << " : SV_POSITION;\n";
 							}
 						}
-						else*/ if (stage == EShLangFragment) {
+						else*/ if (stage == StageFragment) {
 							indent(out);
 							(*out) << t.name << " " << n.name << " : COLOR;\n";
 						}
@@ -364,19 +364,19 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						if (t.members.size() > 0) {
 
 						}
-						else if (variable.builtin && stage == EShLangVertex) {
+						else if (variable.builtin && stage == StageVertex) {
 
 						}
-						else if (stage == EShLangFragment) {
+						else if (stage == StageFragment) {
 
 						}
-						else if (stage == EShLangTessControl) {
+						else if (stage == StageTessControl) {
 							if (n.name.substr(0, 3) == "gl_") continue;
 							indent(out);
 							(*out) << t.name << " " << n.name << " : TEXCOORD" << index << ";\n";
 							++index;
 						}
-						else if (stage == EShLangGeometry) {
+						else if (stage == StageGeometry) {
 							indent(out);
 							(*out) << t.name << " g_" << n.name << " : TEXCOORD" << index << ";\n";
 							++index;
@@ -393,21 +393,21 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				indent(out);
 				(*out) << "};\n\n";
 
-				if (stage == EShLangFragment) {
+				if (stage == StageFragment) {
 					(*out) << "void frag_main();\n\n";
 				}
-				else if (stage == EShLangTessControl) {
+				else if (stage == StageTessControl) {
 					(*out) << "void tesc_main();\n\n";
 				}
-				else if (stage == EShLangTessEvaluation) {
+				else if (stage == StageTessEvaluation) {
 					(*out) << "void tese_main();\n\n";
 				}
-				else if (stage == EShLangGeometry) {
+				else if (stage == StageGeometry) {
 					(*out) << "static OutputGeom _output;\n";
 					indent(out);
 					(*out) << "void geom_main(inout TriangleStream<OutputGeom> _output_stream);\n\n";
 				}
-				else if (stage == EShLangCompute) {
+				else if (stage == StageCompute) {
 					(*out) << "void comp_main();\n\n";
 				}
 				else {
@@ -415,7 +415,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 
 				if (target.system == Unity) {
-					if (stage == EShLangFragment) {
+					if (stage == StageFragment) {
 						(*out) << "OutputFrag frag(InputFrag input)\n";
 					}
 					else {
@@ -423,10 +423,10 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					}
 				}
 				else {
-					if (stage == EShLangFragment) {
+					if (stage == StageFragment) {
 						(*out) << "OutputFrag main(InputFrag input)\n";
 					}
-					else if (stage == EShLangTessControl) {
+					else if (stage == StageTessControl) {
 						(*out) << "[domain(\"tri\")]\n"; indent(out);
 						(*out) << "[partitioning(\"integer\")]\n"; indent(out);
 						(*out) << "[outputtopology(\"triangle_cw\")]\n"; indent(out);
@@ -434,15 +434,15 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 						(*out) << "[patchconstantfunc(\"patch\")]\n"; indent(out);
 						(*out) << "OutputTessC main(InputPatch<InputTessC, 3> input, uint pointId : SV_OutputControlPointID, uint patchId : SV_PrimitiveID)\n";
 					}
-					else if (stage == EShLangTessEvaluation) {
+					else if (stage == StageTessEvaluation) {
 						(*out) << "[domain(\"tri\")]\n"; indent(out);
 						(*out) << "OutputTessE main(float inside : SV_InsideTessFactor, float edges[3] : SV_TessFactor, float3 gl_TessCoord : SV_DomainLocation, const OutputPatch<InputTessE, 3> input)\n";
 					}
-					else if (stage == EShLangGeometry) {
+					else if (stage == StageGeometry) {
 						(*out) << "[maxvertexcount(3)]\n"; indent(out);
 						(*out) << "void main(triangle InputGeom input[3], inout TriangleStream<OutputGeom> _output_stream)\n";
 					}
-					else if (stage == EShLangCompute) {
+					else if (stage == StageCompute) {
 						(*out) << "[numthreads(" << localSizeX << ", " << localSizeY << ", " << localSizeZ <<")]\n"; indent(out);
 						(*out) << "void main(uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_GroupThreadID, uint3 dispatchThreadID : SV_DispatchThreadID)\n";
 					}
@@ -455,13 +455,13 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				(*out) << "{\n";
 				++indentation;
 
-				if (stage == EShLangTessEvaluation) {
+				if (stage == StageTessEvaluation) {
 					indent(out); (*out) << "te_gl_TessCoord = gl_TessCoord;\n";
 				}
-				else if (stage == EShLangTessControl) {
+				else if (stage == StageTessControl) {
 					indent(out); (*out) << "tc_gl_InvocationID = 0;\n";
 				}
-				else if (stage == EShLangCompute) {
+				else if (stage == StageCompute) {
 					indent(out); (*out) << "c_gl_WorkGroupID = groupID;\n";
 					indent(out); (*out) << "c_gl_LocalInvocationID = groupThreadID;\n";
 					indent(out); (*out) << "c_gl_GlobalInvocationID = dispatchThreadID;\n";
@@ -478,7 +478,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					if (variable.storage == StorageClassInput) {
 						indent(out);
-						if (stage == EShLangVertex) {
+						if (stage == StageVertex) {
 							if (t.name == "float4x4") {
 								(*out) << "v_" << n.name << "[0] = input." << n.name << "_0;\n"; indent(out);
 								(*out) << "v_" << n.name << "[1] = input." << n.name << "_1;\n"; indent(out);
@@ -489,15 +489,15 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 								(*out) << "v_" << n.name << " = input." << n.name << ";\n";
 							}
 						}
-						else if (stage == EShLangTessControl) {
+						else if (stage == StageTessControl) {
 							(*out) << "tc_" << n.name << "[tc_gl_InvocationID] = input[patchId]." << n.name << ";\n";
 						}
-						else if (stage == EShLangTessEvaluation) {
+						else if (stage == StageTessEvaluation) {
 							(*out) << "te_" << n.name << "[0] = input[0]." << n.name << ";\n"; indent(out);
 							(*out) << "te_" << n.name << "[1] = input[1]." << n.name << ";\n"; indent(out);
 							(*out) << "te_" << n.name << "[2] = input[2]." << n.name << ";\n";
 						}
-						else if (stage == EShLangGeometry) {
+						else if (stage == StageGeometry) {
 							(*out) << "g_" << n.name << "[0] = input[0]." << n.name << ";\n"; indent(out);
 							(*out) << "g_" << n.name << "[1] = input[1]." << n.name << ";\n"; indent(out);
 							(*out) << "g_" << n.name << "[2] = input[2]." << n.name << ";\n";
@@ -509,49 +509,49 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 
 				indent(out);
-				if (stage == EShLangFragment) {
+				if (stage == StageFragment) {
 					(*out) << "frag_main();\n";
 				}
-				else if (stage == EShLangTessControl) {
+				else if (stage == StageTessControl) {
 					(*out) << "tesc_main();\n";
 				}
-				else if (stage == EShLangTessEvaluation) {
+				else if (stage == StageTessEvaluation) {
 					(*out) << "tese_main();\n";
 				}
-				else if (stage == EShLangGeometry) {
+				else if (stage == StageGeometry) {
 					(*out) << "geom_main(_output_stream);\n";
 				}
-				else if (stage == EShLangCompute) {
+				else if (stage == StageCompute) {
 					(*out) << "comp_main();\n";
 				}
 				else {
 					(*out) << "vert_main();\n";
 				}
 				indent(out);
-				if (stage == EShLangFragment) {
+				if (stage == StageFragment) {
 					(*out) << "OutputFrag output;\n";
 				}
-				else if (stage == EShLangTessControl) {
+				else if (stage == StageTessControl) {
 					(*out) << "OutputTessC output;\n";
 				}
-				else if (stage == EShLangTessEvaluation) {
+				else if (stage == StageTessEvaluation) {
 					(*out) << "OutputTessE output;\n";
 				}
-				else if (stage == EShLangGeometry) {
+				else if (stage == StageGeometry) {
 					(*out) << "\n";
 				}
-				else if (stage == EShLangCompute) {
+				else if (stage == StageCompute) {
 					(*out) << "\n";
 				}
 				else {
 					(*out) << "OutputVert output;\n";
 				}
 
-				if (stage == EShLangVertex) {
+				if (stage == StageVertex) {
 					indent(out);
 					(*out) << "output.gl_Position = v_gl_Position;\n";
 				}
-				if (stage == EShLangTessEvaluation) {
+				if (stage == StageTessEvaluation) {
 					indent(out);
 					(*out) << "output.gl_Position = gl_Position;\n";
 				}
@@ -565,20 +565,20 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					if (variable.storage == StorageClassOutput) {
 						indent(out);
-						if (stage == EShLangVertex) {
+						if (stage == StageVertex) {
 							(*out) << "output." << n.name << " = v_" << n.name << ";\n";
 						}
-						else if (stage == EShLangTessControl) {
+						else if (stage == StageTessControl) {
 							if (n.name.substr(0, 3) == "gl_") {
 								(*out) << "\n";
 								continue;
 							}
 							(*out) << "output." << n.name << " = tc_" << n.name << "[tc_gl_InvocationID];\n";
 						}
-						else if (stage == EShLangTessEvaluation) {
+						else if (stage == StageTessEvaluation) {
 							(*out) << "output." << n.name << " = te_" << n.name << ";\n";
 						}
-						else if (stage == EShLangGeometry) {
+						else if (stage == StageGeometry) {
 							(*out) << "\n";
 						}
 						else {
@@ -588,7 +588,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 				}
 
 				indent(out);
-				if (stage == EShLangVertex) {
+				if (stage == StageVertex) {
 					if (target.version == 9 && target.system != Unity) {
 						(*out) << "output." << positionName << ".x = output." << positionName << ".x - dx_ViewAdjust.x * output." << positionName << ".w;\n";
 						indent(out);
@@ -599,7 +599,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					indent(out);
 				}
 				
-				if (stage == EShLangGeometry || stage == EShLangCompute) {
+				if (stage == StageGeometry || stage == StageCompute) {
 					(*out) << "\n";
 				}
 				else {
@@ -624,16 +624,16 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			startFunction(funcName);
 
 			if (funcName == "main") {
-				if (stage == EShLangFragment) {
+				if (stage == StageFragment) {
 					(*out) << "void frag_main()\n";
 				}
-				else if (stage == EShLangGeometry) {
+				else if (stage == StageGeometry) {
 					(*out) << "void geom_main(inout TriangleStream<OutputGeom> _output_stream)\n";
 				}
-				else if (stage == EShLangTessEvaluation) {
+				else if (stage == StageTessEvaluation) {
 					(*out) << "void tese_main()\n";
 				}
-				else if (stage == EShLangTessControl) {
+				else if (stage == StageTessControl) {
 					(*out) << "struct PatchOutputTessC {\n"; ++indentation; indent(out);
 					(*out) << "float gl_TessLevelInner : SV_InsideTessFactor;\n"; indent(out);
 					(*out) << "float gl_TessLevelOuter[3] : SV_TessFactor;\n"; --indentation; indent(out);
@@ -651,7 +651,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 
 					(*out) << "void tesc_main()\n";
 				}
-				else if (stage == EShLangCompute) {
+				else if (stage == StageCompute) {
 					(*out) << "void comp_main()\n";
 				}
 				else {
@@ -762,7 +762,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 	case OpTypeImage: {
 		Type t;
 		unsigned id = inst.operands[0];
-		if (stage == EShLangCompute) {
+		if (stage == StageCompute) {
 			t.name = "RWTexture2D<uint>";
 		}
 		else {
@@ -790,19 +790,19 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		v.declared = true; // v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
 		if (names.find(result) != names.end()) {
 			if (v.storage == StorageClassInput || v.storage == StorageClassOutput) {
-				if (stage == EShLangVertex) {
+				if (stage == StageVertex) {
 					references[result] = std::string("v_") + names[result].name;
 				}
-				else if (stage == EShLangTessControl) {
+				else if (stage == StageTessControl) {
 					references[result] = std::string("tc_") + names[result].name;
 				}
-				else if (stage == EShLangTessEvaluation) {
+				else if (stage == StageTessEvaluation) {
 					references[result] = std::string("te_") + names[result].name;
 				}
-				else if (stage == EShLangGeometry) {
+				else if (stage == StageGeometry) {
 					references[result] = std::string("g_") + names[result].name;
 				}
-				else if (stage == EShLangCompute) {
+				else if (stage == StageCompute) {
 					references[result] = std::string("c_") + names[result].name;
 				}
 				else {
@@ -924,7 +924,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
 				(*out) << getReference(inst.operands[0]) << indexName(types[inst.operands[0]], compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
 			}
-			else if (stage == EShLangGeometry) {
+			else if (stage == StageGeometry) {
 				Variable& v = variables[inst.operands[0]];
 				if (v.storage == StorageClassOutput || getReference(inst.operands[0]) == "gl_Position") {
 					(*out) << "_output." << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";

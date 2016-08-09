@@ -3,9 +3,9 @@
 #include "Translator.h"
 
 namespace krafix {
-	class VarListTranslator : public Translator {
+	class GlslTranslator2 : public Translator {
 	public:
-		VarListTranslator(std::vector<unsigned>& spirv, ShaderStage stage) : Translator(spirv, stage) {}
+		GlslTranslator2(std::vector<unsigned>& spirv, ShaderStage stage) : Translator(spirv, stage) {}
 		void outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes);
 	};
 }

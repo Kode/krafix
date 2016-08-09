@@ -1,7 +1,5 @@
 #pragma once
 
-#include <SPIRV/spirv.hpp>
-#include "../glslang/glslang/Public/ShaderLang.h"
 #include <map>
 #include <string>
 #include <vector>
@@ -15,6 +13,15 @@ namespace krafix {
 		AGAL,
 		VarList,
 		JavaScript
+	};
+
+	enum ShaderStage {
+		StageVertex,
+		StageTessControl,
+		StageTessEvaluation,
+		StageGeometry,
+		StageFragment,
+		StageCompute
 	};
 
 	enum TargetSystem {
@@ -40,9 +47,9 @@ namespace krafix {
 	class Instruction {
 	public:
 		Instruction(std::vector<unsigned>& spirv, unsigned& index);
-		Instruction(spv::Op opcode, unsigned* operands, unsigned length);
+		Instruction(int opcode, unsigned* operands, unsigned length);
 
-		spv::Op opcode;
+		int opcode;
 		unsigned* operands;
 		unsigned length;
 		const char* string;
@@ -50,14 +57,14 @@ namespace krafix {
 
 	class Translator {
 	public:
-		Translator(std::vector<unsigned>& spirv, EShLanguage stage);
+		Translator(std::vector<unsigned>& spirv, ShaderStage stage);
 		virtual ~Translator() {}
 		virtual void outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) = 0;
 
 	protected:
 		std::vector<unsigned>& spirv;
 		std::vector<Instruction> instructions;
-		EShLanguage stage;
+		ShaderStage stage;
 
 		unsigned magicNumber;
 		unsigned version;

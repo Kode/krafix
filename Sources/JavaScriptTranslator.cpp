@@ -263,7 +263,7 @@ void JavaScriptTranslator::outputInstruction(const Target& target, std::map<std:
 				if (compositeInserts.find(inst.operands[1]) != compositeInserts.end()) {
 					(*out) << getReference(inst.operands[0]) << indexName(types[inst.operands[0]], compositeInserts[inst.operands[1]]) << " = " << getReference(inst.operands[1]) << ";";
 				}
-				else if (stage == EShLangGeometry) {
+				else if (stage == StageGeometry) {
 					Variable& v = variables[inst.operands[0]];
 					if (v.storage == StorageClassOutput || getReference(inst.operands[0]) == "gl_Position") {
 						(*out) << "_output." << getReference(inst.operands[0]) << " = " << getReference(inst.operands[1]) << ";";

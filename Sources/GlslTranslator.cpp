@@ -29,7 +29,7 @@ void GlslTranslator::outputCode(const Target& target, const char* sourcefilename
 	file.open(filename, std::ios::binary | std::ios::out);
 	out = &file;
 	
-	if (stage != EShLangVertex && stage != EShLangFragment) {
+	if (stage != StageVertex && stage != StageFragment) {
 		(*out) << "#version 400\n";
 	}
 	else {
@@ -91,10 +91,10 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 			output(out);
 
 			if (firstFunction) {
-				if (target.system == Android && stage == EShLangFragment) {
+				if (target.system == Android && stage == StageFragment) {
 					(*out) << "#extension GL_OES_EGL_image_external : require\n";
 				}
-				if ((target.system == HTML5 || (target.es && target.version == 100)) && stage == EShLangFragment) {
+				if ((target.system == HTML5 || (target.es && target.version == 100)) && stage == StageFragment) {
 					if (isFragDepthUsed) (*out) << "#extension GL_EXT_frag_depth : require\n";
 					if (isFragDataUsed) (*out) << "#extension GL_EXT_draw_buffers : require\n";
 					if (isTextureLodUsed) (*out) << "#extension GL_EXT_shader_texture_lod : require\n";
@@ -120,7 +120,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					else (*out) << "precision mediump float;\n";
 				}
 
-				if (target.version >= 300 && stage == EShLangFragment) {
+				if (target.version >= 300 && stage == StageFragment) {
 					if (isFragDepthUsed) (*out) << "out float krafix_FragDepth;\n";
 					else if (isFragDataUsed) (*out) << "out vec4 krafix_FragData[" << fragDataIndexIds.size() << "];\n";
 					else (*out) << "out vec4 krafix_FragColor;\n";
@@ -138,7 +138,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 					}
 
 					switch (stage) {
-					case EShLangVertex:
+					case StageVertex:
 						if (variable.storage == StorageClassInput) {
 							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (target.version < 300) {
@@ -175,7 +175,7 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						break;
-					case EShLangFragment:
+					case StageFragment:
 						if (variable.storage == StorageClassInput) {
 							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (target.version < 300) {
@@ -205,10 +205,10 @@ void GlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 							}
 						}
 						break;
-					case EShLangGeometry:
-					case EShLangTessControl:
-					case EShLangTessEvaluation:
-					case EShLangCompute:
+					case StageGeometry:
+					case StageTessControl:
+					case StageTessEvaluation:
+					case StageCompute:
 						if (variable.storage == StorageClassInput) {
 							if (strncmp(t.name.c_str(), "gl_", 3) != 0) {
 								if (t.isarray) {

@@ -722,6 +722,20 @@ private:
 	std::string dir;
 };
 
+krafix::ShaderStage shLanguageToShaderStage(EShLanguage lang) {
+	switch (lang) {
+	case EShLangVertex: return krafix::StageVertex;
+	case EShLangTessControl: return krafix::StageTessControl;
+	case EShLangTessEvaluation: return krafix::StageTessEvaluation;
+	case EShLangGeometry: return krafix::StageGeometry;
+	case EShLangFragment: return krafix::StageFragment;
+	case EShLangCompute: return krafix::StageCompute;
+	case EShLangCount:
+	default:
+		return krafix::StageCompute;
+	}
+}
+
 //
 // For linking mode: Will independently parse each item in the worklist, but then put them
 // in the same program and link them together.
@@ -814,25 +828,25 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
 					std::map<std::string, int> attributes;
 					switch (target.lang) {
 					case krafix::SpirV:
-						translator = new krafix::SpirVTranslator(spirv, (EShLanguage)stage);
+						translator = new krafix::SpirVTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::GLSL:
-						translator = new krafix::GlslTranslator(spirv, (EShLanguage)stage);
+						translator = new krafix::GlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::HLSL:
-						translator = new krafix::HlslTranslator(spirv, (EShLanguage)stage);
+						translator = new krafix::HlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::Metal:
-						translator = new krafix::MetalTranslator(spirv, (EShLanguage)stage);
+						translator = new krafix::MetalTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::AGAL:
-						translator = new krafix::AgalTranslator(spirv, (EShLanguage)stage);
+						translator = new krafix::AgalTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::VarList:
-						translator = new krafix::VarListTranslator(spirv, (EShLanguage)stage);
+						translator = new krafix::VarListTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::JavaScript:
-						translator = new krafix::JavaScriptTranslator(spirv, (EShLanguage)stage);
+						translator = new krafix::JavaScriptTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					}
 					

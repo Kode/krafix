@@ -1,4 +1,6 @@
 #include "SpirVTranslator.h"
+#include <SPIRV/spirv.hpp>
+#include "../glslang/glslang/Public/ShaderLang.h"
 #include <algorithm>
 #include <fstream>
 #include <map>
@@ -331,7 +333,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					}
 				}
 
-				if (stage == EShLangVertex) {
+				if (stage == StageVertex) {
 					Instruction floaty(OpTypeFloat, &instructionsData[instructionsDataIndex], 2);
 					floattype = instructionsData[instructionsDataIndex++] = currentId++;
 					instructionsData[instructionsDataIndex++] = 32;
@@ -461,7 +463,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			}
 		}
 		else if (inst.opcode == OpStore) {
-			if (stage == EShLangVertex) {
+			if (stage == StageVertex) {
 				//gl_Position.z = (gl_Position.z + gl_Position.w) * 0.5;
 				unsigned to = inst.operands[0];
 				unsigned from = inst.operands[1];

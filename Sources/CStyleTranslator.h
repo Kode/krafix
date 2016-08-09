@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Translator.h"
+#include <SPIRV/spirv.hpp>
+#include "../glslang/glslang/Public/ShaderLang.h"
 #include <SPIRV/GLSL.std.450.h>
 #include <fstream>
 #include <sstream>
@@ -35,7 +37,7 @@ namespace krafix {
 	};
 
 	struct Type {
-		spv::Op opcode;
+		int opcode;
 		std::string name;
 		unsigned baseType;
 		unsigned length;
@@ -133,7 +135,7 @@ namespace krafix {
 
 	class CStyleTranslator : public Translator {
 	public:
-		CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage);
+		CStyleTranslator(std::vector<unsigned>& spirv, ShaderStage stage);
 		virtual ~CStyleTranslator();
 		virtual void outputInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst);
 		virtual void outputLibraryInstruction(const Target& target, std::map<std::string, int>& attributes, Instruction& inst, GLSLstd450 entrypoint);
@@ -167,7 +169,7 @@ namespace krafix {
 		std::vector<Function*> functions;
 		std::ostream* tempout = NULL;
 		
-		void preprocessInstruction(EShLanguage stage, Instruction& inst);
+		void preprocessInstruction(ShaderStage stage, Instruction& inst);
 		virtual std::string indexName(Type& type, const std::vector<std::string>& indices);
 		std::string indexName(Type& type, const std::vector<unsigned>& indices);
 		void indent(std::ostream* out);

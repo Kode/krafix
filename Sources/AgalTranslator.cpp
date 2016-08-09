@@ -1,4 +1,6 @@
 #include "AgalTranslator.h"
+#include <SPIRV/spirv.hpp>
+#include "../glslang/glslang/Public/ShaderLang.h"
 #include <algorithm>
 #include <fstream>
 #include <map>
@@ -74,7 +76,7 @@ namespace {
 
 		Register() : type(Unused), number(-1), swizzle("xyzw"), size(1), spirIndex(0) { }
 
-		Register(EShLanguage stage, unsigned spirIndex, const std::string& swizzle = "xyzw", int size = 1) : number(-1), swizzle(swizzle), size(size), spirIndex(spirIndex) {
+		Register(ShaderStage stage, unsigned spirIndex, const std::string& swizzle = "xyzw", int size = 1) : number(-1), swizzle(swizzle), size(size), spirIndex(spirIndex) {
 			bool isConstant = false;
 			int constantID = 0;
 
@@ -114,14 +116,14 @@ namespace {
 					break;
 				}
 				case spv::StorageClassInput:
-					if (stage == EShLangVertex) type = Attribute;
+					if (stage == StageVertex) type = Attribute;
 					else type = Varying;
 					break;
 				case spv::StorageClassUniform:
 					type = Constant;
 					break;
 				case spv::StorageClassOutput:
-					if (stage == EShLangVertex) type = Varying;
+					if (stage == StageVertex) type = Varying;
 					else type = Output;
 					break;
 				case spv::StorageClassFunction:
@@ -292,21 +294,21 @@ namespace {
 		}
 	}
 
-	void outputRegister(std::ostream& out, Register reg, EShLanguage stage, int registerOffset) {
+	void outputRegister(std::ostream& out, Register reg, ShaderStage stage, int registerOffset) {
 		switch (reg.type) {
 		case Attribute:
 			out << "va";
 			break;
 		case Constant:
-			if (stage == EShLangVertex) out << "vc";
+			if (stage == StageVertex) out << "vc";
 			else out << "fc";
 			break;
 		case Temporary:
-			if (stage == EShLangVertex) out << "vt";
+			if (stage == StageVertex) out << "vt";
 			else out << "ft";
 			break;
 		case Output:
-			if (stage == EShLangVertex) out << "op";
+			if (stage == StageVertex) out << "op";
 			else out << "oc";
 			break;
 		case Varying:
@@ -352,7 +354,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 
 	std::vector<Agal> agal;
 
-	if (stage == EShLangVertex) {
+	if (stage == StageVertex) {
 		Register reg(stage, 99999);
 		reg.type = Constant;
 		reg.size = 4;
@@ -737,13 +739,13 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 		}
 		case OpStore: {
 			Variable v = variables[inst.operands[0]];
-			if (v.builtin && stage == EShLangFragment) {
+			if (v.builtin && stage == StageFragment) {
 				Register oc(stage, inst.operands[0]);
 				oc.type = Output;
 				oc.number = 0;
 				agal.push_back(Agal(mov, oc, Register(stage, inst.operands[1])));
 			}
-			else if (v.builtin && stage == EShLangVertex) {
+			else if (v.builtin && stage == StageVertex) {
 				vertexOutput = inst.operands[0];
 				Register tempop(stage, inst.operands[0]);
 				tempop.type = Temporary;
@@ -806,7 +808,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 	}
 
 	//adjust clip space
-	if (stage == EShLangVertex) {
+	if (stage == StageVertex) {
 		Register poszzzz(stage, vertexOutput, "zzzz");
 		poszzzz.type = Temporary;
 		Register poswwww(stage, vertexOutput, "wwww");
@@ -983,7 +985,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 	for (unsigned i = 0; i < constants.size(); ++i) {
 		for (unsigned j = 0; j < constants[i].size; ++j) //fill all the registers to avoid overlap
 		{
-			if (stage == EShLangVertex)
+			if (stage == StageVertex)
 			{
 				out << "\t\t\"vc" << counter << "\": [";
 			}

@@ -17,7 +17,7 @@ namespace {
 	int unnamedCount = 0;
 }
 
-CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : Translator(spirv, stage) {
+CStyleTranslator::CStyleTranslator(std::vector<unsigned>& spirv, ShaderStage stage) : Translator(spirv, stage) {
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
 		preprocessInstruction(stage, inst);
@@ -32,7 +32,7 @@ CStyleTranslator::~CStyleTranslator() {
 	functions.clear();
 }
 
-void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& inst) {
+void CStyleTranslator::preprocessInstruction(ShaderStage stage, Instruction& inst) {
 	using namespace spv;
 
 	switch (inst.opcode) {
@@ -51,7 +51,7 @@ void CStyleTranslator::preprocessInstruction(EShLanguage stage, Instruction& ins
 	}
 	case OpName: {
 		unsigned id = inst.operands[0];
-		if (stage == EShLangFragment && fragDataNameId == -1 && inst.string != NULL && strcmp(inst.string, "gl_FragData") == 0) {
+		if (stage == StageFragment && fragDataNameId == -1 && inst.string != NULL && strcmp(inst.string, "gl_FragData") == 0) {
 			fragDataNameId = id;
 			isFragDataUsed = true;
 		}
@@ -724,22 +724,22 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			(*out) << "layout(triangles) in;";
 			break;
 		case ExecutionModeOutputTriangleStrip:
-			if (stage == EShLangGeometry) {
+			if (stage == StageGeometry) {
 				(*out) << "layout(triangle_strip, max_vertices = 3) out;";
 			}
 			break;
 		case ExecutionModeSpacingEqual:
-			if (stage == EShLangTessEvaluation) {
+			if (stage == StageTessEvaluation) {
 				(*out) << "layout(equal_spacing) in;";
 			}
 			break;
 		case ExecutionModeVertexOrderCw:
-			if (stage == EShLangTessEvaluation) {
+			if (stage == StageTessEvaluation) {
 				(*out) << "layout(cw) in;";
 			}
 			break;
 		case ExecutionModeOutputVertices:
-			if (stage == EShLangTessControl) {
+			if (stage == StageTessControl) {
 				(*out) << "layout(vertices = " << inst.operands[2] << ") out;";
 			}
 			break;
@@ -842,7 +842,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 			t.name = "sampler2DShadow";
 		}
 		else {
-			if (stage == EShLangCompute) {
+			if (stage == StageCompute) {
 				t.name = "writeonly image2D";
 			}
 			else {
@@ -873,7 +873,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		v.storage = (StorageClass)inst.operands[2];
 		v.declared = true; //v.storage == StorageClassInput || v.storage == StorageClassOutput || v.storage == StorageClassUniformConstant;
 		if (names.find(result) != names.end()) {
-			if (target.version >= 300 && v.storage == StorageClassOutput && stage == EShLangFragment) {
+			if (target.version >= 300 && v.storage == StorageClassOutput && stage == StageFragment) {
 				if (isFragDepthUsed) names[result].name = "krafix_FragDepth";
 				else if (isFragDataUsed) names[result].name = "krafix_FragData";
 				else names[result].name = "krafix_FragColor";
@@ -1449,14 +1449,14 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		id base = inst.operands[2];
 		std::stringstream str;
 		std::string test = getReference(base);
-		if (target.lang == HLSL && stage == EShLangGeometry && getReference(base) == "g_gl_in") {
+		if (target.lang == HLSL && stage == StageGeometry && getReference(base) == "g_gl_in") {
 			str << "gl_Position";
 		}
 		else if (strncmp(types[base].name.c_str(), "gl_", 3) != 0 || types[base].isarray) str << getReference(base);
-		if (target.lang == HLSL && stage == EShLangVertex) str << "v_";
+		if (target.lang == HLSL && stage == StageVertex) str << "v_";
 		std::vector<std::string> indices;
 		unsigned length = inst.length;
-		if (target.lang == HLSL && stage == EShLangGeometry && getReference(base) == "g_gl_in") {
+		if (target.lang == HLSL && stage == StageGeometry && getReference(base) == "g_gl_in") {
 			--length;
 		}
 		for (unsigned i = 3; i < length; ++i) {
@@ -1718,7 +1718,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		if (getReference(inst.operands[0]) == "param") {
 			references[inst.operands[0]] = getReference(inst.operands[1]);
 		}
-		else if (stage == EShLangFragment && v.storage == StorageClassOutput && target.version < 300) {
+		else if (stage == StageFragment && v.storage == StorageClassOutput && target.version < 300) {
 			output(out);
 			if (isFragDepthUsed) {
 				if (target.system == HTML5) (*out) << "gl_FragDepthEXT";

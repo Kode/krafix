@@ -79,7 +79,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 			if (v.storage == StorageClassInput) {
 				std::string vPfx;
 				if ( !v.builtin ) {
-					if (stage == EShLangVertex) {
+					if (stage == StageVertex) {
 
 						// Set attribute parameters of this variable
 						MetalVertexAttribute& vtxAttr = _pRenderContext->vertexAttributesByLocation[v.location];
@@ -172,7 +172,7 @@ void MetalStageInTranslator::outputInstruction(const Target& target,
 
 		case OpReturn:
 			if (_isEntryFunction && _hasStageOut) {
-				if (stage == EShLangVertex && _pRenderContext->shouldFlipVertexY) {
+				if (stage == StageVertex && _pRenderContext->shouldFlipVertexY) {
 					output(out);
 					(*out) << "out." << positionName << ".y = -out." << positionName << ".y;\t\t// Invert Y-axis for Metal\n";
 				}
@@ -272,13 +272,13 @@ void MetalStageInTranslator::outputEntryFunctionSignature(bool asDeclaration) {
 	// Entry functions need a type qualifier
 	std::string entryType;
 	switch (stage) {
-		case EShLangVertex:
+		case StageVertex:
 			entryType = "vertex";
 			break;
-		case EShLangFragment:
+		case StageFragment:
 			entryType = executionModes.useEarlyFragmentTests ? "fragment [[ early_fragment_tests ]]" : "fragment";
 			break;
-		case EShLangCompute:
+		case StageCompute:
 			entryType = "kernel";
 			break;
 		default:
@@ -448,7 +448,7 @@ void MetalStageInTranslator::outputUniformBuffers() {
 
 /** Outputs the vertex attribute input structures, and adds them to the _vertexInStructs map. */
 void MetalStageInTranslator::outputVertexInStructs() {
-	if (stage != EShLangVertex) { return; }
+	if (stage != StageVertex) { return; }
 
 	std::vector<std::pair<const unsigned, Variable>*> inVars;
 	for (auto v = variables.begin(); v != variables.end(); ++v) {
@@ -508,7 +508,7 @@ bool MetalStageInTranslator::outputStageInStruct() {
 	for (auto v = variables.begin(); v != variables.end(); ++v) {
 		Variable& var = v->second;
 		if ((var.storage == StorageClassInput) &&
-			((stage == EShLangFragment) || (var.binding == _pRenderContext->vertexAttributeStageInBinding)) &&
+			((stage == StageFragment) || (var.binding == _pRenderContext->vertexAttributeStageInBinding)) &&
 			!var.builtin) {
 
 			inVars.push_back(&(*v));
@@ -530,12 +530,12 @@ bool MetalStageInTranslator::outputStageInStruct() {
 		indent(out);
 		(*out) << t.name << " " << getVariableName(id);
 		switch (stage) {
-			case EShLangVertex:
+			case StageVertex:
 				(*out) << " [[attribute("
 				<< std::max(var.location, (signed)varIdx)	// Auto increment if locations were not specified
 				<< ")]]";
 				break;
-			case EShLangFragment:
+			case StageFragment:
 				if (var.location >= 0) { (*out) << " [[user(locn" << var.location << ")]]"; }
 				break;
 			default:
@@ -622,7 +622,7 @@ bool MetalStageInTranslator::outputStageOutStruct() {
 					}
 				} else {
 					switch (stage) {
-						case EShLangVertex:
+						case StageVertex:
 							if (var.location >= 0) { tmpOut << " [[user(locn" << var.location << ")]]"; }
 							break;
 						default:
@@ -709,16 +709,16 @@ void MetalStageInTranslator::addSamplerReference(Instruction& inst) {
 }
 
 /** Returns the shader stage corresponding to the specified SPIRV execution model. */
-EShLanguage MetalStageInTranslator::stageFromSPIRVExecutionModel(ExecutionModel execModel) {
+ShaderStage MetalStageInTranslator::stageFromSPIRVExecutionModel(ExecutionModel execModel) {
 	switch (execModel) {
-		case ExecutionModelVertex:					return EShLangVertex;
-		case ExecutionModelTessellationControl:		return EShLangTessControl;
-		case ExecutionModelTessellationEvaluation:	return EShLangTessEvaluation;
-		case ExecutionModelGeometry:				return EShLangGeometry;
-		case ExecutionModelFragment:				return EShLangFragment;
-		case ExecutionModelGLCompute:				return EShLangCompute;
-		case ExecutionModelKernel:					return EShLangVertex;
-		default:                                    return EShLangVertex; // silence the compiler
+		case ExecutionModelVertex:					return StageVertex;
+		case ExecutionModelTessellationControl:		return StageTessControl;
+		case ExecutionModelTessellationEvaluation:	return StageTessEvaluation;
+		case ExecutionModelGeometry:				return StageGeometry;
+		case ExecutionModelFragment:				return StageFragment;
+		case ExecutionModelGLCompute:				return StageCompute;
+		case ExecutionModelKernel:					return StageVertex;
+		default:                                    return StageVertex; // silence the compiler
 	}
 }
 

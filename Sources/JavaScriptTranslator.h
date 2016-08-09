@@ -6,7 +6,7 @@
 namespace krafix {
 	class JavaScriptTranslator : public CStyleTranslator {
 	public:
-		JavaScriptTranslator(std::vector<unsigned>& spirv, EShLanguage stage) : CStyleTranslator(spirv, stage) {
+		JavaScriptTranslator(std::vector<unsigned>& spirv, ShaderStage stage) : CStyleTranslator(spirv, stage) {
 			sourcemap = SourceMap::make_shared<SourceMap::SrcMapDoc>();
 		}
 		void outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes);

@@ -64,7 +64,7 @@ namespace krafix {
 									   Instruction& inst);
 
 		/** Constructs an instance. Stage is taken from the SPIR-V itself. */
-		MetalStageInTranslator(std::vector<uint32_t>& spirv) : MetalTranslator(spirv, EShLangCount) {}
+		MetalStageInTranslator(std::vector<uint32_t>& spirv) : MetalTranslator(spirv, StageCompute) {}
 
 	protected:
 		virtual void outputHeader();
@@ -80,7 +80,7 @@ namespace krafix {
 		virtual bool outputStageOutStruct();
 		virtual void addSamplerReference(Instruction& inst);
 		virtual signed getMetalResourceIndex(Variable& variable, spv::Op rezType);
-		EShLanguage stageFromSPIRVExecutionModel(spv::ExecutionModel execModel);
+		ShaderStage stageFromSPIRVExecutionModel(spv::ExecutionModel execModel);
 		bool isUniformBufferMember(Variable& var, Type& type);
 		bool paramComma(std::ostream* out, bool needsComma);
 

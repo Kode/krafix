@@ -1,4 +1,6 @@
 #include "Translator.h"
+#include <SPIRV/spirv.hpp>
+#include "../glslang/glslang/Public/ShaderLang.h"
 
 using namespace krafix;
 
@@ -35,11 +37,11 @@ Instruction::Instruction(std::vector<unsigned>& spirv, unsigned& index) {
 	index += wordCount;
 }
 
-Instruction::Instruction(spv::Op opcode, unsigned* operands, unsigned length) : opcode(opcode), operands(operands), length(length), string(NULL) {
+Instruction::Instruction(int opcode, unsigned* operands, unsigned length) : opcode(opcode), operands(operands), length(length), string(NULL) {
 	
 }
 
-Translator::Translator(std::vector<unsigned>& spirv, EShLanguage stage) : stage(stage), spirv(spirv) {
+Translator::Translator(std::vector<unsigned>& spirv, ShaderStage stage) : stage(stage), spirv(spirv) {
 	if (spirv.size() < 5) { return; }
 
 	unsigned index = 0;
