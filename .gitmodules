@@ -10,3 +10,7 @@
 	path = sourcemap.cpp
 	url = ../sourcemap.cpp
 	branch = master
+[submodule "SPIRV-Cross"]
+	path = SPIRV-Cross
+	url = ../SPIRV-Cross
+	branch = master
