@@ -30,6 +30,9 @@ project.addFile('glslang/glslang/Include/**');
 project.addFile('glslang/OGLCompilersDLL/**');
 project.addFile('glslang/SPIRV/**');
 
+project.addFile('SPIRV-Cross/*.cpp', 'SPIRV-Cross/*.hpp', 'SPIRV-Cross/*.h');
+project.addExclude('SPIRV-Cross/main.cpp');
+
 project.addIncludeDir('glslang');
 project.addIncludeDir('glslang/glslang');
 project.addIncludeDir('glslang/glslang/MachineIndependent');
