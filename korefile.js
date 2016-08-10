@@ -27,6 +27,7 @@ project.addFile('sourcemap.cpp/src/document.cpp');
 project.addFile('glslang/glslang/GenericCodeGen/**');
 project.addFile('glslang/glslang/MachineIndependent/**');
 project.addFile('glslang/glslang/Include/**');
+project.addFile('glslang/hlsl/**');
 project.addFile('glslang/OGLCompilersDLL/**');
 project.addFile('glslang/SPIRV/**');
 

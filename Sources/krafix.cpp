@@ -47,6 +47,7 @@
 
 #include "SpirVTranslator.h"
 #include "GlslTranslator.h"
+#include "GlslTranslator2.h"
 #include "HlslTranslator.h"
 #include "AgalTranslator.h"
 #include "MetalTranslator.h"
@@ -705,8 +706,8 @@ public:
 		}
 	}
 
-	std::pair<std::string, std::string> include(const char* filename) const override {
-		std::string realfilename = dir + filename;
+	IncludeResult* include(const char* requested_source, IncludeType type, const char* requesting_source, size_t inclusion_depth) override {
+		std::string realfilename = dir + requested_source;
 		std::stringstream content;
 		std::string line;
 		std::ifstream file(realfilename);
@@ -716,7 +717,11 @@ public:
 			}
 			file.close();
 		}
-		return std::make_pair<std::string, std::string>(std::move(realfilename), content.str());
+		return new IncludeResult(realfilename, content.str().c_str(), content.str().size(), nullptr);
+	}
+
+	void releaseInclude(IncludeResult* result) override {
+		delete result;
 	}
 private:
 	std::string dir;
@@ -742,7 +747,7 @@ krafix::ShaderStage shLanguageToShaderStage(EShLanguage lang) {
 //
 // Uses the new C++ interface instead of the old handle-based interface.
 //
-void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, const char* filename, const char* tempdir, const glslang::TShader::Includer& includer, const char* defines)
+void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, const char* filename, const char* tempdir, glslang::TShader::Includer& includer, const char* defines)
 {
     // keep track of what to free
     std::list<glslang::TShader*> shaders;
@@ -832,6 +837,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
 						break;
 					case krafix::GLSL:
 						translator = new krafix::GlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
+						//translator = new krafix::GlslTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::HLSL:
 						translator = new krafix::HlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
