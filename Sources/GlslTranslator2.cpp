@@ -25,8 +25,8 @@ void GlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 
 	compiler->set_entry_point("main");
 	spirv_cross::CompilerGLSL::Options opts = compiler->get_options();
-	opts.version = 330;
-	opts.es = false;
+	opts.version = target.version;
+	opts.es = target.es;
 	opts.force_temporary = false;
 	opts.vulkan_semantics = false;
 	opts.vertex.fixup_clipspace = false;
