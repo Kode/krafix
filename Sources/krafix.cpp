@@ -741,6 +741,8 @@ krafix::ShaderStage shLanguageToShaderStage(EShLanguage lang) {
 	}
 }
 
+static bool glsl2 = false;
+
 //
 // For linking mode: Will independently parse each item in the worklist, but then put them
 // in the same program and link them together.
@@ -836,8 +838,12 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
 						translator = new krafix::SpirVTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::GLSL:
-						translator = new krafix::GlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
-						//translator = new krafix::GlslTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
+						if (glsl2) {
+							translator = new krafix::GlslTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
+						}
+						else {
+							translator = new krafix::GlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
+						}
 						break;
 					case krafix::HLSL:
 						translator = new krafix::HlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
@@ -973,6 +979,10 @@ int C_DECL main(int argc, char* argv[]) {
 	}
 
 	const char* tempdir = argv[4];
+
+	if (argc > 6 && strcmp(argv[6], "--glsl2") == 0) {
+		glsl2 = true;
+	}
 	
 	//Options |= EOptionHumanReadableSpv;
 	Options |= EOptionSpv;
