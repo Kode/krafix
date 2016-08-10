@@ -717,10 +717,14 @@ public:
 			}
 			file.close();
 		}
-		return new IncludeResult(realfilename, content.str().c_str(), content.str().size(), nullptr);
+		std::string filecontent = content.str();
+		char* heapcontent = new char[filecontent.size() + 1];
+		strcpy(heapcontent, filecontent.c_str());
+		return new IncludeResult(realfilename, heapcontent, content.str().size(), heapcontent);
 	}
 
 	void releaseInclude(IncludeResult* result) override {
+		delete (char*)result->user_data;
 		delete result;
 	}
 private:
