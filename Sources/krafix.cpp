@@ -49,8 +49,10 @@
 #include "GlslTranslator.h"
 #include "GlslTranslator2.h"
 #include "HlslTranslator.h"
+#include "HlslTranslator2.h"
 #include "AgalTranslator.h"
 #include "MetalTranslator.h"
+#include "MetalTranslator2.h"
 #include "VarListTranslator.h"
 #include "JavaScriptTranslator.h"
 
@@ -746,6 +748,7 @@ krafix::ShaderStage shLanguageToShaderStage(EShLanguage lang) {
 }
 
 static bool glsl2 = false;
+static bool hlsl2 = false;
 
 //
 // For linking mode: Will independently parse each item in the worklist, but then put them
@@ -850,10 +853,15 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
 						}
 						break;
 					case krafix::HLSL:
-						translator = new krafix::HlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
+						if (hlsl2) {
+							translator = new krafix::HlslTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
+						}
+						else {
+							translator = new krafix::HlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
+						}
 						break;
 					case krafix::Metal:
-						translator = new krafix::MetalTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
+						translator = new krafix::MetalTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::AGAL:
 						translator = new krafix::AgalTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
@@ -869,12 +877,14 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
 					if (target.lang == krafix::HLSL && target.system != krafix::Unity) {
 						std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(workItem->name)) + ".hlsl";
 						translator->outputCode(target, sourcefilename, temp.c_str(), attributes);
+						int returnCode = 0;
 						if (target.version == 9) {
-							compileHLSLToD3D9(temp.c_str(), filename, attributes, (EShLanguage)stage);
+							returnCode = compileHLSLToD3D9(temp.c_str(), filename, attributes, (EShLanguage)stage);
 						}
 						else {
-							compileHLSLToD3D11(temp.c_str(), filename, attributes, (EShLanguage)stage);
+							returnCode = compileHLSLToD3D11(temp.c_str(), filename, attributes, (EShLanguage)stage);
 						}
+						if (returnCode != 0) CompileFailed = true;
 					}
 					else {
 						translator->outputCode(target, sourcefilename, filename, attributes);
@@ -984,10 +994,6 @@ int C_DECL main(int argc, char* argv[]) {
 
 	const char* tempdir = argv[4];
 
-	if (argc > 6 && strcmp(argv[6], "--glsl2") == 0) {
-		glsl2 = true;
-	}
-	
 	//Options |= EOptionHumanReadableSpv;
 	Options |= EOptionSpv;
 	Options |= EOptionLinkProgram;
@@ -1017,6 +1023,12 @@ int C_DECL main(int argc, char* argv[]) {
 		}
 		else if (arg == "--instancedoptional") {
 			instancedoptional = true;
+		}
+		else if (arg == "--glsl2") {
+			glsl2 = true;
+		}
+		else if (arg == "--hlsl2") {
+			hlsl2 = true;
 		}
 	}
 
@@ -1059,7 +1071,7 @@ int C_DECL main(int argc, char* argv[]) {
 	
 	if (textureUnitCounts.size() > 0 && usesTextureUnitsCount) {
 		if (instancedoptional && usesInstancedoptional) {
-			for (int i = 0; i < textureUnitCounts.size(); ++i) {
+			for (size_t i = 0; i < textureUnitCounts.size(); ++i) {
 				int texcount = textureUnitCounts[i];
 				std::stringstream toto;
 				toto << towithoutext << "-tex" << texcount << ext;
@@ -1076,7 +1088,7 @@ int C_DECL main(int argc, char* argv[]) {
 			}
 		}
 		else {
-			for (int i = 0; i < textureUnitCounts.size(); ++i) {
+			for (size_t i = 0; i < textureUnitCounts.size(); ++i) {
 				int texcount = textureUnitCounts[i];
 				std::stringstream toto;
 				toto << towithoutext << "-tex" << texcount << ext;
