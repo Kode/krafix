@@ -25,11 +25,12 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 
 	compiler->set_entry_point("main");
 	spirv_cross::CompilerHLSL::Options opts = compiler->get_options();
-	opts.version = target.version;
-	opts.es = target.es;
-	opts.force_temporary = false;
-	opts.vulkan_semantics = false;
-	opts.vertex.fixup_clipspace = false;
+	if (target.version > 8) {
+		opts.shader_model = 40;
+	}
+	else {
+		opts.shader_model = 30;
+	}
 	compiler->set_options(opts);
 
 	std::string hlsl = compiler->compile();
