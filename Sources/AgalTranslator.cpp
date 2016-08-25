@@ -54,6 +54,8 @@ namespace {
 		cos,
 		sin,
 		nrm,
+		min,
+		max,
 		unknown
 	};
 
@@ -784,6 +786,12 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 				case GLSLstd450Normalize:
 					agal.push_back(Agal(nrm, Register(stage, inst.operands[1], "xyz"), Register(stage, inst.operands[3])));
 					break;
+				case GLSLstd450FMin:
+					agal.push_back(Agal(Opcode::min, Register(stage, inst.operands[1]), Register(stage, inst.operands[3]), Register(stage, inst.operands[4])));
+					break;
+				case GLSLstd450FMax:
+					agal.push_back(Agal(Opcode::max, Register(stage, inst.operands[1]), Register(stage, inst.operands[3]), Register(stage, inst.operands[4])));
+					break;
 				default:
 					printf("Unknown extinst '%i' in the agal translator.\n", instruction);
 				}
@@ -1048,6 +1056,12 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 				break;
 			case nrm:
 				out << "nrm";
+				break;
+			case min:
+				out << "min";
+				break;
+			case max:
+				out << "max";
 				break;
 			case unknown:
 				out << "unknown";
