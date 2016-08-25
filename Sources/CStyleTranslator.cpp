@@ -1438,7 +1438,7 @@ void CStyleTranslator::outputInstruction(const Target& target, std::map<std::str
 		types[result] = resultType;
 		id value = inst.operands[2];
 		std::stringstream str;
-		str << "(float)" << getReference(value);
+		str << "float(" << getReference(value) << ")";
 		references[result] = str.str();
 		break;
 	}

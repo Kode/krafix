@@ -29,7 +29,10 @@ void GlslTranslator::outputCode(const Target& target, const char* sourcefilename
 	file.open(filename, std::ios::binary | std::ios::out);
 	out = &file;
 	
-	if (stage != StageVertex && stage != StageFragment) {
+	if (stage == StageCompute) {
+		(*out) << "#version 430\n";
+	}
+	else if (stage != StageVertex && stage != StageFragment) {
 		(*out) << "#version 400\n";
 	}
 	else {

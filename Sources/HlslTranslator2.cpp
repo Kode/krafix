@@ -25,7 +25,7 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 
 	compiler->set_entry_point("main");
 	spirv_cross::CompilerHLSL::Options opts = compiler->get_options();
-	if (target.version > 8) {
+	if (target.version > 9) {
 		opts.shader_model = 40;
 	}
 	else {
