@@ -763,7 +763,7 @@ void HlslTranslator::outputInstruction(const Target& target, std::map<std::strin
 		Type t;
 		unsigned id = inst.operands[0];
 		if (stage == StageCompute) {
-			t.name = "RWTexture2D<uint>";
+			t.name = "RWTexture2D<float4>";
 		}
 		else {
 			t.name = "sampler2D";
