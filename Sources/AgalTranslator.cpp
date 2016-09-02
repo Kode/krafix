@@ -114,6 +114,13 @@ namespace {
 					}
 					else {
 						type = Constant;
+
+						ConstantVariable variable;
+						variable.id = spirIndex;
+						variable.type = type;
+						variable.size = size;
+						variable.operands.push_back("0.");
+						constants.push_back(variable);
 					}
 					break;
 				}
@@ -357,9 +364,10 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 	std::vector<Agal> agal;
 
 	if (stage == StageVertex) {
+		//clip space constant
 		Register reg(stage, 99999);
 		reg.type = Constant;
-		reg.size = 4;
+		reg.size = 1;
 		agal.push_back(Agal(con, reg, Register()));
 
 		tmp_constants[99999] = "0.5";
@@ -367,7 +375,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 		ConstantVariable variable;
 		variable.id = 99999;
 		variable.type = 0;
-		variable.size = 4;
+		variable.size = 1;
 		variable.operands.push_back("0.5");
 
 		constants.push_back(variable);
@@ -726,10 +734,8 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			id result = inst.operands[1];
 			types[result] = resultType;
 
-			Register r1(stage, result);
-			r1.size = (resultType.length + 3) / 4;
-			Register r2(stage, inst.operands[2]);
-			r2.size = (types[inst.operands[2]].length + 3) / 4;
+			Register r1(stage, result,"xyzw",(resultType.length + 3) / 4);
+			Register r2(stage, inst.operands[2],"xyzw",(types[inst.operands[2]].length + 3) / 4);
 
 			if (strcmp(types[inst.operands[2]].name, "sampler2D") == 0) {
 				names[result] = names[inst.operands[2]];
