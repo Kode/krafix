@@ -838,6 +838,10 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
                 if (program.getIntermediate((EShLanguage)stage)) {
                     std::vector<unsigned int> spirv;
                     glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv);
+					
+					krafix::VarListTranslator* varPrinter = new krafix::VarListTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
+					varPrinter->print();
+
 					krafix::Translator* translator = NULL;
 					std::map<std::string, int> attributes;
 					switch (target.lang) {
@@ -983,6 +987,9 @@ void compile(const char* targetlang, const char* from, std::string to, const cha
 	else {
 		std::cout << "Unknown profile " << targetlang << std::endl;
 		CompileFailed = true;
+	}
+	if (!CompileFailed) {
+		std::cerr << "#file:" << to << std::endl;
 	}
 }
 
