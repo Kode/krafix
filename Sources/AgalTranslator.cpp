@@ -16,6 +16,7 @@ namespace {
 		unsigned id;
 		unsigned type;
 		int size;
+		bool hardCoded = true;
 		std::vector<std::string> operands;
 
 		ConstantVariable() {}
@@ -119,7 +120,8 @@ namespace {
 						variable.id = spirIndex;
 						variable.type = type;
 						variable.size = size;
-						variable.operands.push_back("0.");
+						variable.hardCoded = false;
+						variable.operands.push_back("0.0");
 						constants.push_back(variable);
 					}
 					break;
@@ -378,7 +380,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 		variable.size = 1;
 		variable.operands.push_back("0.5");
 
-		constants.push_back(variable);
+		constants.insert(constants.begin(), variable);
 	}
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
@@ -468,7 +470,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			variable.operands.push_back(value);
 			variable.operands.push_back(value);
 			variable.operands.push_back(value);
-			constants.push_back(variable);
+			constants.insert(constants.begin(),variable);
 
 			break;
 		}
@@ -487,7 +489,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 				variable.operands.push_back(tmp_constants[inst.operands[i]]);
 			}
 
-			constants.push_back(variable);
+			constants.insert(constants.begin(),variable);
 			//result = vec4(inst.operands[2], inst.operands[3], inst.operands[4], inst.operands[5])
 			break;
 		}
@@ -997,8 +999,12 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 	out << "\t\"consts\": {\n";
 	int counter = 0;
 	for (unsigned i = 0; i < constants.size(); ++i) {
+		if (!constants[i].hardCoded) {
+			break;
+		}
 		for (unsigned j = 0; j < constants[i].size; ++j) //fill all the registers to avoid overlap
 		{
+			
 			if (stage == StageVertex)
 			{
 				out << "\t\t\"vc" << counter << "\": [";
@@ -1015,7 +1021,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			}
 			out << "]";
 
-			if (i < constants.size() - 1) out << ",";
+			if (i < constants.size() - 1 && constants[i+1].hardCoded) out << ",";
 			out << "\n";
 			++counter;
 		}
