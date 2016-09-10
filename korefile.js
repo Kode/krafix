@@ -1,7 +1,6 @@
-var solution = new Solution("krafix");
-var project = new Project("krafix");
+let project = new Project('krafix', __dirname);
 
-solution.setCmd();
+project.setCmd();
 
 project.cpp11 = true;
 // bison glslang.y --defines=glslang_tab.cpp.h -o glslang_tab.cpp
@@ -53,6 +52,4 @@ else {
 	project.addIncludeDir('glslang/glslang/OSDependent/Unix');
 }
 
-solution.addProject(project);
-
-return solution;
+resolve(project);
