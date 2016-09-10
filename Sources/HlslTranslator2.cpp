@@ -24,6 +24,11 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 	spirv_cross::CompilerHLSL* compiler = new spirv_cross::CompilerHLSL(spirv);
 
 	compiler->set_entry_point("main");
+
+	spirv_cross::CompilerGLSL::Options glslOpts = compiler->CompilerGLSL::get_options();
+	glslOpts.vertex.fixup_clipspace = false;
+	compiler->CompilerGLSL::set_options(glslOpts);
+	
 	spirv_cross::CompilerHLSL::Options opts = compiler->get_options();
 	if (target.version > 9) {
 		opts.shader_model = 40;
