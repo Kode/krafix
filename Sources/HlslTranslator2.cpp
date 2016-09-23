@@ -1,6 +1,7 @@
 #include "HlslTranslator2.h"
 #include "../SPIRV-Cross/spirv_hlsl.hpp"
 #include <fstream>
+#include <algorithm>
 
 using namespace krafix;
 
@@ -43,4 +44,18 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 	out.open(filename, std::ios::binary | std::ios::out);
 	out << hlsl;
 	out.close();
+
+	if (stage == StageVertex) {
+		std::vector<std::string> inputs;
+		auto variables = compiler->get_active_interface_variables();
+		for (auto var : variables) {
+			if (compiler->get_storage_class(var) == spv::StorageClassInput) {
+				inputs.push_back(compiler->get_name(var));
+			}
+		}
+		std::sort(inputs.begin(), inputs.end());
+		for (unsigned i = 0; i < inputs.size(); ++i) {
+			attributes[inputs[i]] = i;
+		}
+	}
 }
