@@ -747,9 +747,6 @@ krafix::ShaderStage shLanguageToShaderStage(EShLanguage lang) {
 	}
 }
 
-static bool glsl2 = false;
-static bool hlsl2 = false;
-
 //
 // For linking mode: Will independently parse each item in the worklist, but then put them
 // in the same program and link them together.
@@ -849,20 +846,10 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
 						translator = new krafix::SpirVTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::GLSL:
-						if (glsl2) {
-							translator = new krafix::GlslTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
-						}
-						else {
-							translator = new krafix::GlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
-						}
+						translator = new krafix::GlslTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::HLSL:
-						if (hlsl2) {
-							translator = new krafix::HlslTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
-						}
-						else {
-							translator = new krafix::HlslTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
-						}
+						translator = new krafix::HlslTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::Metal:
 						translator = new krafix::MetalTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
@@ -1030,12 +1017,6 @@ int C_DECL main(int argc, char* argv[]) {
 		}
 		else if (arg == "--instancedoptional") {
 			instancedoptional = true;
-		}
-		else if (arg == "--glsl2") {
-			glsl2 = true;
-		}
-		else if (arg == "--hlsl2") {
-			hlsl2 = true;
 		}
 	}
 
