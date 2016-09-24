@@ -50,7 +50,15 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 		auto variables = compiler->get_active_interface_variables();
 		for (auto var : variables) {
 			if (compiler->get_storage_class(var) == spv::StorageClassInput) {
-				inputs.push_back(compiler->get_name(var));
+				if (compiler->get_type_from_variable(var).vecsize == 4 && compiler->get_type_from_variable(var).columns == 4) {
+					inputs.push_back(compiler->get_name(var) + "_0");
+					inputs.push_back(compiler->get_name(var) + "_1");
+					inputs.push_back(compiler->get_name(var) + "_2");
+					inputs.push_back(compiler->get_name(var) + "_3");
+				}
+				else {
+					inputs.push_back(compiler->get_name(var));
+				}
 			}
 		}
 		std::sort(inputs.begin(), inputs.end());
