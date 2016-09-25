@@ -49,7 +49,7 @@ namespace {
 	}
 }
 
-int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage) {
+int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug) {
 #ifdef SYS_WINDOWS
 	FILE* in = fopen(from, "rb");
 	if (!in) {
@@ -68,8 +68,10 @@ int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::str
 
 	ID3DBlob* errorMessage;
 	ID3DBlob* shaderBuffer;
-	HRESULT hr = D3DCompile(data, length, from, nullptr, nullptr, "main", shaderString(stage, 4), /*D3DCOMPILE_DEBUG |*/ D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, 0, &shaderBuffer, &errorMessage);
-	if (hr != S_OK) hr = D3DCompile(data, length, from, nullptr, nullptr, "main", shaderString(stage, 5), /*D3DCOMPILE_DEBUG |*/ D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY, 0, &shaderBuffer, &errorMessage);
+	UINT flags = D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY;
+	if (debug) flags |= D3DCOMPILE_DEBUG;
+	HRESULT hr = D3DCompile(data, length, from, nullptr, nullptr, "main", shaderString(stage, 4), flags, 0, &shaderBuffer, &errorMessage);
+	if (hr != S_OK) hr = D3DCompile(data, length, from, nullptr, nullptr, "main", shaderString(stage, 5), flags, 0, &shaderBuffer, &errorMessage);
 	if (hr == S_OK) {
 		std::ofstream file(to, std::ios_base::binary);
 

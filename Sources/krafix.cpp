@@ -460,6 +460,8 @@ int Options = 0;
 const char* ExecutableName = nullptr;
 const char* binaryFileName = nullptr;
 
+static bool debugMode = false;
+
 //
 // Create the default name for saving a binary if -o is not provided.
 //
@@ -672,7 +674,7 @@ void StderrIfNonEmpty(const char* str)
 
 void executeSync(const char* command);
 int compileHLSLToD3D9(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage);
-int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage);
+int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug);
 
 std::string extractFilename(std::string path) {
 	int i = path.size() - 1;
@@ -873,7 +875,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
 							returnCode = compileHLSLToD3D9(temp.c_str(), filename, attributes, (EShLanguage)stage);
 						}
 						else {
-							returnCode = compileHLSLToD3D11(temp.c_str(), filename, attributes, (EShLanguage)stage);
+							returnCode = compileHLSLToD3D11(temp.c_str(), filename, attributes, (EShLanguage)stage, debugMode);
 						}
 						if (returnCode != 0) CompileFailed = true;
 					}
@@ -1017,6 +1019,9 @@ int C_DECL main(int argc, char* argv[]) {
 		}
 		else if (arg == "--instancedoptional") {
 			instancedoptional = true;
+		}
+		else if (arg == "--debug") {
+			debugMode = true;
 		}
 	}
 
