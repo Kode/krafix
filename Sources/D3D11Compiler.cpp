@@ -49,8 +49,11 @@ namespace {
 	}
 }
 
-int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug) {
+int compileHLSLToD3D11(const char* fromRelative, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug) {
 #ifdef SYS_WINDOWS
+	char from[256];
+	GetFullPathNameA(fromRelative, 255, from, nullptr);
+
 	FILE* in = fopen(from, "rb");
 	if (!in) {
 		printf("Error: unable to open input file: %s\n", from);
