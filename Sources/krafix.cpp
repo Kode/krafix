@@ -921,56 +921,56 @@ krafix::TargetSystem getSystem(const char* system) {
 }
 
 void compile(const char* targetlang, const char* from, std::string to, const char* tempdir, const char* system,
-			 KrafixIncluder& includer, std::string defines) {
+			 KrafixIncluder& includer, std::string defines, int version) {
 	krafix::Target target;
 	target.system = getSystem(system);
 	target.es = false;
 	if (strcmp(targetlang, "spirv") == 0) {
 		target.lang = krafix::SpirV;
-		target.version = 1;
+		target.version = version > 0 ? version : 1;
 		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(targetlang, "d3d9") == 0) {
 		target.lang = krafix::HLSL;
-		target.version = 9;
+		target.version = version > 0 ? version : 9;
 		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(targetlang, "d3d11") == 0) {
 		target.lang = krafix::HLSL;
-		target.version = 11;
+		target.version = version > 0 ? version : 11;
 		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(targetlang, "glsl") == 0) {
 		target.lang = krafix::GLSL;
-		if (target.system == krafix::Linux) target.version = 110;
-		else target.version = 330;
+		if (target.system == krafix::Linux) target.version = version > 0 ? version : 110;
+		else target.version = version > 0 ? version : 330;
 		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(targetlang, "essl") == 0) {
 		target.lang = krafix::GLSL;
-		target.version = 100;
+		target.version = version > 0 ? version : 100;
 		target.es = true;
 		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(targetlang, "agal") == 0) {
 		target.lang = krafix::AGAL;
-		target.version = 100;
+		target.version = version > 0 ? version : 100;
 		target.es = true;
 		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(targetlang, "metal") == 0) {
 		target.lang = krafix::Metal;
-		target.version = 1;
+		target.version = version > 0 ? version : 1;
 		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(targetlang, "varlist") == 0) {
 		target.lang = krafix::VarList;
-		target.version = 1;
+		target.version = version > 0 ? version : 1;
 		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
 	}
 	else if (strcmp(targetlang, "js") == 0 || strcmp(targetlang, "javascript") == 0) {
 		target.lang = krafix::JavaScript;
-		target.version = 1;
+		target.version = version > 0 ? version : 1;
 		CompileAndLinkShaders(target, from, to.c_str(), tempdir, includer, defines.c_str());
 	}
 	else {
@@ -1008,10 +1008,16 @@ int C_DECL main(int argc, char* argv[]) {
 	std::string defines;
 	std::vector<int> textureUnitCounts;
 	bool instancedoptional = false;
-	
+	int version = -1;
+	bool getversion = false;
+
 	for (int i = 6; i < argc; ++i) {
 		std::string arg = argv[i];
-		if (arg.substr(0, 2) == "-D") {
+		if (getversion) {
+			version = atoi(argv[i]);
+			getversion = false;
+		}
+		else if (arg.substr(0, 2) == "-D") {
 			defines += "#define " + arg.substr(2) + "\n";
 		}
 		else if (arg.substr(0, 2) == "-T") {
@@ -1022,6 +1028,9 @@ int C_DECL main(int argc, char* argv[]) {
 		}
 		else if (arg == "--debug") {
 			debugMode = true;
+		}
+		else if (arg == "--version") {
+			getversion = true;
 		}
 	}
 
@@ -1073,11 +1082,11 @@ int C_DECL main(int argc, char* argv[]) {
 				
 				std::stringstream tototo;
 				tototo << towithoutext << "-tex" << texcount << "-noinst" << ext;
-				compile(targetlang, from, tototo.str(), tempdir, system, includer, definesplustex.str());
+				compile(targetlang, from, tototo.str(), tempdir, system, includer, definesplustex.str(), version);
 				std::stringstream totototo;
 				tototo << towithoutext << "-tex" << texcount << "-inst" << ext;
 				std::string definesplusinst = definesplustex.str() + "#define INSTANCED_RENDERING\n";
-				compile(targetlang, from, totototo.str(), tempdir, system, includer, definesplusinst);
+				compile(targetlang, from, totototo.str(), tempdir, system, includer, definesplusinst, version);
 			}
 		}
 		else {
@@ -1087,20 +1096,20 @@ int C_DECL main(int argc, char* argv[]) {
 				toto << towithoutext << "-tex" << texcount << ext;
 				std::stringstream definesplustex;
 				definesplustex << defines << "#define MAX_TEXTURE_UNITS=" << texcount << "\n";
-				compile(targetlang, from, toto.str(), tempdir, system, includer, definesplustex.str());
+				compile(targetlang, from, toto.str(), tempdir, system, includer, definesplustex.str(), version);
 			}
 		}
 	}
 	else {
 		if (instancedoptional && usesInstancedoptional) {
 			std::string toto = towithoutext + "-noinst" + ext;
-			compile(targetlang, from, toto, tempdir, system, includer, defines);
+			compile(targetlang, from, toto, tempdir, system, includer, defines, version);
 			toto = towithoutext + "-inst" + ext;
 			std::string definesplusinst = defines + "#define INSTANCED_RENDERING\n";
-			compile(targetlang, from, toto, tempdir, system, includer, definesplusinst);
+			compile(targetlang, from, toto, tempdir, system, includer, definesplusinst, version);
 		}
 		else {
-			compile(targetlang, from, to, tempdir, system, includer, defines);
+			compile(targetlang, from, to, tempdir, system, includer, defines, version);
 		}
 	}
 	
