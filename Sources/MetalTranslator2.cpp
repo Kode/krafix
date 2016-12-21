@@ -44,12 +44,13 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 
 	spirv_cross::CompilerMSL* compiler = new spirv_cross::CompilerMSL(spirv);
     
-    std::string name = extractFilename(filename);
+    std::string name = extractFilename(sourcefilename);
     name = name.substr(0, name.find_last_of("."));
     name = replace(name, '-', '_');
-    name = replace(name, '.', '_'); // TODO: set name as entry_point_function_name
+    name = replace(name, '.', '_');
 
 	compiler->set_entry_point("main");
+    compiler->set_func_name(name);
 	spirv_cross::CompilerMSL::Options opts = compiler->get_options();
 	opts.version = target.version;
 	opts.es = target.es;
