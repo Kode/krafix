@@ -1,16 +1,16 @@
 [submodule "glslang"]
 	path = glslang
-	url = ../glslang
+	url = https://github.com/Kode/glslang.git
 	branch = master
 [submodule "tests"]
 	path = tests
-	url = ../krafix_tests
+	url = https://github.com/Kode/krafix_tests.git
 	branch = master
 [submodule "sourcemap.cpp"]
 	path = sourcemap.cpp
-	url = ../sourcemap.cpp
+	url = https://github.com/Kode/sourcemap.cpp.git
 	branch = master
 [submodule "SPIRV-Cross"]
 	path = SPIRV-Cross
-	url = ../SPIRV-Cross
+	url = https://github.com/Kode/SPIRV-Cross.git
 	branch = master
