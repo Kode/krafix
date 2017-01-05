@@ -56,7 +56,7 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	opts.es = target.es;
 	opts.force_temporary = false;
 	opts.vulkan_semantics = false;
-	opts.vertex.fixup_clipspace = false;
+	opts.vertex.fixup_clipspace = true;
 	compiler->set_options(opts);
 
 	std::string metal = compiler->compile();
