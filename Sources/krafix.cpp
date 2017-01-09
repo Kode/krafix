@@ -115,6 +115,8 @@ void InfoLogMsg(const char* msg, const char* name, const int num);
 bool CompileFailed = false;
 bool LinkFailed = false;
 
+static bool quiet = false;
+
 // Use to test breaking up a single shader file into multiple strings.
 // Set in ReadFileData().
 int NumShaderStrings;
@@ -838,8 +840,10 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
                     std::vector<unsigned int> spirv;
                     glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv);
 					
-					krafix::VarListTranslator* varPrinter = new krafix::VarListTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
-					varPrinter->print();
+					if (!quiet) {
+						krafix::VarListTranslator* varPrinter = new krafix::VarListTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
+						varPrinter->print();
+					}
 
 					krafix::Translator* translator = NULL;
 					std::map<std::string, int> attributes;
@@ -1031,6 +1035,9 @@ int C_DECL main(int argc, char* argv[]) {
 		}
 		else if (arg == "--version") {
 			getversion = true;
+		}
+		else if (arg == "--quiet") {
+			quiet = true;
 		}
 	}
 

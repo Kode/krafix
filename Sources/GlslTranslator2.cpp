@@ -31,6 +31,9 @@ void GlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 	opts.force_temporary = false;
 	opts.vulkan_semantics = false;
 	opts.vertex.fixup_clipspace = false;
+	if (target.system == Android) {
+		opts.use_oes_egl_image_for_videos = true;
+	}
 	compiler->set_options(opts);
 
 	std::string glsl = compiler->compile();
