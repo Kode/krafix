@@ -712,8 +712,12 @@ public:
 		}
 	}
 
-	IncludeResult* include(const char* requested_source, IncludeType type, const char* requesting_source, size_t inclusion_depth) override {
-		std::string realfilename = dir + requested_source;
+	IncludeResult* includeSystem(const char* headerName, const char* includerName, size_t inclusionDepth) override {
+		return includeLocal(headerName, includerName, inclusionDepth);
+	}
+
+	IncludeResult* includeLocal(const char* headerName, const char* includerName, size_t inclusionDepth) override {
+		std::string realfilename = dir + headerName;
 		std::stringstream content;
 		std::string line;
 		std::ifstream file(realfilename);
@@ -730,7 +734,7 @@ public:
 	}
 
 	void releaseInclude(IncludeResult* result) override {
-		delete (char*)result->user_data;
+		delete (char*)result->userData;
 		delete result;
 	}
 private:
