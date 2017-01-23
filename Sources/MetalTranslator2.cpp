@@ -59,8 +59,15 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	compiler->set_options(opts);
 	
 	spirv_cross::MSLConfiguration config;
-	config.entry_point_name = name;
-	std::string metal = compiler->compile(config);
+	config.entry_point_name = name  + "_main";
+	
+	std::vector<spirv_cross::MSLResourceBinding> p_res_bindings;
+	spirv_cross::MSLResourceBinding mslBinding;
+	mslBinding.stage = spv::ExecutionModelVertex;
+	mslBinding.msl_buffer = 1;
+	p_res_bindings.push_back(mslBinding);
+	
+	std::string metal = compiler->compile(config, nullptr, &p_res_bindings);
 	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
 	out << metal;
