@@ -37,6 +37,7 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 	else {
 		opts.shader_model = 30;
 	}
+	opts.fixup_clipspace = true;
 	compiler->set_options(opts);
 
 	std::string hlsl = compiler->compile();

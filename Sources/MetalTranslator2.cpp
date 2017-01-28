@@ -49,8 +49,7 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	name = replace(name, '-', '_');
 	name = replace(name, '.', '_');
 
-	compiler->set_entry_point("main");
-	compiler->set_entry_point_name(name);
+	compiler->set_entry_point(name);
 	spirv_cross::CompilerMSL::Options opts = compiler->get_options();
 	opts.version = target.version;
 	opts.es = target.es;
