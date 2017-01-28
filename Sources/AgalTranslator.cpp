@@ -773,8 +773,8 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 				agal.push_back(Agal(mov, tempop, Register(stage, inst.operands[1])));
 			}
 			else {
-				if (stage == StageVertex && vertexOutput == inst.operands[0]) {
-					Register tempop(stage, inst.operands[0]);
+				if (stage == StageVertex && vertexOutput == inst.operands[0] * 100) {
+					Register tempop(stage, vertexOutput);
 					tempop.type = Temporary;
 					agal.push_back(Agal(mov, tempop, Register(stage, inst.operands[1])));
 				}
@@ -827,7 +827,7 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 		case OpAccessChain: {
 			Variable v = variables[inst.operands[2]];
 			if (v.storage == Output && stage == StageVertex) {
-				vertexOutput = inst.operands[1];
+				vertexOutput = inst.operands[1] * 100; // multiplying with 100 seems to prevent super strange random conflicts where temps suddenly become constants
 			}
 			else {
 				std::stringstream swizzle;
