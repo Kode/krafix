@@ -773,17 +773,24 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 				agal.push_back(Agal(mov, tempop, Register(stage, inst.operands[1])));
 			}
 			else {
-				Type t1 = types[inst.operands[0]];
-				Type t2 = types[inst.operands[1]];
-				Register r1(stage, inst.operands[0]);
-				if (strcmp(t1.name, "mat4") == 0) {
-					r1.size = 4;
+				if (stage == StageVertex && vertexOutput == inst.operands[0]) {
+					Register tempop(stage, inst.operands[0]);
+					tempop.type = Temporary;
+					agal.push_back(Agal(mov, tempop, Register(stage, inst.operands[1])));
 				}
-				Register r2(stage, inst.operands[1]);
-				if (strcmp(t2.name, "mat4") == 0) {
-					r2.size = 4;
+				else {
+					Type t1 = types[inst.operands[0]];
+					Type t2 = types[inst.operands[1]];
+					Register r1(stage, inst.operands[0]);
+					if (strcmp(t1.name, "mat4") == 0) {
+						r1.size = 4;
+					}
+					Register r2(stage, inst.operands[1]);
+					if (strcmp(t2.name, "mat4") == 0) {
+						r2.size = 4;
+					}
+					agal.push_back(Agal(mov, r1, r2));
 				}
-				agal.push_back(Agal(mov, r1, r2));
 			}
 			break;
 		}
@@ -818,12 +825,18 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			break;
 		}
 		case OpAccessChain: {
-			std::stringstream swizzle;
-			for (unsigned i = 3; i < inst.length; ++i) {
-				ConstantVariable constvar = findConstant(inst.operands[i]);
-				swizzle << indexName(atoi(constvar.operands[0].c_str()));
+			Variable v = variables[inst.operands[2]];
+			if (v.storage == Output && stage == StageVertex) {
+				vertexOutput = inst.operands[1];
 			}
-			agal.push_back(Agal(mov, Register(stage, inst.operands[1]), Register(stage, inst.operands[2], swizzle.str())));
+			else {
+				std::stringstream swizzle;
+				for (unsigned i = 3; i < inst.length; ++i) {
+					ConstantVariable constvar = findConstant(inst.operands[i]);
+					swizzle << indexName(atoi(constvar.operands[0].c_str()));
+				}
+				agal.push_back(Agal(mov, Register(stage, inst.operands[1]), Register(stage, inst.operands[2], swizzle.str())));
+			}
 			break;
 		}
 		default:
