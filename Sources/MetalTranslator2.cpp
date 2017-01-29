@@ -49,7 +49,7 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	name = replace(name, '-', '_');
 	name = replace(name, '.', '_');
 
-	compiler->set_entry_point(name);
+	compiler->set_entry_point("main");
 	spirv_cross::CompilerMSL::Options opts = compiler->get_options();
 	opts.version = target.version;
 	opts.es = target.es;
@@ -57,8 +57,10 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	opts.vulkan_semantics = false;
 	opts.vertex.fixup_clipspace = true;
 	compiler->set_options(opts);
-
-	std::string metal = compiler->compile();
+	
+	spirv_cross::MSLConfiguration config;
+	config.entry_point_name = name;
+	std::string metal = compiler->compile(config);
 	std::ofstream out;
 	out.open(filename, std::ios::binary | std::ios::out);
 	out << metal;
