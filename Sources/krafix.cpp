@@ -55,6 +55,7 @@
 #include "MetalTranslator2.h"
 #include "VarListTranslator.h"
 #include "JavaScriptTranslator.h"
+#include "JavaScriptTranslator2.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -871,7 +872,7 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
 						translator = new krafix::VarListTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					case krafix::JavaScript:
-						translator = new krafix::JavaScriptTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
+						translator = new krafix::JavaScriptTranslator2(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						break;
 					}
 					
