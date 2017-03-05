@@ -142,7 +142,7 @@ const char* DefaultConfig =
 "MaxCombinedTextureImageUnits 80\n"
 "MaxTextureImageUnits 32\n"
 "MaxFragmentUniformComponents 4096\n"
-"MaxDrawBuffers 32\n"
+"MaxDrawBuffers 8\n"
 "MaxVertexUniformVectors 128\n"
 "MaxVaryingVectors 8\n"
 "MaxFragmentUniformVectors 16\n"
