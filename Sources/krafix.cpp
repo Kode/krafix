@@ -991,6 +991,7 @@ void compile(const char* targetlang, const char* from, std::string to, const cha
 	}
 }
 
+// d3d11 in/basic.vert test.d3d11 temp windows
 int C_DECL main(int argc, char* argv[]) {
 	if (argc < 6) {
 		usage();
