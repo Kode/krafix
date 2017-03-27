@@ -1,6 +1,8 @@
 #include "JavaScriptTranslator2.h"
+#ifdef SPIRV_JS
 #include "../SPIRV-Cross/spirv_js.hpp"
 #include <fstream>
+#endif
 
 using namespace krafix;
 
@@ -21,6 +23,7 @@ void JavaScriptTranslator2::outputCode(const Target& target, const char* sourcef
 		}
 	}
 
+#ifdef SPIRV_JS
 	spirv_cross::CompilerJS* compiler = new spirv_cross::CompilerJS(spirv);
 
 	compiler->set_entry_point("main");
@@ -33,4 +36,5 @@ void JavaScriptTranslator2::outputCode(const Target& target, const char* sourcef
 	out.open(filename, std::ios::binary | std::ios::out);
 	out << js;
 	out.close();
+#endif
 }
