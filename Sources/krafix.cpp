@@ -1470,12 +1470,12 @@ void InfoLogMsg(const char* msg, const char* name, const int num)
 }
 
 
-#ifdef SYS_WINDOWS
+#ifdef _WIN32
 #include <Windows.h>
 #endif
 
 void executeSync(const char* command) {
-#ifdef SYS_WINDOWS
+#ifdef _WIN32
 	STARTUPINFOA startupInfo;
 	PROCESS_INFORMATION processInfo;
 	memset(&startupInfo, 0, sizeof(startupInfo));

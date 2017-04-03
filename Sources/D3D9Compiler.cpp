@@ -2,7 +2,7 @@
 #include <map>
 #include <string>
 
-#ifdef SYS_WINDOWS
+#ifdef _WIN32
 
 #include <Windows.h>
 #include <d3d9.h>
@@ -18,7 +18,7 @@ static D3DXCompileShaderFromFileAType CompileShaderFromFileA = nullptr;
 #endif
 
 int compileHLSLToD3D9(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage) {
-#ifdef SYS_WINDOWS
+#ifdef _WIN32
 	HMODULE lib = LoadLibraryA("d3dx9_43.dll");
 	if (lib != nullptr) CompileShaderFromFileA = (D3DXCompileShaderFromFileAType)GetProcAddress(lib, "D3DXCompileShaderFromFileA");
 

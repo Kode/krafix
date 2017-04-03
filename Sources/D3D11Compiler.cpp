@@ -2,7 +2,7 @@
 #include <map>
 #include <string>
 
-#ifdef SYS_WINDOWS
+#ifdef _WIN32
 #define INITGUID
 #include <Windows.h>
 #include <d3d11.h>
@@ -50,7 +50,7 @@ namespace {
 }
 
 int compileHLSLToD3D11(const char* fromRelative, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug) {
-#ifdef SYS_WINDOWS
+#ifdef _WIN32
 	char from[256];
 	GetFullPathNameA(fromRelative, 255, from, nullptr);
 
