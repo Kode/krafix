@@ -1018,10 +1018,10 @@ int compile(const char* targetlang, const char* from, std::string to, const char
 int compileOptionallyRelaxed(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* system,
 	KrafixIncluder& includer, std::string defines, int version, bool relax) {
 	int errors = 0;
+	errors += compile(targetlang, from, to + ext, tempdir, system, includer, defines, version, false);
 	if (relax) {
 		errors += compile(targetlang, from, to + "-relaxed" + ext, tempdir, system, includer, defines, version, true);
-	}	
-	errors += compile(targetlang, from, to + ext, tempdir, system, includer, defines, version, false);
+	}
 	return errors;
 }
 
