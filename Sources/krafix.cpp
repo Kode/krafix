@@ -931,6 +931,23 @@ krafix::TargetSystem getSystem(const char* system) {
 
 void compile(const char* targetlang, const char* from, std::string to, const char* tempdir, const char* system,
 			 KrafixIncluder& includer, std::string defines, int version, bool relax) {
+	//Options |= EOptionHumanReadableSpv;
+	Options |= EOptionSpv;
+	Options |= EOptionLinkProgram;
+	//Options |= EOptionSuppressInfolog;
+
+	NumWorkItems = 1;
+	Work = new glslang::TWorkItem*[NumWorkItems];
+	Work[0] = 0;
+
+	std::string name(from);
+	if (!SetConfigFile(name)) {
+		Work[0] = new glslang::TWorkItem(name);
+		Worklist.add(Work[0]);
+	}
+
+	glslang::InitializeProcess();
+
 	krafix::Target target;
 	target.system = getSystem(system);
 	target.es = false;
@@ -989,6 +1006,52 @@ void compile(const char* targetlang, const char* from, std::string to, const cha
 	if (!CompileFailed) {
 		std::cerr << "#file:" << to << std::endl;
 	}
+
+	glslang::FinalizeProcess();
+}
+
+int compileOptionallyRelaxed(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* system,
+	KrafixIncluder& includer, std::string defines, int version, bool relax) {
+	int errors = 0;
+	if (relax) {
+		compile(targetlang, from, to + "-relaxed" + ext, tempdir, system, includer, defines, version, true);
+		if (CompileFailed || LinkFailed) ++errors;
+	}	
+	compile(targetlang, from, to + ext, tempdir, system, includer, defines, version, false);
+	if (CompileFailed || LinkFailed) ++errors;
+	return errors;
+}
+
+int compileOptionallyInstanced(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* system,
+	KrafixIncluder& includer, std::string defines, int version, bool instanced, bool relax) {
+	int errors = 0;
+	if (instanced) {
+		errors += compileOptionallyRelaxed(targetlang, from, to + "-noinst", ext, tempdir, system, includer, defines, version, relax);
+		errors += compileOptionallyRelaxed(targetlang, from, to + "-inst", ext, tempdir, system, includer, defines + "#define INSTANCED_RENDERING\n", version, relax);
+	}
+	else {
+		errors += compileOptionallyRelaxed(targetlang, from, to, ext, tempdir, system, includer, defines, version, relax);
+	}
+	return errors;
+}
+
+int compileWithTextureUnits(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* system,
+	KrafixIncluder& includer, std::string defines, int version, const std::vector<int>& textureUnitCounts, bool usesTextureUnitsCount, bool instanced, bool relax) {
+	int errors = 0;
+	if (usesTextureUnitsCount && textureUnitCounts.size() > 0) {
+		for (size_t i = 0; i < textureUnitCounts.size(); ++i) {
+			int texcount = textureUnitCounts[i];
+			std::stringstream toto;
+			toto << to << "-tex" << texcount << ext;
+			std::stringstream definesplustex;
+			definesplustex << defines << "#define MAX_TEXTURE_UNITS=" << texcount << "\n";
+			errors += compileOptionallyInstanced(targetlang, from, toto.str(), ext, tempdir, system, includer, definesplustex.str(), version, instanced, relax);
+		}
+	}
+	else {
+		errors += compileOptionallyInstanced(targetlang, from, to, ext, tempdir, system, includer, defines, version, instanced, relax);
+	}
+	return errors;
 }
 
 // d3d11 in/basic.vert test.d3d11 temp windows
@@ -999,21 +1062,6 @@ int C_DECL main(int argc, char* argv[]) {
 	}
 
 	const char* tempdir = argv[4];
-
-	//Options |= EOptionHumanReadableSpv;
-	Options |= EOptionSpv;
-	Options |= EOptionLinkProgram;
-	//Options |= EOptionSuppressInfolog;
-
-	NumWorkItems = 1;
-	Work = new glslang::TWorkItem*[NumWorkItems];
-	Work[0] = 0;
-
-	std::string name(argv[2]);
-	if (!SetConfigFile(name)) {
-		Work[0] = new glslang::TWorkItem(name);
-		Worklist.add(Work[0]);
-	}
 	
 	std::string defines;
 	std::vector<int> textureUnitCounts;
@@ -1058,9 +1106,9 @@ int C_DECL main(int argc, char* argv[]) {
 
 	ProcessConfigFile();
 
-	glslang::InitializeProcess();
+	//glslang::InitializeProcess();
 	
-	KrafixIncluder includer(name);
+	KrafixIncluder includer(from);
 	
 	bool usesTextureUnitsCount = false;
 	bool usesInstancedoptional = false;
@@ -1085,59 +1133,15 @@ int C_DECL main(int argc, char* argv[]) {
 		}
 	}
 	
-	std::string towithoutext = to.substr(0, to.find_last_of('.'));
-	std::string ext = to.substr(to.find_last_of('.'));
-	
-	if (textureUnitCounts.size() > 0 && usesTextureUnitsCount) {
-		if (instancedoptional && usesInstancedoptional) {
-			for (size_t i = 0; i < textureUnitCounts.size(); ++i) {
-				int texcount = textureUnitCounts[i];
-				std::stringstream toto;
-				toto << towithoutext << "-tex" << texcount << ext;
-				std::stringstream definesplustex;
-				definesplustex << defines << "#define MAX_TEXTURE_UNITS=" << texcount << "\n";
-				
-				std::stringstream tototo;
-				tototo << towithoutext << "-tex" << texcount << "-noinst" << ext;
-				compile(targetlang, from, tototo.str(), tempdir, system, includer, definesplustex.str(), version, relax);
-				std::stringstream totototo;
-				tototo << towithoutext << "-tex" << texcount << "-inst" << ext;
-				std::string definesplusinst = definesplustex.str() + "#define INSTANCED_RENDERING\n";
-				compile(targetlang, from, totototo.str(), tempdir, system, includer, definesplusinst, version, relax);
-			}
-		}
-		else {
-			for (size_t i = 0; i < textureUnitCounts.size(); ++i) {
-				int texcount = textureUnitCounts[i];
-				std::stringstream toto;
-				toto << towithoutext << "-tex" << texcount << ext;
-				std::stringstream definesplustex;
-				definesplustex << defines << "#define MAX_TEXTURE_UNITS=" << texcount << "\n";
-				compile(targetlang, from, toto.str(), tempdir, system, includer, definesplustex.str(), version, relax);
-			}
-		}
-	}
-	else {
-		if (instancedoptional && usesInstancedoptional) {
-			std::string toto = towithoutext + "-noinst" + ext;
-			compile(targetlang, from, toto, tempdir, system, includer, defines, version, relax);
-			toto = towithoutext + "-inst" + ext;
-			std::string definesplusinst = defines + "#define INSTANCED_RENDERING\n";
-			compile(targetlang, from, toto, tempdir, system, includer, definesplusinst, version, relax);
-		}
-		else {
-			compile(targetlang, from, to, tempdir, system, includer, defines, version, relax);
-		}
-	}
-	
-	glslang::FinalizeProcess();
+	std::string towithoutext = to.substr(0, to.find_first_of('.'));
+	std::string ext = to.substr(to.find_first_of('.'));
 
-	if (CompileFailed)
-		return EFailCompile;
-	if (LinkFailed)
-		return EFailLink;
-
-	return 0;
+	int errors = compileWithTextureUnits(targetlang, from, towithoutext, ext, tempdir, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
+	if (errors > 0) {
+		int a = 3;
+		++a;
+	}
+	return errors;
 }
 
 int C_DECL main_glslangValidator(int argc, char* argv[])
