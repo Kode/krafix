@@ -34,6 +34,9 @@ void GlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 	if (target.system == Android) {
 		opts.use_oes_egl_image_for_videos = true;
 	}
+	if (relax) {
+		opts.relax_everything = true;
+	}
 	compiler->set_options(opts);
 
 	std::string glsl = compiler->compile();
