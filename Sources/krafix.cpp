@@ -845,9 +845,11 @@ void CompileAndLinkShaders(krafix::Target target, const char* sourcefilename, co
                     std::vector<unsigned int> spirv;
                     glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv);
 					
-					if (!quiet) {
+					static bool firstRun = true;
+					if (!quiet && firstRun) {
 						krafix::VarListTranslator* varPrinter = new krafix::VarListTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
 						varPrinter->print();
+						firstRun = false;
 					}
 
 					krafix::Translator* translator = NULL;
@@ -929,7 +931,7 @@ krafix::TargetSystem getSystem(const char* system) {
 	return krafix::Unknown;
 }
 
-void compile(const char* targetlang, const char* from, std::string to, const char* tempdir, const char* system,
+int compile(const char* targetlang, const char* from, std::string to, const char* tempdir, const char* system,
 			 KrafixIncluder& includer, std::string defines, int version, bool relax) {
 	//Options |= EOptionHumanReadableSpv;
 	Options |= EOptionSpv;
@@ -1008,17 +1010,18 @@ void compile(const char* targetlang, const char* from, std::string to, const cha
 	}
 
 	glslang::FinalizeProcess();
+
+	if (CompileFailed || LinkFailed) return 1;
+	else return 0;
 }
 
 int compileOptionallyRelaxed(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* system,
 	KrafixIncluder& includer, std::string defines, int version, bool relax) {
 	int errors = 0;
 	if (relax) {
-		compile(targetlang, from, to + "-relaxed" + ext, tempdir, system, includer, defines, version, true);
-		if (CompileFailed || LinkFailed) ++errors;
+		errors += compile(targetlang, from, to + "-relaxed" + ext, tempdir, system, includer, defines, version, true);
 	}	
-	compile(targetlang, from, to + ext, tempdir, system, includer, defines, version, false);
-	if (CompileFailed || LinkFailed) ++errors;
+	errors += compile(targetlang, from, to + ext, tempdir, system, includer, defines, version, false);
 	return errors;
 }
 
@@ -1136,7 +1139,14 @@ int C_DECL main(int argc, char* argv[]) {
 	std::string towithoutext = to.substr(0, to.find_first_of('.'));
 	std::string ext = to.substr(to.find_first_of('.'));
 
-	int errors = compileWithTextureUnits(targetlang, from, towithoutext, ext, tempdir, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
+	int errors = 0;
+	if (strcmp(targetlang, "varlist") == 0) {
+		compile(targetlang, from, to, tempdir, system, includer, defines, version, false);
+		if (CompileFailed || LinkFailed) ++errors;
+	}
+	else {
+		errors = compileWithTextureUnits(targetlang, from, towithoutext, ext, tempdir, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
+	}
 	if (errors > 0) {
 		int a = 3;
 		++a;
