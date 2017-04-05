@@ -35,6 +35,7 @@ void GlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 		opts.use_oes_egl_image_for_videos = true;
 	}
 	if (relax) {
+		opts.fragment.default_int_precision = spirv_cross::CompilerGLSL::Options::Mediump;
 		opts.relax_everything = true;
 	}
 	compiler->set_options(opts);
