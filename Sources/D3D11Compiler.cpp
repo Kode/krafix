@@ -71,7 +71,7 @@ int compileHLSLToD3D11(const char* fromRelative, const char* to, const std::map<
 
 	ID3DBlob* errorMessage;
 	ID3DBlob* shaderBuffer;
-	UINT flags = D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY;
+	UINT flags = 0;
 	if (debug) flags |= D3DCOMPILE_DEBUG;
 	HRESULT hr = D3DCompile(data, length, from, nullptr, nullptr, "main", shaderString(stage, 4), flags, 0, &shaderBuffer, &errorMessage);
 	if (hr != S_OK) hr = D3DCompile(data, length, from, nullptr, nullptr, "main", shaderString(stage, 5), flags, 0, &shaderBuffer, &errorMessage);

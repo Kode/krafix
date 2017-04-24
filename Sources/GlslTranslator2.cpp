@@ -32,11 +32,15 @@ void GlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 	opts.vulkan_semantics = false;
 	opts.vertex.fixup_clipspace = false;
 	if (target.system == Android) {
+#ifdef SPIRV_CROSS_KRAFIX
 		opts.use_oes_egl_image_for_videos = true;
+#endif
 	}
 	if (relax) {
 		opts.fragment.default_int_precision = spirv_cross::CompilerGLSL::Options::Mediump;
+#ifdef SPIRV_CROSS_KRAFIX
 		opts.relax_everything = true;
+#endif
 	}
 	compiler->set_options(opts);
 
