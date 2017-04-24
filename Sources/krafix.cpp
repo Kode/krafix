@@ -793,7 +793,7 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 					}
 					
 					if (target.lang == krafix::HLSL && target.system != krafix::Unity) {
-						std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(filename)) + ".hlsl";
+						std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(sourcefilename)) + ".hlsl";
 						translator->outputCode(target, sourcefilename, temp.c_str(), attributes);
 						int returnCode = 0;
 						if (target.version == 9) {
