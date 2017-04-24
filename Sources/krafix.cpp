@@ -715,7 +715,7 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 
         if (! (Options & EOptionSuppressInfolog) &&
             ! (Options & EOptionMemoryLeakMode)) {
-            PutsIfNonEmpty(compUnit.fileName.c_str());
+            //PutsIfNonEmpty(compUnit.fileName.c_str());
             PutsIfNonEmpty(shader->getInfoLog());
             PutsIfNonEmpty(shader->getInfoDebugLog());
         }
