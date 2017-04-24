@@ -23,6 +23,7 @@ project.addFile('sourcemap.cpp/src/pos_txt.cpp');
 project.addFile('sourcemap.cpp/src/format/v3.cpp');
 project.addFile('sourcemap.cpp/src/document.cpp');
 
+project.addFile('glslang/StandAlone/ResourceLimits.cpp');
 project.addFile('glslang/glslang/GenericCodeGen/**');
 project.addFile('glslang/glslang/MachineIndependent/**');
 project.addFile('glslang/glslang/Include/**');
