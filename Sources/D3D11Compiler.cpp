@@ -113,8 +113,8 @@ int compileHLSLToD3D11(const char* fromRelative, const char* to, const std::map<
 					file << variableDesc.Name;
 					file.put(0);
 					//file.put(variable->GetType()->);
-					file.put(variableDesc.StartOffset);
-					file.put(variableDesc.Size);
+					file.write((char*)&variableDesc.StartOffset, 4);
+					file.write((char*)&variableDesc.Size, 4);
 				}
 			}
 		}
