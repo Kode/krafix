@@ -606,8 +606,22 @@ void AgalTranslator::outputCode(const Target& target, const char* sourcefilename
 			unsigned result = inst.operands[1];
 			agal.push_back(Agal(mov, Register(stage, result, "x"), Register(stage, inst.operands[2], "x")));
 			agal.push_back(Agal(mov, Register(stage, result, "y"), Register(stage, inst.operands[3], "y")));
-			agal.push_back(Agal(mov, Register(stage, result, "z"), Register(stage, inst.operands[4], "z")));
-			agal.push_back(Agal(mov, Register(stage, result, "w"), Register(stage, inst.operands[5], "w")));
+			if (resultType.length >= 3) {
+				agal.push_back(Agal(mov, Register(stage, result, "z"), Register(stage, inst.operands[4], "z")));
+			}
+			else {
+				//write something to avoid reading errors
+				agal.push_back(Agal(mov, Register(stage, result, "z"), Register(stage, inst.operands[2], "z")));
+				agal.push_back(Agal(mov, Register(stage, result, "w"), Register(stage, inst.operands[3], "w")));
+				break;
+			}
+			if	(resultType.length >= 4) {
+				agal.push_back(Agal(mov, Register(stage, result, "w"), Register(stage, inst.operands[5], "w")));
+			}
+			else {
+				//write something to avoid reading errors
+				agal.push_back(Agal(mov, Register(stage, result, "w"), Register(stage, inst.operands[4], "w")));
+			}
 			break;
 		}
 		case OpCompositeExtract: {
