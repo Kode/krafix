@@ -708,7 +708,7 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
             StderrIfNonEmpty(shader->getInfoDebugLog());
             continue;
         }
-        if (! shader->parse(&Resources, defaultVersion, false, messages))
+        if (! shader->parse(&Resources, defaultVersion, ENoProfile, false, false, messages, includer))
             CompileFailed = true;
 
         program.addShader(shader);
@@ -1024,7 +1024,7 @@ int compileWithTextureUnits(const char* targetlang, const char* from, std::strin
 	return errors;
 }
 
-// d3d11 in/basic.vert test.d3d11 temp windows
+// d3d11 in/basic.vert.glsl test.d3d11 temp windows
 int C_DECL main(int argc, char* argv[]) {
 	if (argc < 6) {
 		usage();
