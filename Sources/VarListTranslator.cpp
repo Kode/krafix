@@ -201,7 +201,7 @@ void VarListTranslator::outputCode(const Target& target, const char* sourcefilen
 				}
 				else {
 					size_t length = strlen(name);
-					itoa(dim, &name[length], 10);
+					sprintf(&name[length], "%d", dim);
 					name[length + 1] = 0;
 					strcat(name, "D");
 				}
@@ -343,24 +343,13 @@ void VarListTranslator::print() {
 		}
 		case OpTypeArray: {
 			Type t;
-			strcpy(t.name, "unknownarray");
+			strcpy(t.name, "[]");
 			t.isarray = true;
 			unsigned id = inst.operands[0];
 			Type subtype = types[inst.operands[1]];
 			//t.length = atoi(references[inst.operands[2]].c_str());
 			if (subtype.name != NULL) {
-				if (strcmp(subtype.name, "float") == 0) {
-					strcpy(t.name, "float");
-				}
-				else if (strcmp(subtype.name, "vec2") == 0) {
-					strcpy(t.name, "vec2");
-				}
-				else if (strcmp(subtype.name, "vec3") == 0) {
-					strcpy(t.name, "vec3");
-				}
-				else if (strcmp(subtype.name, "vec4") == 0) {
-					strcpy(t.name, "vec4");
-				}
+				strcpy(t.name, subtype.name);
 			}
 			types[id] = t;
 			break;
