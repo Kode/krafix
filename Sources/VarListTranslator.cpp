@@ -15,11 +15,13 @@ namespace {
 	};
 
 	struct Type {
-		const char* name;
+		char name[256];
 		unsigned length;
 		bool isarray;
 
-		Type() : name("unknown"), length(1), isarray(false) {}
+		Type() : length(1), isarray(false) {
+			strcpy(name, "unknown");
+		}
 	};
 
 	struct Variable {
@@ -80,7 +82,7 @@ void VarListTranslator::outputCode(const Target& target, const char* sourcefilen
 			Type t;
 			unsigned id = inst.operands[0];
 			Type subtype = types[inst.operands[2]];
-			t.name = subtype.name;
+			strcpy(t.name, subtype.name);
 			t.isarray = subtype.isarray;
 			t.length = subtype.length;
 			types[id] = t;
@@ -89,21 +91,21 @@ void VarListTranslator::outputCode(const Target& target, const char* sourcefilen
 		case OpTypeFloat: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "float";
+			strcpy(t.name, "float");
 			types[id] = t;
 			break;
 		}
 		case OpTypeInt: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "int";
+			strcpy(t.name, "int");
 			types[id] = t;
 			break;
 		}
 		case OpTypeBool: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "bool";
+			strcpy(t.name, "bool");
 			types[id] = t;
 			break;
 		}
@@ -112,29 +114,29 @@ void VarListTranslator::outputCode(const Target& target, const char* sourcefilen
 			unsigned id = inst.operands[0];
 			// TODO: members
 			Name n = names[id];
-			t.name = n.name;
+			strcpy(t.name, n.name);
 			types[id] = t;
 			break;
 		}
 		case OpTypeArray: {
 			Type t;
-			t.name = "unknownarray";
+			strcpy(t.name, "unknownarray");
 			t.isarray = true;
 			unsigned id = inst.operands[0];
 			Type subtype = types[inst.operands[1]];
 			//t.length = atoi(references[inst.operands[2]].c_str());
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "float") == 0) {
-					t.name = "float";
+					strcpy(t.name, "float");
 				}
 				else if (strcmp(subtype.name, "vec2") == 0) {
-					t.name = "vec2";
+					strcpy(t.name, "vec2");
 				}
 				else if (strcmp(subtype.name, "vec3") == 0) {
-					t.name = "vec3";
+					strcpy(t.name, "vec3");
 				}
 				else if (strcmp(subtype.name, "vec4") == 0) {
-					t.name = "vec4";
+					strcpy(t.name, "vec4");
 				}
 			}
 			types[id] = t;
@@ -143,19 +145,19 @@ void VarListTranslator::outputCode(const Target& target, const char* sourcefilen
 		case OpTypeVector: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "vec?";
+			strcpy(t.name, "vec?");
 			Type subtype = types[inst.operands[1]];
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 2) {
-					t.name = "vec2";
+					strcpy(t.name, "vec2");
 					t.length = 2;
 				}
 				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 3) {
-					t.name = "vec3";
+					strcpy(t.name, "vec3");
 					t.length = 3;
 				}
 				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 4) {
-					t.name = "vec4";
+					strcpy(t.name, "vec4");
 					t.length = 4;
 				}
 			}
@@ -165,16 +167,16 @@ void VarListTranslator::outputCode(const Target& target, const char* sourcefilen
 		case OpTypeMatrix: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "mat?";
+			strcpy(t.name, "mat?");
 			Type subtype = types[inst.operands[1]];
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "vec3") == 0 && inst.operands[2] == 3) {
-					t.name = "mat3";
+					strcpy(t.name, "mat3");
 					t.length = 4;
 					types[id] = t;
 				}
 				else if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
-					t.name = "mat4";
+					strcpy(t.name, "mat4");
 					t.length = 4;
 					types[id] = t;
 				}
@@ -184,12 +186,32 @@ void VarListTranslator::outputCode(const Target& target, const char* sourcefilen
 		case OpTypeImage: {
 			Type t;
 			unsigned id = inst.operands[0];
+			int dim = inst.operands[2] + 1;
+			bool depth = inst.operands[3] != 0;
+			bool arrayed = inst.operands[4] != 0;
 			bool video = inst.length >= 8 && inst.operands[8] == 1;
 			if (video && target.system == Android) {
-				t.name = "samplerExternalOES";
+				strcpy(t.name, "samplerExternalOES");
 			}
 			else {
-				t.name = "sampler2D";
+				char name[128];
+				strcpy(name, "sampler");
+				if (dim == 4) {
+					strcat(name, "Cube");
+				}
+				else {
+					size_t length = strlen(name);
+					itoa(dim, &name[length], 10);
+					name[length + 1] = 0;
+					strcat(name, "D");
+				}
+				if (depth) {
+					strcat(name, "Shadow");
+				}
+				if (arrayed) {
+					strcat(name, "Array");
+				}
+				strcpy(t.name, name);
 			}
 			types[id] = t;
 			break;
@@ -283,7 +305,7 @@ void VarListTranslator::print() {
 			Type t;
 			unsigned id = inst.operands[0];
 			Type subtype = types[inst.operands[2]];
-			t.name = subtype.name;
+			strcpy(t.name, subtype.name);
 			t.isarray = subtype.isarray;
 			t.length = subtype.length;
 			types[id] = t;
@@ -292,21 +314,21 @@ void VarListTranslator::print() {
 		case OpTypeFloat: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "float";
+			strcpy(t.name, "float");
 			types[id] = t;
 			break;
 		}
 		case OpTypeInt: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "int";
+			strcpy(t.name, "int");
 			types[id] = t;
 			break;
 		}
 		case OpTypeBool: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "bool";
+			strcpy(t.name, "bool");
 			types[id] = t;
 			break;
 		}
@@ -315,29 +337,29 @@ void VarListTranslator::print() {
 			unsigned id = inst.operands[0];
 			// TODO: members
 			Name n = names[id];
-			t.name = n.name;
+			strcpy(t.name, n.name);
 			types[id] = t;
 			break;
 		}
 		case OpTypeArray: {
 			Type t;
-			t.name = "unknownarray";
+			strcpy(t.name, "unknownarray");
 			t.isarray = true;
 			unsigned id = inst.operands[0];
 			Type subtype = types[inst.operands[1]];
 			//t.length = atoi(references[inst.operands[2]].c_str());
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "float") == 0) {
-					t.name = "float";
+					strcpy(t.name, "float");
 				}
 				else if (strcmp(subtype.name, "vec2") == 0) {
-					t.name = "vec2";
+					strcpy(t.name, "vec2");
 				}
 				else if (strcmp(subtype.name, "vec3") == 0) {
-					t.name = "vec3";
+					strcpy(t.name, "vec3");
 				}
 				else if (strcmp(subtype.name, "vec4") == 0) {
-					t.name = "vec4";
+					strcpy(t.name, "vec4");
 				}
 			}
 			types[id] = t;
@@ -346,19 +368,19 @@ void VarListTranslator::print() {
 		case OpTypeVector: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "vec?";
+			strcpy(t.name, "vec?");
 			Type subtype = types[inst.operands[1]];
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 2) {
-					t.name = "vec2";
+					strcpy(t.name, "vec2");
 					t.length = 2;
 				}
 				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 3) {
-					t.name = "vec3";
+					strcpy(t.name, "vec3");
 					t.length = 3;
 				}
 				else if (strcmp(subtype.name, "float") == 0 && inst.operands[2] == 4) {
-					t.name = "vec4";
+					strcpy(t.name, "vec4");
 					t.length = 4;
 				}
 			}
@@ -368,16 +390,16 @@ void VarListTranslator::print() {
 		case OpTypeMatrix: {
 			Type t;
 			unsigned id = inst.operands[0];
-			t.name = "mat?";
+			strcpy(t.name, "mat?");
 			Type subtype = types[inst.operands[1]];
 			if (subtype.name != NULL) {
 				if (strcmp(subtype.name, "vec3") == 0 && inst.operands[2] == 3) {
-					t.name = "mat3";
+					strcpy(t.name, "mat3");
 					t.length = 4;
 					types[id] = t;
 				}
 				else if (strcmp(subtype.name, "vec4") == 0 && inst.operands[2] == 4) {
-					t.name = "mat4";
+					strcpy(t.name, "mat4");
 					t.length = 4;
 					types[id] = t;
 				}
@@ -388,7 +410,7 @@ void VarListTranslator::print() {
 			Type t;
 			unsigned id = inst.operands[0];
 			bool video = inst.length >= 8 && inst.operands[8] == 1;
-			t.name = "sampler2D";
+			strcpy(t.name, "sampler2D");
 			types[id] = t;
 			break;
 		}
