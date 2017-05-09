@@ -71,7 +71,6 @@ namespace {
 		case OpTypeStruct: {
 			Type t;
 			unsigned id = inst.operands[0];
-			// TODO: members
 			Name n = names[id];
 			strcpy(t.name, n.name);
 			types[id] = t;
@@ -193,6 +192,7 @@ void VarListTranslator::outputCode(const Target& target, const char* sourcefilen
 	std::map<unsigned, Name> names;
 	std::map<unsigned, Variable> variables;
 	std::map<unsigned, Type> types;
+	std::map<unsigned, std::vector<std::string>> memberNames;
 
 	std::streambuf* buf;
 	std::ofstream of;
@@ -234,6 +234,31 @@ void VarListTranslator::outputCode(const Target& target, const char* sourcefilen
 		default:
 			namesAndTypes(inst, names, types);
 			break;
+		case OpTypeStruct: {
+			Type t;
+			unsigned id = inst.operands[0];
+			Name n = names[id];
+			strcpy(t.name, n.name);
+			types[id] = t;
+			out << "type " << n.name;
+			for (unsigned i = 1; i < inst.length; i++) {
+				Type& type = types[inst.operands[i]];
+				out << " " << type.name << " " << memberNames[id][i - 1];
+			}
+			out << "\n";
+			break;
+		}
+		case OpMemberName: {
+			unsigned id = inst.operands[0];
+			unsigned number = inst.operands[1];
+			char name[256];
+			strcpy(name, (char*)&inst.operands[2]);
+			while (memberNames[id].size() <= number) {
+				memberNames[id].push_back("");
+			}
+			memberNames[id][number] = name;
+			break;
+		}
 		case OpVariable: {
 			Type resultType = types[inst.operands[0]];
 			id result = inst.operands[1];
@@ -275,6 +300,7 @@ void VarListTranslator::print() {
 	std::map<unsigned, Name> names;
 	std::map<unsigned, Variable> variables;
 	std::map<unsigned, Type> types;
+	std::map<unsigned, std::vector<std::string>> memberNames;
 
 	switch (stage) {
 	case StageVertex:
@@ -303,6 +329,32 @@ void VarListTranslator::print() {
 		default:
 			namesAndTypes(inst, names, types);
 			break;
+		case OpTypeStruct: {
+			Type t;
+			unsigned id = inst.operands[0];
+			Name n = names[id];
+			strcpy(t.name, n.name);
+			types[id] = t;
+			std::cerr << "#type:" << n.name << ":{";
+			for (unsigned i = 1; i < inst.length; i++) {
+				Type& type = types[inst.operands[i]];
+				std::cerr << memberNames[id][i - 1] << ":" << type.name;
+				if (i < inst.length - 1) std::cerr << ",";
+			}
+			std::cerr << "}" << std::endl;
+			break;
+		}
+		case OpMemberName: {
+			unsigned id = inst.operands[0];
+			unsigned number = inst.operands[1];
+			char name[256];
+			strcpy(name, (char*)&inst.operands[2]);
+			while (memberNames[id].size() <= number) {
+				memberNames[id].push_back("");
+			}
+			memberNames[id][number] = name;
+			break;
+		}
 		case OpVariable: {
 			Type resultType = types[inst.operands[0]];
 			id result = inst.operands[1];
