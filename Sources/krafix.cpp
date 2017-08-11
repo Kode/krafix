@@ -989,7 +989,7 @@ int compileOptionallyRelaxed(const char* targetlang, const char* from, std::stri
 	if (relax) {
 		errors += compile(targetlang, from, to + "-relaxed" + ext, tempdir, system, includer, defines, version, true);
 	}
-	if (strcmp(system, "html5") == 0) {
+	if (strcmp(system, "html5") == 0 || strcmp(system, "debug-html5") == 0) {
 		errors += compile(targetlang, from, to + "-webgl2" + ext, tempdir, system, includer, defines, 300, true);
 	}
 	return errors;
