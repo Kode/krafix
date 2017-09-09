@@ -840,6 +840,7 @@ krafix::TargetSystem getSystem(const char* system) {
 	if (strcmp(system, "android") == 0) return krafix::Android;
 	if (strcmp(system, "html5") == 0) return krafix::HTML5;
     if (strcmp(system, "debug-html5") == 0) return krafix::HTML5;
+	if (strcmp(system, "html5worker") == 0) return krafix::HTML5;
 	if (strcmp(system, "flash") == 0) return krafix::Flash;
 	if (strcmp(system, "unity") == 0) return krafix::Unity;
 	return krafix::Unknown;
@@ -989,7 +990,7 @@ int compileOptionallyRelaxed(const char* targetlang, const char* from, std::stri
 	if (relax) {
 		errors += compile(targetlang, from, to + "-relaxed" + ext, tempdir, system, includer, defines, version, true);
 	}
-	if (strcmp(system, "html5") == 0 || strcmp(system, "debug-html5") == 0) {
+	if (strcmp(system, "html5") == 0 || strcmp(system, "debug-html5") == 0 || strcmp(system, "html5worker") == 0) {
 		errors += compile(targetlang, from, to + "-webgl2" + ext, tempdir, system, includer, defines, 300, true);
 	}
 	return errors;
