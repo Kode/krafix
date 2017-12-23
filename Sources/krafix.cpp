@@ -973,7 +973,7 @@ int compile(const char* targetlang, const char* from, std::string to, const char
 		std::cout << "Unknown profile " << targetlang << std::endl;
 		CompileFailed = true;
 	}
-	if (!CompileFailed) {
+	if (!CompileFailed && !quiet) {
 		std::cerr << "#file:" << to << std::endl;
 	}
 
