@@ -1,6 +1,7 @@
 let project = new Project('krafix', __dirname);
 
 project.addDefine('SPIRV_CROSS_KRAFIX');
+project.addDefine('ENABLE_HLSL');
 
 project.setCmd();
 

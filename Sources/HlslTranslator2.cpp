@@ -27,7 +27,7 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 	compiler->set_entry_point("main");
 
 	spirv_cross::CompilerGLSL::Options glslOpts = compiler->CompilerGLSL::get_options();
-	glslOpts.vertex.fixup_clipspace = false;
+	glslOpts.vertex.fixup_clipspace = true;
 	compiler->CompilerGLSL::set_options(glslOpts);
 	
 	spirv_cross::CompilerHLSL::Options opts = compiler->get_options();
@@ -37,7 +37,6 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 	else {
 		opts.shader_model = 30;
 	}
-	opts.fixup_clipspace = true;
 	compiler->set_options(opts);
 
 	std::string hlsl = compiler->compile();
