@@ -3,6 +3,10 @@ let project = new Project('krafix', __dirname);
 project.addDefine('SPIRV_CROSS_KRAFIX');
 project.addDefine('ENABLE_HLSL');
 
+// glslang defines to enable vendor-specific extensions
+project.addDefine('NV_EXTENSIONS');
+project.addDefine('AMD_EXTENSIONS');
+
 project.setCmd();
 
 project.cpp11 = true;
