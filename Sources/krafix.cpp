@@ -128,6 +128,7 @@ bool LinkFailed = false;
 
 static bool quiet = false;
 static bool debugMode = false;
+static bool outputSpirv = false;
 
 // Use to test breaking up a single shader file into multiple strings.
 // Set in ReadFileData().
@@ -650,6 +651,20 @@ krafix::ShaderStage shLanguageToShaderStage(EShLanguage lang) {
 	}
 }
 
+static void writeSpirv(const char* filename, std::vector<unsigned int>& words) {
+	std::ofstream out;
+	out.open(filename, std::ios::binary | std::ios::out);
+	
+	for (unsigned i = 0; i < words.size(); ++i) {
+		out.put(words[i] & 0xff);
+		out.put((words[i] >> 8) & 0xff);
+		out.put((words[i] >> 16) & 0xff);
+		out.put((words[i] >> 24) & 0xff);
+	}
+
+	out.close();
+}
+
 //
 // For linking mode: Will independently parse each compilation unit, but then put them
 // in the same program and link them together, making at most one linked module per
@@ -759,6 +774,12 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
                     std::string warningsErrors;
                     spv::SpvBuildLogger logger;
                     glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv, &logger);
+
+					if (outputSpirv) {
+						std::string filename = std::string(tempdir) + "/" + removeExtension(extractFilename(sourcefilename)) + ".spirv";
+						writeSpirv(filename.c_str(), spirv);
+					}
+
 					static bool firstRun = true;
 					if (!quiet && firstRun) {
 						krafix::VarListTranslator* varPrinter = new krafix::VarListTranslator(spirv, shLanguageToShaderStage((EShLanguage)stage));
@@ -1070,6 +1091,9 @@ int C_DECL main(int argc, char* argv[]) {
 		}
 		else if (arg == "--relax") {
 			relax = true;
+		}
+		else if (arg == "--outputintermediatespirv") {
+			outputSpirv = true;
 		}
 	}
 
