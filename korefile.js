@@ -4,9 +4,9 @@ project.addDefine('SPIRV_CROSS_KRAFIX');
 project.addDefine('ENABLE_HLSL');
 
 project.setCmd();
+project.setDebugDir('tests');
 
 project.cpp11 = true;
-// bison glslang.y --defines=glslang_tab.cpp.h -o glslang_tab.cpp
 
 project.addExclude('.git/**');
 project.addExclude('glslang/.git/**');
