@@ -1,9 +1,10 @@
-let project = new Project('krafix', __dirname);
+let project = new Project('krafix');
 
 project.addDefine('SPIRV_CROSS_KRAFIX');
 
 project.setCmd();
 
+project.kore = false;
 project.cpp11 = true;
 // bison glslang.y --defines=glslang_tab.cpp.h -o glslang_tab.cpp
 

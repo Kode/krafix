@@ -112,9 +112,18 @@ int compileHLSLToD3D11(const char* fromRelative, const char* to, const std::map<
 				if (hr == S_OK) {
 					file << variableDesc.Name;
 					file.put(0);
-					//file.put(variable->GetType()->);
 					file.write((char*)&variableDesc.StartOffset, 4);
 					file.write((char*)&variableDesc.Size, 4);
+					D3D11_SHADER_TYPE_DESC typeDesc;
+					hr = variable->GetType()->GetDesc(&typeDesc);
+					if (hr == S_OK) {
+						file.put(typeDesc.Columns);
+						file.put(typeDesc.Rows);
+					}
+					else {
+						file.put(0);
+						file.put(0);
+					}
 				}
 			}
 		}
