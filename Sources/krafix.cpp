@@ -1131,8 +1131,20 @@ int C_DECL main(int argc, char* argv[]) {
 		}
 	}
 	
-	std::string towithoutext = to.substr(0, to.find_first_of('.'));
-	std::string ext = to.substr(to.find_first_of('.'));
+	size_t split1 = to.find_last_of('/');
+	size_t split2 = to.find_last_of('\\');
+	size_t split;
+	if (split1 == std::string::npos && split2 == std::string::npos) {
+		split = 0;
+	}
+	else if (split1 == std::string::npos || split2 == std::string::npos) {
+		split = std::min(split1, split2);
+	}
+	else {
+		split = std::max(split1, split2);
+	}
+	std::string towithoutext = to.substr(0, to.find_first_of('.', split));
+	std::string ext = to.substr(to.find_first_of('.', split));
 
 	int errors = 0;
 	if (strcmp(targetlang, "varlist") == 0) {
