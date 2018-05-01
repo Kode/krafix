@@ -50,7 +50,7 @@ namespace {
 	}
 }
 
-int compileHLSLToD3D11(const char* fromRelative, const char* to, const char* source, char* output, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug) {
+int compileHLSLToD3D11(const char* fromRelative, const char* to, const char* source, char* output, int* outputlength, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug) {
 #ifdef _WIN32
 	char from[256];
 	int length;
@@ -89,6 +89,7 @@ int compileHLSLToD3D11(const char* fromRelative, const char* to, const char* sou
 		std::ostream* file;
 		std::ofstream actualfile;
 		std::ostrstream arrayout(output, 1024 * 1024);
+		*outputlength = 0;
 
 		if (output) {
 			file = &arrayout;
@@ -98,11 +99,11 @@ int compileHLSLToD3D11(const char* fromRelative, const char* to, const char* sou
 			file = &actualfile;
 		}
 
-		file->put((char)attributes.size());
+		file->put((char)attributes.size()); *outputlength += 1;
 		for (std::map<std::string, int>::const_iterator attribute = attributes.begin(); attribute != attributes.end(); ++attribute) {
-			(*file) << attribute->first.c_str();
-			file->put(0);
-			file->put(attribute->second);
+			(*file) << attribute->first.c_str(); *outputlength += attribute->first.length();
+			file->put(0); *outputlength += 1;
+			file->put(attribute->second); *outputlength += 1;
 		}
 
 		ID3D11ShaderReflection* reflector = nullptr;
@@ -111,46 +112,46 @@ int compileHLSLToD3D11(const char* fromRelative, const char* to, const char* sou
 		D3D11_SHADER_DESC desc;
 		reflector->GetDesc(&desc);
 
-		file->put(desc.BoundResources);
+		file->put(desc.BoundResources); *outputlength += 1;
 		for (unsigned i = 0; i < desc.BoundResources; ++i) {
 			D3D11_SHADER_INPUT_BIND_DESC bindDesc;
 			reflector->GetResourceBindingDesc(i, &bindDesc);
-			(*file) << bindDesc.Name;
-			file->put(0);
-			file->put(bindDesc.BindPoint);
+			(*file) << bindDesc.Name; *outputlength += strlen(bindDesc.Name);
+			file->put(0); *outputlength += 1;
+			file->put(bindDesc.BindPoint); *outputlength += 1;
 		}
 
 		ID3D11ShaderReflectionConstantBuffer* constants = reflector->GetConstantBufferByName("$Globals");
 		D3D11_SHADER_BUFFER_DESC bufferDesc;
 		hr = constants->GetDesc(&bufferDesc);
 		if (hr == S_OK) {
-			file->put(bufferDesc.Variables);
+			file->put(bufferDesc.Variables); *outputlength += 1;
 			for (unsigned i = 0; i < bufferDesc.Variables; ++i) {
 				ID3D11ShaderReflectionVariable* variable = constants->GetVariableByIndex(i);
 				D3D11_SHADER_VARIABLE_DESC variableDesc;
 				hr = variable->GetDesc(&variableDesc);
 				if (hr == S_OK) {
-					(*file) << variableDesc.Name;
-					file->put(0);
-					file->write((char*)&variableDesc.StartOffset, 4);
-					file->write((char*)&variableDesc.Size, 4);
+					(*file) << variableDesc.Name; *outputlength += strlen(variableDesc.Name);
+					file->put(0); *outputlength += 1;
+					file->write((char*)&variableDesc.StartOffset, 4); *outputlength += 4;
+					file->write((char*)&variableDesc.Size, 4); *outputlength += 4;
 					D3D11_SHADER_TYPE_DESC typeDesc;
 					hr = variable->GetType()->GetDesc(&typeDesc);
 					if (hr == S_OK) {
-						file->put(typeDesc.Columns);
-						file->put(typeDesc.Rows);
+						file->put(typeDesc.Columns); *outputlength += 1;
+						file->put(typeDesc.Rows); *outputlength += 1;
 					}
 					else {
-						file->put(0);
-						file->put(0);
+						file->put(0); *outputlength += 1;
+						file->put(0); *outputlength += 1;
 					}
 				}
 			}
 		}
 		else {
-			file->put(0);
+			file->put(0); *outputlength += 1;
 		}
-		file->write((char*)shaderBuffer->GetBufferPointer(), shaderBuffer->GetBufferSize());
+		file->write((char*)shaderBuffer->GetBufferPointer(), shaderBuffer->GetBufferSize()); *outputlength += shaderBuffer->GetBufferSize();
 		return 0;
 	}
 	else {
