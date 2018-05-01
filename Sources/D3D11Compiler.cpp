@@ -9,6 +9,7 @@
 #include <D3Dcompiler.h>
 #include <fstream>
 #include <iostream>
+#include <strstream>
 #endif
 
 namespace {
@@ -49,25 +50,34 @@ namespace {
 	}
 }
 
-int compileHLSLToD3D11(const char* fromRelative, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug) {
+int compileHLSLToD3D11(const char* fromRelative, const char* to, const char* source, char* output, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug) {
 #ifdef _WIN32
 	char from[256];
-	GetFullPathNameA(fromRelative, 255, from, nullptr);
-
-	FILE* in = fopen(from, "rb");
-	if (!in) {
-		printf("Error: unable to open input file: %s\n", from);
-		return 1;
+	int length;
+	char* data;
+	if (source) {
+		strcpy(from, fromRelative);
+		data = (char*)source;
+		length = strlen(source);
 	}
+	else {
+		GetFullPathNameA(fromRelative, 255, from, nullptr);
 
-	fseek(in, 0, SEEK_END);
-	int length = ftell(in);
-	rewind(in);
+		FILE* in = fopen(from, "rb");
+		if (!in) {
+			printf("Error: unable to open input file: %s\n", from);
+			return 1;
+		}
 
-	char* data = new char[length];
-	fread(data, 1, length, in);
+		fseek(in, 0, SEEK_END);
+		length = ftell(in);
+		rewind(in);
 
-	fclose(in);
+		data = new char[length];
+		fread(data, 1, length, in);
+
+		fclose(in);
+	}
 
 	ID3DBlob* errorMessage;
 	ID3DBlob* shaderBuffer;
@@ -76,13 +86,23 @@ int compileHLSLToD3D11(const char* fromRelative, const char* to, const std::map<
 	HRESULT hr = D3DCompile(data, length, from, nullptr, nullptr, "main", shaderString(stage, 4), flags, 0, &shaderBuffer, &errorMessage);
 	if (hr != S_OK) hr = D3DCompile(data, length, from, nullptr, nullptr, "main", shaderString(stage, 5), flags, 0, &shaderBuffer, &errorMessage);
 	if (hr == S_OK) {
-		std::ofstream file(to, std::ios_base::binary);
+		std::ostream* file;
+		std::ofstream actualfile;
+		std::ostrstream arrayout(output, 1024 * 1024);
 
-		file.put((char)attributes.size());
+		if (output) {
+			file = &arrayout;
+		}
+		else {
+			actualfile.open(to, std::ios_base::binary);
+			file = &actualfile;
+		}
+
+		file->put((char)attributes.size());
 		for (std::map<std::string, int>::const_iterator attribute = attributes.begin(); attribute != attributes.end(); ++attribute) {
-			file << attribute->first.c_str();
-			file.put(0);
-			file.put(attribute->second);
+			(*file) << attribute->first.c_str();
+			file->put(0);
+			file->put(attribute->second);
 		}
 
 		ID3D11ShaderReflection* reflector = nullptr;
@@ -91,46 +111,46 @@ int compileHLSLToD3D11(const char* fromRelative, const char* to, const std::map<
 		D3D11_SHADER_DESC desc;
 		reflector->GetDesc(&desc);
 
-		file.put(desc.BoundResources);
+		file->put(desc.BoundResources);
 		for (unsigned i = 0; i < desc.BoundResources; ++i) {
 			D3D11_SHADER_INPUT_BIND_DESC bindDesc;
 			reflector->GetResourceBindingDesc(i, &bindDesc);
-			file << bindDesc.Name;
-			file.put(0);
-			file.put(bindDesc.BindPoint);
+			(*file) << bindDesc.Name;
+			file->put(0);
+			file->put(bindDesc.BindPoint);
 		}
 
 		ID3D11ShaderReflectionConstantBuffer* constants = reflector->GetConstantBufferByName("$Globals");
 		D3D11_SHADER_BUFFER_DESC bufferDesc;
 		hr = constants->GetDesc(&bufferDesc);
 		if (hr == S_OK) {
-			file.put(bufferDesc.Variables);
+			file->put(bufferDesc.Variables);
 			for (unsigned i = 0; i < bufferDesc.Variables; ++i) {
 				ID3D11ShaderReflectionVariable* variable = constants->GetVariableByIndex(i);
 				D3D11_SHADER_VARIABLE_DESC variableDesc;
 				hr = variable->GetDesc(&variableDesc);
 				if (hr == S_OK) {
-					file << variableDesc.Name;
-					file.put(0);
-					file.write((char*)&variableDesc.StartOffset, 4);
-					file.write((char*)&variableDesc.Size, 4);
+					(*file) << variableDesc.Name;
+					file->put(0);
+					file->write((char*)&variableDesc.StartOffset, 4);
+					file->write((char*)&variableDesc.Size, 4);
 					D3D11_SHADER_TYPE_DESC typeDesc;
 					hr = variable->GetType()->GetDesc(&typeDesc);
 					if (hr == S_OK) {
-						file.put(typeDesc.Columns);
-						file.put(typeDesc.Rows);
+						file->put(typeDesc.Columns);
+						file->put(typeDesc.Rows);
 					}
 					else {
-						file.put(0);
-						file.put(0);
+						file->put(0);
+						file->put(0);
 					}
 				}
 			}
 		}
 		else {
-			file.put(0);
+			file->put(0);
 		}
-		file.write((char*)shaderBuffer->GetBufferPointer(), shaderBuffer->GetBufferSize());
+		file->write((char*)shaderBuffer->GetBufferPointer(), shaderBuffer->GetBufferSize());
 		return 0;
 	}
 	else {

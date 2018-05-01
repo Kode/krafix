@@ -571,8 +571,8 @@ struct ShaderCompUnit {
 };
 
 void executeSync(const char* command);
-int compileHLSLToD3D9(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage);
-int compileHLSLToD3D11(const char* from, const char* to, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug);
+int compileHLSLToD3D9(const char* from, const char* to, const char* source, char* output, const std::map<std::string, int>& attributes, EShLanguage stage);
+int compileHLSLToD3D11(const char* from, const char* to, const char* source, char* output, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug);
 
 std::string extractFilename(std::string path) {
 	int i = path.size() - 1;
@@ -637,6 +637,25 @@ private:
 	std::string dir;
 };
 
+class NullIncluder : public glslang::TShader::Includer {
+public:
+	NullIncluder() {
+		
+	}
+
+	IncludeResult* includeSystem(const char* headerName, const char* includerName, size_t inclusionDepth) override {
+		return includeLocal(headerName, includerName, inclusionDepth);
+	}
+
+	IncludeResult* includeLocal(const char* headerName, const char* includerName, size_t inclusionDepth) override {
+		return nullptr;
+	}
+
+	void releaseInclude(IncludeResult* result) override {
+		
+	}
+};
+
 krafix::ShaderStage shLanguageToShaderStage(EShLanguage lang) {
 	switch (lang) {
 	case EShLangVertex: return krafix::StageVertex;
@@ -673,7 +692,7 @@ static void writeSpirv(const char* filename, std::vector<unsigned int>& words) {
 // Uses the new C++ interface instead of the old handle-based interface.
 //
 
-void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Target target, const char* sourcefilename, const char* filename, const char* tempdir, glslang::TShader::Includer& includer, const char* defines, bool relax)
+void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Target target, const char* sourcefilename, const char* filename, const char* tempdir, char* output, glslang::TShader::Includer& includer, const char* defines, bool relax)
 {
     // keep track of what to free
     std::list<glslang::TShader*> shaders;
@@ -814,19 +833,24 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 					}
 					
 					if (target.lang == krafix::HLSL && target.system != krafix::Unity) {
-						std::string temp = std::string(tempdir) + "/" + removeExtension(extractFilename(sourcefilename)) + ".hlsl";
-						translator->outputCode(target, sourcefilename, temp.c_str(), attributes);
+						std::string temp = sourcefilename == nullptr ? "" : std::string(tempdir) + "/" + removeExtension(extractFilename(sourcefilename)) + ".hlsl";
+						char* tempoutput = nullptr;
+						if (output) {
+							tempoutput = new char[1024 * 1024];
+						}
+						translator->outputCode(target, sourcefilename, temp.c_str(), tempoutput, attributes);
 						int returnCode = 0;
 						if (target.version == 9) {
-							returnCode = compileHLSLToD3D9(temp.c_str(), filename, attributes, (EShLanguage)stage);
+							returnCode = compileHLSLToD3D9(temp.c_str(), filename, tempoutput, output, attributes, (EShLanguage)stage);
 						}
 						else {
-							returnCode = compileHLSLToD3D11(temp.c_str(), filename, attributes, (EShLanguage)stage, debugMode);
+							returnCode = compileHLSLToD3D11(temp.c_str(), filename, tempoutput, output, attributes, (EShLanguage)stage, debugMode);
 						}
 						if (returnCode != 0) CompileFailed = true;
+						delete[] tempoutput;
 					}
 					else {
-						translator->outputCode(target, sourcefilename, filename, attributes);
+						translator->outputCode(target, sourcefilename, filename, output, attributes);
 					}
 
 					delete translator;
@@ -880,7 +904,7 @@ krafix::TargetSystem getSystem(const char* system) {
 // performance and memory testing, the actual compile/link can be put in
 // a loop, independent of processing the work items and file IO.
 //
-void CompileAndLinkShaderFiles(krafix::Target target, const char* sourcefilename, const char* filename, const char* tempdir, glslang::TShader::Includer& includer, const char* defines, bool relax)
+void CompileAndLinkShaderFiles(krafix::Target target, const char* sourcefilename, const char* filename, const char* tempdir, const char* source, char* output, glslang::TShader::Includer& includer, const char* defines, bool relax)
 {
     std::vector<ShaderCompUnit> compUnits;
 
@@ -889,12 +913,15 @@ void CompileAndLinkShaderFiles(krafix::Target target, const char* sourcefilename
     // work-item distribution properties in this path, which
     // is okay due to the limited number of shaders, know since
     // they are all getting linked together.)
+
+	char* sources[] = { (char*)source, nullptr, nullptr, nullptr, nullptr };
+	
     glslang::TWorkItem* workItem;
     while (Worklist.remove(workItem)) {
         ShaderCompUnit compUnit(
             FindLanguage(workItem->name),
             workItem->name,
-            ReadFileData(workItem->name.c_str())
+            source != nullptr ? sources : ReadFileData(workItem->name.c_str())
         );
 
         if (! compUnit.text) {
@@ -910,18 +937,20 @@ void CompileAndLinkShaderFiles(krafix::Target target, const char* sourcefilename
     // all the perf/memory that a programmatic consumer will care about.
     for (int i = 0; i < ((Options & EOptionMemoryLeakMode) ? 100 : 1); ++i) {
         for (int j = 0; j < ((Options & EOptionMemoryLeakMode) ? 100 : 1); ++j)
-           CompileAndLinkShaderUnits(compUnits, target, sourcefilename, filename, tempdir, includer, defines, relax);
+           CompileAndLinkShaderUnits(compUnits, target, sourcefilename, filename, tempdir, output, includer, defines, relax);
 
         if (Options & EOptionMemoryLeakMode)
             glslang::OS_DumpMemoryCounters();
     }
 
-    for (auto it = compUnits.begin(); it != compUnits.end(); ++it)
-        FreeFileData(it->text);
+	if (source == nullptr) {
+		for (auto it = compUnits.begin(); it != compUnits.end(); ++it)
+			FreeFileData(it->text);
+	}
 }
 
-int compile(const char* targetlang, const char* from, std::string to, const char* tempdir, const char* system,
-			 KrafixIncluder& includer, std::string defines, int version, bool relax) {
+int compile(const char* targetlang, const char* from, std::string to, const char* tempdir, const char* source, char* output, const char* system,
+	glslang::TShader::Includer& includer, std::string defines, int version, bool relax) {
 	//Options |= EOptionHumanReadableSpv;
 	Options |= EOptionSpv;
 	Options |= EOptionLinkProgram;
@@ -931,8 +960,15 @@ int compile(const char* targetlang, const char* from, std::string to, const char
 	Work = new glslang::TWorkItem*[NumWorkItems];
 	Work[0] = 0;
 
-	std::string name(from);
-	if (!SetConfigFile(name)) {
+	if (from) {
+		std::string name(from);
+		if (!SetConfigFile(name)) {
+			Work[0] = new glslang::TWorkItem(name);
+			Worklist.add(Work[0]);
+		}
+	}
+	else {
+		std::string name = std::string("nothing.") + to;
 		Work[0] = new glslang::TWorkItem(name);
 		Worklist.add(Work[0]);
 	}
@@ -945,50 +981,50 @@ int compile(const char* targetlang, const char* from, std::string to, const char
 	if (strcmp(targetlang, "spirv") == 0) {
 		target.lang = krafix::SpirV;
 		target.version = version > 0 ? version : 1;
-		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, includer, defines.c_str(), relax);
+		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "d3d9") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = version > 0 ? version : 9;
-		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, includer, defines.c_str(), relax);
+		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "d3d11") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = version > 0 ? version : 11;
-		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, includer, defines.c_str(), relax);
+		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "glsl") == 0) {
 		target.lang = krafix::GLSL;
 		if (target.system == krafix::Linux) target.version = version > 0 ? version : 110;
 		else target.version = version > 0 ? version : 330;
-		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, includer, defines.c_str(), relax);
+		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "essl") == 0) {
 		target.lang = krafix::GLSL;
 		target.version = version > 0 ? version : 100;
 		target.es = true;
-		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, includer, defines.c_str(), relax);
+		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "agal") == 0) {
 		target.lang = krafix::AGAL;
 		target.version = version > 0 ? version : 100;
 		target.es = true;
-		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, includer, defines.c_str(), relax);
+		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "metal") == 0) {
 		target.lang = krafix::Metal;
 		target.version = version > 0 ? version : 1;
-		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, includer, defines.c_str(), relax);
+		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "varlist") == 0) {
 		target.lang = krafix::VarList;
 		target.version = version > 0 ? version : 1;
-		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, includer, defines.c_str(), relax);
+		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "js") == 0 || strcmp(targetlang, "javascript") == 0) {
 		target.lang = krafix::JavaScript;
 		target.version = version > 0 ? version : 1;
-		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, includer, defines.c_str(), relax);
+		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, includer, defines.c_str(), relax);
 	}
 	else {
 		std::cout << "Unknown profile " << targetlang << std::endl;
@@ -1004,34 +1040,34 @@ int compile(const char* targetlang, const char* from, std::string to, const char
 	else return 0;
 }
 
-int compileOptionallyRelaxed(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* system,
-	KrafixIncluder& includer, std::string defines, int version, bool relax) {
+int compileOptionallyRelaxed(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* source, char* output, const char* system,
+	glslang::TShader::Includer& includer, std::string defines, int version, bool relax) {
 	int errors = 0;
-	errors += compile(targetlang, from, to + ext, tempdir, system, includer, defines, version, false);
+	errors += compile(targetlang, from, to + ext, tempdir, source, output, system, includer, defines, version, false);
 	if (relax) {
-		errors += compile(targetlang, from, to + "-relaxed" + ext, tempdir, system, includer, defines, version, true);
+		errors += compile(targetlang, from, to + "-relaxed" + ext, tempdir, source, output, system, includer, defines, version, true);
 	}
 	if (strcmp(system, "html5") == 0 || strcmp(system, "debug-html5") == 0 || strcmp(system, "html5worker") == 0) {
-		errors += compile(targetlang, from, to + "-webgl2" + ext, tempdir, system, includer, defines, 300, false);
+		errors += compile(targetlang, from, to + "-webgl2" + ext, tempdir, source, output, system, includer, defines, 300, false);
 	}
 	return errors;
 }
 
-int compileOptionallyInstanced(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* system,
-	KrafixIncluder& includer, std::string defines, int version, bool instanced, bool relax) {
+int compileOptionallyInstanced(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* source, char* output, const char* system,
+	glslang::TShader::Includer& includer, std::string defines, int version, bool instanced, bool relax) {
 	int errors = 0;
 	if (instanced) {
-		errors += compileOptionallyRelaxed(targetlang, from, to + "-noinst", ext, tempdir, system, includer, defines, version, relax);
-		errors += compileOptionallyRelaxed(targetlang, from, to + "-inst", ext, tempdir, system, includer, defines + "#define INSTANCED_RENDERING\n", version, relax);
+		errors += compileOptionallyRelaxed(targetlang, from, to + "-noinst", ext, tempdir, source, output, system, includer, defines, version, relax);
+		errors += compileOptionallyRelaxed(targetlang, from, to + "-inst", ext, tempdir, source, output, system, includer, defines + "#define INSTANCED_RENDERING\n", version, relax);
 	}
 	else {
-		errors += compileOptionallyRelaxed(targetlang, from, to, ext, tempdir, system, includer, defines, version, relax);
+		errors += compileOptionallyRelaxed(targetlang, from, to, ext, tempdir, source, output, system, includer, defines, version, relax);
 	}
 	return errors;
 }
 
-int compileWithTextureUnits(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* system,
-	KrafixIncluder& includer, std::string defines, int version, const std::vector<int>& textureUnitCounts, bool usesTextureUnitsCount, bool instanced, bool relax) {
+int compileWithTextureUnits(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* source, char* output, const char* system,
+	glslang::TShader::Includer& includer, std::string defines, int version, const std::vector<int>& textureUnitCounts, bool usesTextureUnitsCount, bool instanced, bool relax) {
 	int errors = 0;
 	if (usesTextureUnitsCount && textureUnitCounts.size() > 0) {
 		for (size_t i = 0; i < textureUnitCounts.size(); ++i) {
@@ -1040,16 +1076,65 @@ int compileWithTextureUnits(const char* targetlang, const char* from, std::strin
 			toto << to << "-tex" << texcount << ext;
 			std::stringstream definesplustex;
 			definesplustex << defines << "#define MAX_TEXTURE_UNITS=" << texcount << "\n";
-			errors += compileOptionallyInstanced(targetlang, from, toto.str(), ext, tempdir, system, includer, definesplustex.str(), version, instanced, relax);
+			errors += compileOptionallyInstanced(targetlang, from, toto.str(), ext, tempdir, source, output, system, includer, definesplustex.str(), version, instanced, relax);
 		}
 	}
 	else {
-		errors += compileOptionallyInstanced(targetlang, from, to, ext, tempdir, system, includer, defines, version, instanced, relax);
+		errors += compileOptionallyInstanced(targetlang, from, to, ext, tempdir, source, output, system, includer, defines, version, instanced, relax);
 	}
 	return errors;
 }
 
+void krafix_compile(const char* source, char* output, const char* targetlang, const char* system, const char* shadertype) {
+	std::string defines;
+	std::vector<int> textureUnitCounts;
+	bool instancedoptional = false;
+	int version = -1;
+	bool getversion = false;
+	bool relax = false;
+
+	//defines += "#define " + arg.substr(2) + "\n";
+	//textureUnitCounts.push_back(atoi(arg.substr(2).c_str()));
+	//instancedoptional = true;
+	//debugMode = true;
+	//relax = true;
+	quiet = true;
+	
+	ProcessConfigFile();
+
+	//glslang::InitializeProcess();
+
+	NullIncluder includer;
+
+	bool usesTextureUnitsCount = false;
+	bool usesInstancedoptional = false;
+
+	/*if (textureUnitCounts.size() > 0 || instancedoptional) {
+		std::stringstream filecontentstream;
+		std::string line;
+		std::ifstream file(from);
+		if (file.is_open()) {
+			while (getline(file, line)) {
+				filecontentstream << line << '\n';
+			}
+			file.close();
+		}
+		std::string filecontent = filecontentstream.str();
+
+		if (filecontent.find("MAX_TEXTURE_UNITS") != std::string::npos) {
+			usesTextureUnitsCount = true;
+		}
+		if (filecontent.find("INSTANCED_RENDERING") != std::string::npos) {
+			usesInstancedoptional = true;
+		}
+	}*/
+	
+	int errors = 0;
+	errors = compileWithTextureUnits(targetlang, nullptr, "", shadertype, nullptr, source, output, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
+}
+
 // d3d11 in/basic.vert.glsl test.d3d11 temp windows
+#ifndef KRAFIX_LIBRARY
 int C_DECL main(int argc, char* argv[]) {
 	if (argc < 6) {
 		usage();
@@ -1160,6 +1245,7 @@ int C_DECL main(int argc, char* argv[]) {
 	}
 	return errors;
 }
+#endif
 
 //
 //   Deduce the language from the filename.  Files must end in one of the

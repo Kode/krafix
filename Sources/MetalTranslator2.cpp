@@ -25,7 +25,7 @@ namespace {
 	}
 }
 
-void MetalTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) {
+void MetalTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) {
 	std::vector<unsigned> spirv;
 	
 	spirv.push_back(magicNumber);
@@ -69,8 +69,13 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	p_res_bindings.push_back(mslBinding);
 	
 	std::string metal = compiler->compile(nullptr, &p_res_bindings);
-	std::ofstream out;
-	out.open(filename, std::ios::binary | std::ios::out);
-	out << metal;
-	out.close();
+	if (output) {
+		strcpy(output, metal.c_str());
+	}
+	else {
+		std::ofstream out;
+		out.open(filename, std::ios::binary | std::ios::out);
+		out << metal;
+		out.close();
+	}
 }

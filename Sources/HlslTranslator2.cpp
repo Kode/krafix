@@ -5,7 +5,7 @@
 
 using namespace krafix;
 
-void HlslTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) {
+void HlslTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) {
 	std::vector<unsigned> spirv;
 	
 	spirv.push_back(magicNumber);
@@ -40,10 +40,15 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 	compiler->set_options(opts);
 
 	std::string hlsl = compiler->compile();
-	std::ofstream out;
-	out.open(filename, std::ios::binary | std::ios::out);
-	out << hlsl;
-	out.close();
+	if (output) {
+		strcpy(output, hlsl.c_str());
+	}
+	else {
+		std::ofstream out;
+		out.open(filename, std::ios::binary | std::ios::out);
+		out << hlsl;
+		out.close();
+	}
 
 	if (stage == StageVertex) {
 		std::vector<std::string> inputs;

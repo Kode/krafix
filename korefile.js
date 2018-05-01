@@ -2,8 +2,6 @@ let project = new Project('krafix');
 
 let library = false;
 
-project.addDefine('KRAFIX');
-
 project.addDefine('SPIRV_CROSS_KRAFIX');
 project.addDefine('ENABLE_HLSL');
 
@@ -11,7 +9,10 @@ project.addDefine('ENABLE_HLSL');
 project.addDefine('NV_EXTENSIONS');
 project.addDefine('AMD_EXTENSIONS');
 
-if (!library) {
+if (library) {
+	project.addDefine('KRAFIX_LIBRARY');
+}
+else {
 	project.setCmd();
 	project.setDebugDir('tests');
 	project.kore = false;

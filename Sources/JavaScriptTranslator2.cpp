@@ -6,7 +6,7 @@
 
 using namespace krafix;
 
-void JavaScriptTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) {
+void JavaScriptTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) {
 	std::vector<unsigned> spirv;
 	
 	spirv.push_back(magicNumber);

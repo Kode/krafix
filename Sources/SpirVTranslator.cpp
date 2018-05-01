@@ -6,6 +6,7 @@
 #include <map>
 #include <string.h>
 #include <sstream>
+#include <strstream>
 
 using namespace krafix;
 
@@ -18,11 +19,11 @@ namespace {
 		SpirVFunctions
 	};
 
-	void writeInstruction(std::ofstream& out, unsigned word) {
-		out.put(word & 0xff);
-		out.put((word >> 8) & 0xff);
-		out.put((word >> 16) & 0xff);
-		out.put((word >> 24) & 0xff);
+	void writeInstruction(std::ostream* out, unsigned word) {
+		out->put(word & 0xff);
+		out->put((word >> 8) & 0xff);
+		out->put((word >> 16) & 0xff);
+		out->put((word >> 24) & 0xff);
 	}
 
 	bool isDebugInformation(Instruction& instruction) {
@@ -73,9 +74,18 @@ namespace {
 	}
 }
 
-void SpirVTranslator::writeInstructions(const char* filename, std::vector<Instruction>& instructions) {
-	std::ofstream out;
-	out.open(filename, std::ios::binary | std::ios::out);
+void SpirVTranslator::writeInstructions(const char* filename, char* output, std::vector<Instruction>& instructions) {
+	std::ofstream fileout;
+	std::ostrstream arrayout(output, 1024 * 1024);
+	std::ostream* out;
+
+	if (output) {
+		out = &arrayout;
+	}
+	else {
+		fileout.open(filename, std::ios::binary | std::ios::out);
+		out = &fileout;
+	}
 
 	writeInstruction(out, magicNumber);
 	writeInstruction(out, version);
@@ -91,7 +101,9 @@ void SpirVTranslator::writeInstructions(const char* filename, std::vector<Instru
 		}
 	}
 
-	out.close();
+	if (!output) {
+		fileout.close();
+	}
 }
 
 namespace {
@@ -289,7 +301,7 @@ namespace {
 	}
 }
 
-void SpirVTranslator::outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) {
+void SpirVTranslator::outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) {
 	using namespace spv;
 
 	std::map<unsigned, std::string> names;
@@ -620,5 +632,5 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	}
 	
 	bound = currentId + 1;
-	writeInstructions(filename, newinstructions);
+	writeInstructions(filename, output, newinstructions);
 }

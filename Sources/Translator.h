@@ -59,7 +59,7 @@ namespace krafix {
 	public:
 		Translator(std::vector<unsigned>& spirv, ShaderStage stage);
 		virtual ~Translator() {}
-		virtual void outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) = 0;
+		virtual void outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) = 0;
 
 	protected:
 		std::vector<unsigned>& spirv;

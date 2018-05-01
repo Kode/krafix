@@ -4,7 +4,7 @@
 
 using namespace krafix;
 
-void GlslTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, std::map<std::string, int>& attributes) {
+void GlslTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) {
 	std::vector<unsigned> spirv;
 	
 	spirv.push_back(magicNumber);
@@ -45,8 +45,13 @@ void GlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 	compiler->set_options(opts);
 
 	std::string glsl = compiler->compile();
-	std::ofstream out;
-	out.open(filename, std::ios::binary | std::ios::out);
-	out << glsl;
-	out.close();
+	if (output) {
+		strcpy(output, glsl.c_str());
+	}
+	else {
+		std::ofstream out;
+		out.open(filename, std::ios::binary | std::ios::out);
+		out << glsl;
+		out.close();
+	}
 }
