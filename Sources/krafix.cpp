@@ -1235,7 +1235,8 @@ int C_DECL main(int argc, char* argv[]) {
 
 	int errors = 0;
 	if (strcmp(targetlang, "varlist") == 0) {
-		compile(targetlang, from, to, tempdir, system, includer, defines, version, false);
+		int length = 0;
+		compile(targetlang, from, to, tempdir, nullptr, nullptr, &length, system, includer, defines, version, false);
 		if (CompileFailed || LinkFailed) ++errors;
 	}
 	else {
