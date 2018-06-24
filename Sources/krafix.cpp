@@ -852,7 +852,9 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 					}
 					else {
 						translator->outputCode(target, sourcefilename, filename, output, attributes);
-						*length = strlen(output);
+						if (output != nullptr) {
+							*length = strlen(output);
+						}
 					}
 
 					delete translator;

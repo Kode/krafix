@@ -50,7 +50,7 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	name = replace(name, '.', '_');
 
 	compiler->set_entry_point("main");
-	compiler->set_name(compiler->get_entry_point("main").self, name + "_main");
+	compiler->rename_entry_point("main", name + "_main", stage == StageVertex ? spv::ExecutionModelVertex : spv::ExecutionModelFragment);
 
 	{
 		spirv_cross::CompilerGLSL::Options opts = compiler->CompilerGLSL::get_options();
@@ -62,9 +62,15 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 		compiler->CompilerGLSL::set_options(opts);
 	}
 
+	{
+		spirv_cross::CompilerMSL::Options opts = compiler->get_msl_options();
+		opts.platform = target.system == iOS ? spirv_cross::CompilerMSL::Options::iOS : spirv_cross::CompilerMSL::Options::macOS;
+		compiler->set_msl_options(opts);
+	}
+
 	std::vector<spirv_cross::MSLResourceBinding> p_res_bindings;
 	spirv_cross::MSLResourceBinding mslBinding;
-	mslBinding.stage = spv::ExecutionModelVertex;
+	mslBinding.stage = stage == StageVertex ? spv::ExecutionModelVertex : spv::ExecutionModelFragment;
 	mslBinding.msl_buffer = 1;
 	p_res_bindings.push_back(mslBinding);
 	
