@@ -49,17 +49,17 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	name = replace(name, '-', '_');
 	name = replace(name, '.', '_');
 
-	compiler->set_entry_point("main");
+	compiler->set_entry_point("main", stage == StageVertex ? spv::ExecutionModelVertex : spv::ExecutionModelFragment);
 	compiler->rename_entry_point("main", name + "_main", stage == StageVertex ? spv::ExecutionModelVertex : spv::ExecutionModelFragment);
 
 	{
-		spirv_cross::CompilerGLSL::Options opts = compiler->CompilerGLSL::get_options();
+		spirv_cross::CompilerGLSL::Options opts = compiler->get_common_options();
 		opts.version = target.version;
 		opts.es = target.es;
 		opts.force_temporary = false;
 		opts.vulkan_semantics = false;
 		opts.vertex.fixup_clipspace = true;
-		compiler->CompilerGLSL::set_options(opts);
+		compiler->set_common_options(opts);
 	}
 
 	{
@@ -71,7 +71,7 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	std::vector<spirv_cross::MSLResourceBinding> p_res_bindings;
 	spirv_cross::MSLResourceBinding mslBinding;
 	mslBinding.stage = stage == StageVertex ? spv::ExecutionModelVertex : spv::ExecutionModelFragment;
-	mslBinding.msl_buffer = 1;
+	mslBinding.msl_buffer = stage == StageVertex ? 1 : 0;
 	p_res_bindings.push_back(mslBinding);
 	
 	std::string metal = compiler->compile(nullptr, &p_res_bindings);
