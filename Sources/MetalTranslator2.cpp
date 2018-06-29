@@ -23,6 +23,19 @@ namespace {
 		}
 		return ret;
 	}
+
+	spv::ExecutionModel convert(krafix::ShaderStage stage) {
+		switch (stage) {
+		case StageVertex:
+			return spv::ExecutionModelVertex;
+		case StageFragment:
+			return spv::ExecutionModelFragment;
+		case StageCompute:
+			return spv::ExecutionModelGLCompute;
+		default:
+			throw std::exception("Shader stage not supported in Metal.");
+		}
+	}
 }
 
 void MetalTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) {
@@ -49,8 +62,8 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	name = replace(name, '-', '_');
 	name = replace(name, '.', '_');
 
-	compiler->set_entry_point("main", stage == StageVertex ? spv::ExecutionModelVertex : spv::ExecutionModelFragment);
-	compiler->rename_entry_point("main", name + "_main", stage == StageVertex ? spv::ExecutionModelVertex : spv::ExecutionModelFragment);
+	compiler->set_entry_point("main", convert(stage));
+	compiler->rename_entry_point("main", name + "_main", convert(stage));
 
 	{
 		spirv_cross::CompilerGLSL::Options opts = compiler->get_common_options();
@@ -70,7 +83,7 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 
 	std::vector<spirv_cross::MSLResourceBinding> p_res_bindings;
 	spirv_cross::MSLResourceBinding mslBinding;
-	mslBinding.stage = stage == StageVertex ? spv::ExecutionModelVertex : spv::ExecutionModelFragment;
+	mslBinding.stage = convert(stage);
 	mslBinding.msl_buffer = stage == StageVertex ? 1 : 0;
 	p_res_bindings.push_back(mslBinding);
 	
