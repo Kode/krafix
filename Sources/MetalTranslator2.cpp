@@ -33,7 +33,7 @@ namespace {
 		case StageCompute:
 			return spv::ExecutionModelGLCompute;
 		default:
-			throw std::exception("Shader stage not supported in Metal.");
+			throw std::runtime_error("Shader stage not supported in Metal.");
 		}
 	}
 }
