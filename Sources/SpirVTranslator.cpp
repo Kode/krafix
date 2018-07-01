@@ -200,9 +200,13 @@ namespace {
 		}
 	}
 
+	unsigned inttype = 0;
+	unsigned floattype = 0;
+	unsigned vec4type = 0;
+
 	void outputTypes(unsigned* instructionsData, unsigned& instructionsDataIndex, std::vector<unsigned>& structtypeindices, unsigned& structvarindex, std::vector<Instruction>& newinstructions, std::vector<Var>& uniforms,
-		std::map<unsigned, unsigned>& pointers, std::map<unsigned, unsigned>& constants, unsigned& currentId, unsigned& structid, unsigned& floattype, unsigned& floatpointertype,
-		unsigned& dotfive, unsigned& two, unsigned& three, unsigned& vec4type, unsigned& tempposition, ShaderStage stage) {
+		std::map<unsigned, unsigned>& pointers, std::map<unsigned, unsigned>& constants, unsigned& currentId, unsigned& structid, unsigned& floatpointertype,
+		unsigned& dotfive, unsigned& two, unsigned& three, unsigned& tempposition, ShaderStage stage) {
 		if (uniforms.size() > 0) {
 			Instruction typestruct(OpTypeStruct, &instructionsData[instructionsDataIndex], 1 + uniforms.size());
 			unsigned structtype = instructionsData[instructionsDataIndex++] = currentId++;
@@ -223,14 +227,16 @@ namespace {
 			instructionsData[instructionsDataIndex++] = StorageClassUniform;
 			newinstructions.push_back(variable);
 
-			Instruction typeint(OpTypeInt, &instructionsData[instructionsDataIndex], 3);
-			unsigned type = instructionsData[instructionsDataIndex++] = currentId++;
-			instructionsData[instructionsDataIndex++] = 32;
-			instructionsData[instructionsDataIndex++] = 0;
-			newinstructions.push_back(typeint);
+			if (inttype == 0) {
+				Instruction typeint(OpTypeInt, &instructionsData[instructionsDataIndex], 3);
+				inttype = instructionsData[instructionsDataIndex++] = currentId++;
+				instructionsData[instructionsDataIndex++] = 32;
+				instructionsData[instructionsDataIndex++] = 0;
+				newinstructions.push_back(typeint);
+			}
 			for (unsigned i = 0; i < uniforms.size(); ++i) {
 				Instruction constant(OpConstant, &instructionsData[instructionsDataIndex], 3);
-				instructionsData[instructionsDataIndex++] = type;
+				instructionsData[instructionsDataIndex++] = inttype;
 				unsigned constantid = currentId++;
 				instructionsData[instructionsDataIndex++] = constantid;
 				constants[i] = constantid;
@@ -245,10 +251,12 @@ namespace {
 		}
 
 		if (stage == StageVertex) {
-			Instruction floaty(OpTypeFloat, &instructionsData[instructionsDataIndex], 2);
-			floattype = instructionsData[instructionsDataIndex++] = currentId++;
-			instructionsData[instructionsDataIndex++] = 32;
-			newinstructions.push_back(floaty);
+			if (floattype == 0) {
+				Instruction floaty(OpTypeFloat, &instructionsData[instructionsDataIndex], 2);
+				floattype = instructionsData[instructionsDataIndex++] = currentId++;
+				instructionsData[instructionsDataIndex++] = 32;
+				newinstructions.push_back(floaty);
+			}
 
 			Instruction floatpointer(OpTypePointer, &instructionsData[instructionsDataIndex], 3);
 			floatpointertype = instructionsData[instructionsDataIndex++] = currentId++;
@@ -262,11 +270,13 @@ namespace {
 			*(float*)&instructionsData[instructionsDataIndex++] = 0.5f;
 			newinstructions.push_back(dotfiveconstant);
 
-			Instruction inty(OpTypeInt, &instructionsData[instructionsDataIndex], 3);
-			unsigned inttype = instructionsData[instructionsDataIndex++] = currentId++;
-			instructionsData[instructionsDataIndex++] = 32;
-			instructionsData[instructionsDataIndex++] = 0;
-			newinstructions.push_back(inty);
+			if (inttype == 0) {
+				Instruction inty(OpTypeInt, &instructionsData[instructionsDataIndex], 3);
+				inttype = instructionsData[instructionsDataIndex++] = currentId++;
+				instructionsData[instructionsDataIndex++] = 32;
+				instructionsData[instructionsDataIndex++] = 0;
+				newinstructions.push_back(inty);
+			}
 
 			Instruction twoconstant(OpConstant, &instructionsData[instructionsDataIndex], 3);
 			instructionsData[instructionsDataIndex++] = inttype;
@@ -280,11 +290,13 @@ namespace {
 			instructionsData[instructionsDataIndex++] = 3;
 			newinstructions.push_back(threeconstant);
 
-			Instruction vec4(OpTypeVector, &instructionsData[instructionsDataIndex], 3);
-			vec4type = instructionsData[instructionsDataIndex++] = currentId++;
-			instructionsData[instructionsDataIndex++] = floattype;
-			instructionsData[instructionsDataIndex++] = 4;
-			newinstructions.push_back(vec4);
+			if (vec4type == 0) {
+				Instruction vec4(OpTypeVector, &instructionsData[instructionsDataIndex], 3);
+				vec4type = instructionsData[instructionsDataIndex++] = currentId++;
+				instructionsData[instructionsDataIndex++] = floattype;
+				instructionsData[instructionsDataIndex++] = 4;
+				newinstructions.push_back(vec4);
+			}
 
 			Instruction vec4pointer(OpTypePointer, &instructionsData[instructionsDataIndex], 3);
 			unsigned vec4pointertype = instructionsData[instructionsDataIndex++] = currentId++;
@@ -355,6 +367,32 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			pointers[id] = type;
 			break;
 		}
+		case OpTypeInt: {
+			unsigned id = inst.operands[0];
+			unsigned width = inst.operands[1];
+			unsigned signedness = inst.operands[2];
+			if (width == 32 && signedness == 0) {
+				inttype = id;
+			}
+			break;
+		}
+		case OpTypeFloat: {
+			unsigned id = inst.operands[0];
+			unsigned width = inst.operands[1];
+			if (width == 32) {
+				floattype = id;
+			}
+			break;
+		}
+		case OpTypeVector: {
+			unsigned id = inst.operands[0];
+			unsigned componentType = inst.operands[1];
+			unsigned componentCount = inst.operands[2];
+			if (componentType == floattype && componentCount == 4) {
+				vec4type = id;
+			}
+			break;
+		}
 		case OpVariable: {
 			unsigned type = inst.operands[0];
 			unsigned id = inst.operands[1];
@@ -393,12 +431,10 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	std::vector<unsigned> structtypeindices;
 	unsigned structvarindex;
 	unsigned tempposition;
-	unsigned floattype;
 	unsigned floatpointertype;
 	unsigned dotfive;
 	unsigned two;
 	unsigned three;
-	unsigned vec4type;
 	bool namesInserted = false;
 	bool decorationsInserted = false;
 	for (unsigned i = 0; i < instructions.size(); ++i) {
@@ -458,7 +494,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 		case SpirVTypes:
 			if (inst.opcode == OpFunction) {
 				outputTypes(instructionsData, instructionsDataIndex, structtypeindices, structvarindex, newinstructions, uniforms, pointers, constants, currentId,
-					structid, floattype, floatpointertype, dotfive, two, three, vec4type, tempposition, stage);
+					structid, floatpointertype, dotfive, two, three, tempposition, stage);
 				state = SpirVFunctions;
 			}
 			break;
