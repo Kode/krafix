@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <sstream>
 #include <vector>
 
 namespace krafix {
@@ -42,6 +43,36 @@ namespace krafix {
 		int version;
 		bool es;
 		TargetSystem system;
+
+		std::string string() {
+			switch (lang) {
+			case SpirV:
+				return "SPIR-V";
+			case GLSL: {
+				std::stringstream stream;
+				stream << "GLSL ";
+				if (es) stream << "ES ";
+				stream << version;
+				return stream.str();
+			}
+			case HLSL: {
+				std::stringstream stream;
+				stream << "HLSL ";
+				stream << version;
+				return stream.str();
+			}
+				
+			case Metal:
+				return "Metal";
+			case AGAL:
+				return "AGAL";
+			case VarList:
+				return "VarList";
+			case JavaScript:
+				return "JavaScript";
+			}
+			return "Unknown";
+		}
 	};
 
 	class Instruction {
