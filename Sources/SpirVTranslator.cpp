@@ -145,7 +145,8 @@ namespace {
 	unsigned mat2type = 0;
 
 	void outputDecorations(unsigned* instructionsData, unsigned& instructionsDataIndex, std::vector<unsigned>& structtypeindices, std::vector<Instruction>& newinstructions, std::vector<Var>& uniforms,
-		std::map<unsigned, unsigned>& pointers, std::vector<Var>& invars, std::vector<Var>& outvars, std::vector<Var>& images) {
+		std::map<unsigned, unsigned>& pointers, std::vector<Var>& invars, std::vector<Var>& outvars, std::vector<Var>& images, ShaderStage stage) {
+
 		unsigned location = 0;
 		for (auto var : invars) {
 			Instruction newinst(OpDecorate, &instructionsData[instructionsDataIndex], 3);
@@ -217,6 +218,13 @@ namespace {
 			instructionsData[instructionsDataIndex++] = 0;
 			instructionsData[instructionsDataIndex++] = DecorationBlock;
 			newinstructions.push_back(dec1);
+
+			Instruction decbind(OpDecorate, &instructionsData[instructionsDataIndex], 3);
+			structtypeindices.push_back(instructionsDataIndex);
+			instructionsData[instructionsDataIndex++] = 0;
+			instructionsData[instructionsDataIndex++] = DecorationBinding;
+			instructionsData[instructionsDataIndex++] = stage == StageVertex ? 0 : 1;
+			newinstructions.push_back(decbind);
 		}
 	}
 
@@ -505,7 +513,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					namesInserted = true;
 				}
 				if (!decorationsInserted) {
-					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images);
+					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images, stage);
 					decorationsInserted = true;
 				}
 			}
@@ -517,7 +525,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					namesInserted = true;
 				}
 				if (!decorationsInserted) {
-					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images);
+					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images, stage);
 					decorationsInserted = true;
 				}
 			}
@@ -531,7 +539,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					namesInserted = true;
 				}
 				if (!decorationsInserted) {
-					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images);
+					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images, stage);
 					decorationsInserted = true;
 				}
 			}
