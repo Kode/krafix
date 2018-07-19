@@ -134,8 +134,19 @@ namespace {
 		}
 	}
 
+	unsigned booltype = 0;
+	unsigned inttype = 0;
+	unsigned floattype = 0;
+	unsigned vec4type = 0;
+	unsigned vec3type = 0;
+	unsigned vec2type = 0;
+	unsigned mat4type = 0;
+	unsigned mat3type = 0;
+	unsigned mat2type = 0;
+
 	void outputDecorations(unsigned* instructionsData, unsigned& instructionsDataIndex, std::vector<unsigned>& structtypeindices, std::vector<Instruction>& newinstructions, std::vector<Var>& uniforms,
-		std::vector<Var>& invars, std::vector<Var>& outvars, std::vector<Var>& images) {
+		std::map<unsigned, unsigned>& pointers, std::vector<Var>& invars, std::vector<Var>& outvars, std::vector<Var>& images, ShaderStage stage) {
+
 		unsigned location = 0;
 		for (auto var : invars) {
 			Instruction newinst(OpDecorate, &instructionsData[instructionsDataIndex], 3);
@@ -173,23 +184,33 @@ namespace {
 			instructionsData[instructionsDataIndex++] = offset;
 			newinstructions.push_back(newinst);
 
-			// TODO: Next two only for matrices
-			Instruction dec2(OpMemberDecorate, &instructionsData[instructionsDataIndex], 3);
-			structtypeindices.push_back(instructionsDataIndex);
-			instructionsData[instructionsDataIndex++] = 0;
-			instructionsData[instructionsDataIndex++] = i;
-			instructionsData[instructionsDataIndex++] = DecorationColMajor;
-			newinstructions.push_back(dec2);
+			int utype = pointers[uniforms[i].type];
 
-			Instruction dec3(OpMemberDecorate, &instructionsData[instructionsDataIndex], 4);
-			structtypeindices.push_back(instructionsDataIndex);
-			instructionsData[instructionsDataIndex++] = 0;
-			instructionsData[instructionsDataIndex++] = i;
-			instructionsData[instructionsDataIndex++] = DecorationMatrixStride;
-			instructionsData[instructionsDataIndex++] = 16;
-			newinstructions.push_back(dec3);
+			if (utype == mat2type || utype == mat3type || utype == mat4type) {
+				Instruction dec2(OpMemberDecorate, &instructionsData[instructionsDataIndex], 3);
+				structtypeindices.push_back(instructionsDataIndex);
+				instructionsData[instructionsDataIndex++] = 0;
+				instructionsData[instructionsDataIndex++] = i;
+				instructionsData[instructionsDataIndex++] = DecorationColMajor;
+				newinstructions.push_back(dec2);
 
-			++offset; // TODO: Calculate proper offsets
+				Instruction dec3(OpMemberDecorate, &instructionsData[instructionsDataIndex], 4);
+				structtypeindices.push_back(instructionsDataIndex);
+				instructionsData[instructionsDataIndex++] = 0;
+				instructionsData[instructionsDataIndex++] = i;
+				instructionsData[instructionsDataIndex++] = DecorationMatrixStride;
+				instructionsData[instructionsDataIndex++] = 16;
+				newinstructions.push_back(dec3);
+			}
+			
+			if (utype == booltype || utype == inttype || utype == floattype) offset += 4;
+			else if (utype == vec2type) offset += 8;
+			else if (utype == vec3type) offset += 12;
+			else if (utype == vec4type) offset += 16;
+			else if (utype == mat2type) offset += 16;
+			else if (utype == mat3type) offset += 36;
+			else if (utype == mat4type) offset += 64;
+			else offset += 1; // Type not handled
 		}
 		if (uniforms.size() > 0) {
 			Instruction dec1(OpDecorate, &instructionsData[instructionsDataIndex], 2);
@@ -197,12 +218,15 @@ namespace {
 			instructionsData[instructionsDataIndex++] = 0;
 			instructionsData[instructionsDataIndex++] = DecorationBlock;
 			newinstructions.push_back(dec1);
+
+			Instruction decbind(OpDecorate, &instructionsData[instructionsDataIndex], 3);
+			structtypeindices.push_back(instructionsDataIndex);
+			instructionsData[instructionsDataIndex++] = 0;
+			instructionsData[instructionsDataIndex++] = DecorationBinding;
+			instructionsData[instructionsDataIndex++] = stage == StageVertex ? 0 : 1;
+			newinstructions.push_back(decbind);
 		}
 	}
-
-	unsigned inttype = 0;
-	unsigned floattype = 0;
-	unsigned vec4type = 0;
 
 	void outputTypes(unsigned* instructionsData, unsigned& instructionsDataIndex, std::vector<unsigned>& structtypeindices, unsigned& structvarindex, std::vector<Instruction>& newinstructions, std::vector<Var>& uniforms,
 		std::map<unsigned, unsigned>& pointers, std::map<unsigned, unsigned>& constants, unsigned& currentId, unsigned& structid, unsigned& floatpointertype,
@@ -367,6 +391,11 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			pointers[id] = type;
 			break;
 		}
+		case OpTypeBool: {
+			unsigned id = inst.operands[0];
+			booltype = id;
+			break;
+		}
 		case OpTypeInt: {
 			unsigned id = inst.operands[0];
 			unsigned width = inst.operands[1];
@@ -388,9 +417,33 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			unsigned id = inst.operands[0];
 			unsigned componentType = inst.operands[1];
 			unsigned componentCount = inst.operands[2];
-			if (componentType == floattype && componentCount == 4) {
-				vec4type = id;
+			if (componentType == floattype) {
+				if (componentCount == 4) {
+					vec4type = id;
+				}
+				else if (componentCount == 3) {
+					vec3type = id;
+				}
+				else if (componentCount == 2) {
+					vec2type = id;
+				}
 			}
+			break;
+		}
+		case OpTypeMatrix: {
+			unsigned id = inst.operands[0];
+			// unsigned columnType = inst.operands[1];
+			unsigned columnCount = inst.operands[2];
+			if (columnCount == 4) {
+				mat4type = id;
+			}
+			else if (columnCount == 3) {
+				mat3type = id;
+			}
+			else if (columnCount == 2) {
+				mat2type = id;
+			}
+
 			break;
 		}
 		case OpVariable: {
@@ -460,7 +513,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					namesInserted = true;
 				}
 				if (!decorationsInserted) {
-					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, invars, outvars, images);
+					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images, stage);
 					decorationsInserted = true;
 				}
 			}
@@ -472,7 +525,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					namesInserted = true;
 				}
 				if (!decorationsInserted) {
-					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, invars, outvars, images);
+					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images, stage);
 					decorationsInserted = true;
 				}
 			}
@@ -486,7 +539,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					namesInserted = true;
 				}
 				if (!decorationsInserted) {
-					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, invars, outvars, images);
+					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images, stage);
 					decorationsInserted = true;
 				}
 			}
