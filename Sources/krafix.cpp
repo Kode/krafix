@@ -724,6 +724,7 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
         shader->setShiftSsboBinding(baseSsboBinding[compUnit.stage]);
         shader->setFlattenUniformArrays((Options & EOptionFlattenUniformArrays) != 0);
         shader->setNoStorageFormat((Options & EOptionNoStorageFormat) != 0);
+        shader->setPreamble(defines);
 
         if (Options & EOptionAutoMapBindings)
             shader->setAutoMapBindings(true);
@@ -995,39 +996,46 @@ int compile(const char* targetlang, const char* from, std::string to, const char
 	if (strcmp(targetlang, "spirv") == 0) {
 		target.lang = krafix::SpirV;
 		target.version = version > 0 ? version : 1;
+		defines += "#define SPIRV " + std::to_string(target.version) + "\n";
 		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, length, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "d3d9") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = version > 0 ? version : 9;
+		defines += "#define HLSL " + std::to_string(target.version) + "\n";
 		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, length, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "d3d11") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = version > 0 ? version : 11;
+		defines += "#define HLSL " + std::to_string(target.version) + "\n";
 		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, length, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "glsl") == 0) {
 		target.lang = krafix::GLSL;
 		if (target.system == krafix::Linux) target.version = version > 0 ? version : 110;
 		else target.version = version > 0 ? version : 330;
+		defines += "#define GLSL " + std::to_string(target.version) + "\n";
 		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, length, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "essl") == 0) {
 		target.lang = krafix::GLSL;
 		target.version = version > 0 ? version : 100;
 		target.es = true;
+		defines += "#define GLSL " + std::to_string(target.version) + "\n";
 		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, length, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "agal") == 0) {
 		target.lang = krafix::AGAL;
 		target.version = version > 0 ? version : 100;
 		target.es = true;
+		defines += "#define AGAL " + std::to_string(target.version) + "\n";
 		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, length, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "metal") == 0) {
 		target.lang = krafix::Metal;
 		target.version = version > 0 ? version : 1;
+		defines += "#define METAL " + std::to_string(target.version) + "\n";
 		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, length, includer, defines.c_str(), relax);
 	}
 	else if (strcmp(targetlang, "varlist") == 0) {
