@@ -67,8 +67,12 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 			}
 		}
 		std::sort(inputs.begin(), inputs.end());
+		unsigned attributeIndex = 0;
 		for (unsigned i = 0; i < inputs.size(); ++i) {
-			attributes[inputs[i]] = i;
+			if (inputs[i].substr(0, 3) == "gl_") {
+				continue;
+			}
+			attributes[inputs[i]] = attributeIndex++;
 		}
 	}
 }
