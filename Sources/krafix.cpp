@@ -1064,33 +1064,47 @@ int compile(const char* targetlang, const char* from, std::string to, const char
 
 int compileOptionallyRelaxed(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* source, char* output, int* length, const char* system,
 	glslang::TShader::Includer& includer, std::string defines, int version, bool relax) {
-	int errors1 = 0, errors2 = 0, errors3 = 0;
-	errors1 += compile(targetlang, from, to + ext, tempdir, source, output, length, system, includer, defines, version, false);
+	int regularErrors = 0, relaxErrors = 0, es3Errors = 0;
+	regularErrors = compile(targetlang, from, to + ext, tempdir, source, output, length, system, includer, defines, version, false);
 	if (relax) {
-		errors2 += compile(targetlang, from, to + "-relaxed" + ext, tempdir, source, output, length, system, includer, defines, version, true);
+		relaxErrors = compile(targetlang, from, to + "-relaxed" + ext, tempdir, source, output, length, system, includer, defines, version, true);
 	}
+
 	if (strcmp(system, "html5") == 0 || strcmp(system, "debug-html5") == 0 || strcmp(system, "html5worker") == 0) {
-		errors3 += compile(targetlang, from, to + "-webgl2" + ext, tempdir, source, output, length, system, includer, defines, 300, false);
+		es3Errors = compile(targetlang, from, to + "-webgl2" + ext, tempdir, source, output, length, system, includer, defines, 300, false);
+		if (relax) {
+			return std::min(regularErrors, std::min(relaxErrors, es3Errors));
+		}
+		else {
+			return std::min(regularErrors, es3Errors);
+		}
 	}
-	return std::min(errors1, std::min(errors2, errors3));
+	else {
+		if (relax) {
+			return std::min(regularErrors, relaxErrors);
+		}
+		else {
+			return regularErrors;
+		}
+	}
 }
 
 int compileOptionallyInstanced(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* source, char* output, int* length, const char* system,
 	glslang::TShader::Includer& includer, std::string defines, int version, bool instanced, bool relax) {
-	int errors1 = 0, errors2 = 0, errors3 = 0;
+	int errors = 0;
 	if (instanced) {
-		errors1 += compileOptionallyRelaxed(targetlang, from, to + "-noinst", ext, tempdir, source, output, length, system, includer, defines, version, relax);
-		errors2 += compileOptionallyRelaxed(targetlang, from, to + "-inst", ext, tempdir, source, output, length, system, includer, defines + "#define INSTANCED_RENDERING\n", version, relax);
+		errors += compileOptionallyRelaxed(targetlang, from, to + "-noinst", ext, tempdir, source, output, length, system, includer, defines, version, relax);
+		errors += compileOptionallyRelaxed(targetlang, from, to + "-inst", ext, tempdir, source, output, length, system, includer, defines + "#define INSTANCED_RENDERING\n", version, relax);
 	}
 	else {
-		errors3 += compileOptionallyRelaxed(targetlang, from, to, ext, tempdir, source, output, length, system, includer, defines, version, relax);
+		errors += compileOptionallyRelaxed(targetlang, from, to, ext, tempdir, source, output, length, system, includer, defines, version, relax);
 	}
-	return std::min(errors1, std::min(errors2, errors3));
+	return errors;
 }
 
 int compileWithTextureUnits(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* source, char* output, int* length, const char* system,
 	glslang::TShader::Includer& includer, std::string defines, int version, const std::vector<int>& textureUnitCounts, bool usesTextureUnitsCount, bool instanced, bool relax) {
-	int errors1 = 0, errors2 = 0;
+	int errors = 0;
 	if (usesTextureUnitsCount && textureUnitCounts.size() > 0) {
 		for (size_t i = 0; i < textureUnitCounts.size(); ++i) {
 			int texcount = textureUnitCounts[i];
@@ -1098,13 +1112,13 @@ int compileWithTextureUnits(const char* targetlang, const char* from, std::strin
 			toto << to << "-tex" << texcount << ext;
 			std::stringstream definesplustex;
 			definesplustex << defines << "#define MAX_TEXTURE_UNITS=" << texcount << "\n";
-			errors1 += compileOptionallyInstanced(targetlang, from, toto.str(), ext, tempdir, source, output, length, system, includer, definesplustex.str(), version, instanced, relax);
+			errors += compileOptionallyInstanced(targetlang, from, toto.str(), ext, tempdir, source, output, length, system, includer, definesplustex.str(), version, instanced, relax);
 		}
 	}
 	else {
-		errors1 += compileOptionallyInstanced(targetlang, from, to, ext, tempdir, source, output, length, system, includer, defines, version, instanced, relax);
+		errors += compileOptionallyInstanced(targetlang, from, to, ext, tempdir, source, output, length, system, includer, defines, version, instanced, relax);
 	}
-	return std::min(errors1, errors2);
+	return errors;
 }
 
 void krafix_compile(const char* source, char* output, int* length, const char* targetlang, const char* system, const char* shadertype) {
@@ -1262,10 +1276,6 @@ int C_DECL main(int argc, char* argv[]) {
 	else {
 		int length = 0;
 		errors = compileWithTextureUnits(targetlang, from, towithoutext, ext, tempdir, nullptr, nullptr, &length, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
-	}
-	if (errors > 0) {
-		int a = 3;
-		++a;
 	}
 	return errors;
 }
