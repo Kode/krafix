@@ -1013,7 +1013,7 @@ int compile(const char* targetlang, const char* from, std::string to, const char
 	}
 	else if (strcmp(targetlang, "glsl") == 0) {
 		target.lang = krafix::GLSL;
-		if (target.system == krafix::Linux) target.version = version > 0 ? version : 110;
+		if (target.system == krafix::Linux && (FindLanguage(from) == EShLangVertex || FindLanguage(from) == EShLangFragment)) target.version = version > 0 ? version : 110;
 		else target.version = version > 0 ? version : 330;
 		defines += "#define GLSL " + std::to_string(target.version) + "\n";
 		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, length, includer, defines.c_str(), relax);
