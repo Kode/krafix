@@ -1065,22 +1065,28 @@ int compile(const char* targetlang, const char* from, std::string to, const char
 int compileOptionallyRelaxed(const char* targetlang, const char* from, std::string to, std::string ext, const char* tempdir, const char* source, char* output, int* length, const char* system,
 	glslang::TShader::Includer& includer, std::string defines, int version, bool relax) {
 	int regularErrors = 0, relaxErrors = 0, es3Errors = 0;
-	regularErrors = compile(targetlang, from, to + ext, tempdir, source, output, length, system, includer, defines, version, false);
-	if (relax) {
-		relaxErrors = compile(targetlang, from, to + "-relaxed" + ext, tempdir, source, output, length, system, includer, defines, version, true);
-	}
-
+	
 	if (strcmp(system, "html5") == 0 || strcmp(system, "debug-html5") == 0 || strcmp(system, "html5worker") == 0) {
-		es3Errors = compile(targetlang, from, to + "-webgl2" + ext, tempdir, source, output, length, system, includer, defines, 300, false);
-		if (relax) {
-			return std::min(regularErrors, std::min(relaxErrors, es3Errors));
+		if (version == 300) { // -webgl2 only
+			es3Errors = compile(targetlang, from, to + "-webgl2" + ext, tempdir, source, output, length, system, includer, defines, 300, false);
+			return es3Errors;
 		}
 		else {
-			return std::min(regularErrors, es3Errors);
+			regularErrors = compile(targetlang, from, to + ext, tempdir, source, output, length, system, includer, defines, version, false);
+			es3Errors = compile(targetlang, from, to + "-webgl2" + ext, tempdir, source, output, length, system, includer, defines, 300, false);
+			if (relax) {
+				relaxErrors = compile(targetlang, from, to + "-relaxed" + ext, tempdir, source, output, length, system, includer, defines, version, true);
+				return std::min(regularErrors, std::min(relaxErrors, es3Errors));
+			}
+			else {
+				return std::min(regularErrors, es3Errors);
+			}
 		}
 	}
 	else {
+		regularErrors = compile(targetlang, from, to + ext, tempdir, source, output, length, system, includer, defines, version, false);
 		if (relax) {
+			relaxErrors = compile(targetlang, from, to + "-relaxed" + ext, tempdir, source, output, length, system, includer, defines, version, true);
 			return std::min(regularErrors, relaxErrors);
 		}
 		else {
