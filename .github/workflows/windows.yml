@@ -34,4 +34,6 @@ jobs:
     - name: Commit binary
       run: git -C krafix_bin commit -a -m "Update Windows binary"
     - name: Push binary
-      run: git -C krafix_bin push
+      run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS}github.com/Kode/krafix_bin.git
+      env:
+        ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
