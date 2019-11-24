@@ -23,3 +23,9 @@ jobs:
       run: git clone https://github.com/Kode/nodejs_bin.git --depth 1
     - name: Compile
       run: .\nodejs_bin\node.exe Kinc/make --compile
+    - name: Get krafix_bin
+      run: git clone https://github.com/Kode/krafix_bin.git
+    - name: Copy binary
+      run: copy build\Debug\krafix.exe krafix_bin\krafix.exe /Y
+    - name: Push binary
+      run: cd krafix_bin && git push
