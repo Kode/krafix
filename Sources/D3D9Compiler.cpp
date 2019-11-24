@@ -6,11 +6,12 @@
 
 #include <Windows.h>
 #include <d3d9.h>
-#include <d3dx9.h>
+#include "d3dx9_mini.h"
+
 #include <fstream>
 #include <iostream>
 
-typedef HRESULT (WINAPI *D3DXCompileShaderFromFileAType)(LPCSTR pSrcFile, CONST D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile,
+typedef HRESULT(WINAPI* D3DXCompileShaderFromFileAType)(LPCSTR pSrcFile, CONST D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile,
 	DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable);
 
 static D3DXCompileShaderFromFileAType CompileShaderFromFileA = nullptr;
@@ -92,6 +93,6 @@ int compileHLSLToD3D9(const char* from, const char* to, const char* source, char
 		return 1;
 	}
 #else
-    return 1;
+	return 1;
 #endif
 }

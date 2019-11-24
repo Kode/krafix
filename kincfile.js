@@ -58,10 +58,7 @@ project.addIncludeDir('glslang/OGLCompilersDLL');
 if (platform === Platform.Windows) {
 	project.addFile('glslang/glslang/OSDependent/Windows/**');
 	project.addIncludeDir('glslang/glslang/OSDependent/Windows');
-
-	project.addIncludeDir("Libraries/DirectX/Include");
-	project.addLibFor("Win32", "d3d11");
-	project.addLibFor("Win32", "d3dcompiler");
+	project.addLib('d3dcompiler');
 }
 else {
 	project.addFile('glslang/glslang/OSDependent/Unix/**');
