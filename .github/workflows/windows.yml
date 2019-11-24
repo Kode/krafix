@@ -27,9 +27,7 @@ jobs:
       run: git clone https://github.com/Kode/krafix_bin.git
     - name: Copy binary
       run: copy build\x64\Release\krafix.exe krafix_bin\krafix.exe
-    - name: Add binary
-      run: git -C krafix_bin add .
     - name: Commit binary
-      run: git -C krafix_bin commit -m "Update Windows binary"
+      run: git -C krafix_bin commit -a -m "Update Windows binary" --author="Robbot <git2016@robdangero.us>"
     - name: Push binary
       run: git -C krafix_bin push
