@@ -7,7 +7,7 @@ using namespace krafix;
 
 void HlslTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) {
 	std::vector<unsigned> spirv;
-	
+
 	spirv.push_back(magicNumber);
 	spirv.push_back(version);
 	spirv.push_back(generator);
@@ -24,20 +24,20 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 
 	spirv_cross::CompilerHLSL* compiler = new spirv_cross::CompilerHLSL(spirv);
 
-	compiler->set_entry_point("main");
+	compiler->set_entry_point("main", executionModel());
 
-	spirv_cross::CompilerGLSL::Options glslOpts = compiler->CompilerGLSL::get_options();
+	spirv_cross::CompilerGLSL::Options glslOpts = compiler->CompilerGLSL::get_common_options();
 	glslOpts.vertex.fixup_clipspace = true;
-	compiler->CompilerGLSL::set_options(glslOpts);
-	
-	spirv_cross::CompilerHLSL::Options opts = compiler->get_options();
+	compiler->CompilerGLSL::set_common_options(glslOpts);
+
+	spirv_cross::CompilerHLSL::Options opts = compiler->get_hlsl_options();
 	if (target.version > 9) {
 		opts.shader_model = 40;
 	}
 	else {
 		opts.shader_model = 30;
 	}
-	compiler->set_options(opts);
+	compiler->set_hlsl_options(opts);
 
 	std::string hlsl = compiler->compile();
 	if (output) {

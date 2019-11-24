@@ -5,6 +5,8 @@
 #include <sstream>
 #include <vector>
 
+#include <SPIRV/spirv.hpp>
+
 namespace krafix {
 	enum TargetLanguage {
 		SpirV,
@@ -61,7 +63,7 @@ namespace krafix {
 				stream << version;
 				return stream.str();
 			}
-				
+
 			case Metal:
 				return "Metal";
 			case AGAL:
@@ -96,6 +98,7 @@ namespace krafix {
 		std::vector<unsigned>& spirv;
 		std::vector<Instruction> instructions;
 		ShaderStage stage;
+		spv::ExecutionModel executionModel();
 
 		unsigned magicNumber;
 		unsigned version;

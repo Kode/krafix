@@ -15,7 +15,7 @@ namespace {
 		}
 		return path.substr(i, std::string::npos);
 	}
-	
+
 	std::string replace(std::string str, char c1, char c2) {
 		std::string ret = str;
 		for (unsigned i = 0; i < str.length(); ++i) {
@@ -40,7 +40,7 @@ namespace {
 
 void MetalTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) {
 	std::vector<unsigned> spirv;
-	
+
 	spirv.push_back(magicNumber);
 	spirv.push_back(version);
 	spirv.push_back(generator);
@@ -56,7 +56,7 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	}
 
 	spirv_cross::CompilerMSL* compiler = new spirv_cross::CompilerMSL(spirv);
-	
+
 	std::string name = extractFilename(sourcefilename);
 	name = name.substr(0, name.find_last_of("."));
 	name = replace(name, '-', '_');
@@ -86,8 +86,8 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	mslBinding.stage = convert(stage);
 	mslBinding.msl_buffer = stage == StageVertex ? 1 : 0;
 	p_res_bindings.push_back(mslBinding);
-	
-	std::string metal = compiler->compile(nullptr, &p_res_bindings);
+
+	std::string metal = compiler->compile(); // nullptr, & p_res_bindings); // TODO?
 	if (output) {
 		strcpy(output, metal.c_str());
 	}

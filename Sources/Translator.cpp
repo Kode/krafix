@@ -38,7 +38,7 @@ Instruction::Instruction(std::vector<unsigned>& spirv, unsigned& index) {
 }
 
 Instruction::Instruction(int opcode, unsigned* operands, unsigned length) : opcode(opcode), operands(operands), length(length), string(NULL) {
-	
+
 }
 
 Translator::Translator(std::vector<unsigned>& spirv, ShaderStage stage) : stage(stage), spirv(spirv) {
@@ -56,4 +56,23 @@ Translator::Translator(std::vector<unsigned>& spirv, ShaderStage stage) : stage(
 	}
 
 	//printf("Read %i instructions.\n", instructions.size());
+}
+
+spv::ExecutionModel Translator::executionModel() {
+	switch (stage) {
+	case StageVertex:
+		return spv::ExecutionModelVertex;
+	case StageTessControl:
+		return spv::ExecutionModelTessellationControl;
+	case StageTessEvaluation:
+		return spv::ExecutionModelTessellationEvaluation;
+	case StageGeometry:
+		return spv::ExecutionModelGeometry;
+	case StageFragment:
+		return spv::ExecutionModelFragment;
+	case StageCompute:
+		return spv::ExecutionModelKernel;
+	default:
+		throw "Unknown shader stage";
+	}
 }

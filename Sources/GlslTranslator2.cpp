@@ -6,7 +6,7 @@ using namespace krafix;
 
 void GlslTranslator2::outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) {
 	std::vector<unsigned> spirv;
-	
+
 	spirv.push_back(magicNumber);
 	spirv.push_back(version);
 	spirv.push_back(generator);
@@ -23,8 +23,8 @@ void GlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 
 	spirv_cross::CompilerGLSL* compiler = new spirv_cross::CompilerGLSL(spirv);
 
-	compiler->set_entry_point("main");
-	spirv_cross::CompilerGLSL::Options opts = compiler->get_options();
+	compiler->set_entry_point("main", executionModel());
+	spirv_cross::CompilerGLSL::Options opts = compiler->get_common_options();
 	opts.vertex.fixup_clipspace = false;
 	opts.version = target.version;
 	opts.es = target.es;
@@ -42,7 +42,7 @@ void GlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 		opts.relax_everything = true;
 #endif
 	}
-	compiler->set_options(opts);
+	compiler->set_common_options(opts);
 
 	std::string glsl = compiler->compile();
 	if (output) {
