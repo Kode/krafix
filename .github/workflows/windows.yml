@@ -27,7 +27,11 @@ jobs:
       run: git clone https://github.com/Kode/krafix_bin.git
     - name: Copy binary
       run: copy build\x64\Release\krafix.exe krafix_bin\krafix.exe
+    - name: Set name
+      run: git config --global user.name "Robbot"
+    - name: Set email
+      run: git config --global user.email "git2016@robdangero.us"
     - name: Commit binary
-      run: git -C krafix_bin commit -a -m "Update Windows binary" --author="Robbot <git2016@robdangero.us>"
+      run: git -C krafix_bin commit -a -m "Update Windows binary"
     - name: Push binary
       run: git -C krafix_bin push
