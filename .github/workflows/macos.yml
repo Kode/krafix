@@ -25,3 +25,19 @@ jobs:
       run: nodejs_bin/copysysbin.sh
     - name: Compile
       run: nodejs_bin/node Kinc/make --compile
+    - name: Get krafix_bin
+      run: git clone https://github.com/Kode/krafix_bin.git
+    - name: Copy binary
+      run: cp build/build/Release/krafix krafix_bin/krafix-osx
+    - name: Set name
+      run: git config --global user.name "Robbot"
+    - name: Set email
+      run: git config --global user.email "robbot2019@robdangero.us"
+    - name: Commit binary
+      run: git -C krafix_bin commit -a -m "Update macOS binary to $GITHUB_SHA."
+    - name: Tag binary
+      run: git -C krafix_bin tag macos_$GITHUB_SHA
+    - name: Push binary
+      run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git master --tags
+      env:
+        ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
