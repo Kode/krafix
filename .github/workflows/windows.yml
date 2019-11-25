@@ -34,7 +34,7 @@ jobs:
     - name: Commit binary
       run: git -C krafix_bin commit -a -m "Update Windows binary to ${env:GITHUB_SHA}."
     - name: Tag binary
-      run: git -C krafix_bin tag krafix_${env:GITHUB_SHA}
+      run: git -C krafix_bin tag windows_${env:GITHUB_SHA}
     - name: Push binary
       run: git -C krafix_bin push https://Kode-Robbot:${env:ROBBOT_PASS}@github.com/Kode/krafix_bin.git master --tags
       env:
