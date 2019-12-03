@@ -81,13 +81,12 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 		compiler->set_msl_options(opts);
 	}
 
-	std::vector<spirv_cross::MSLResourceBinding> p_res_bindings;
 	spirv_cross::MSLResourceBinding mslBinding;
 	mslBinding.stage = convert(stage);
 	mslBinding.msl_buffer = stage == StageVertex ? 1 : 0;
-	p_res_bindings.push_back(mslBinding);
+	compiler->add_msl_resource_binding(mslBinding);
 
-	std::string metal = compiler->compile(); // nullptr, & p_res_bindings); // TODO?
+	std::string metal = compiler->compile();
 	if (output) {
 		strcpy(output, metal.c_str());
 	}
