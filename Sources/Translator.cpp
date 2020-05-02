@@ -71,7 +71,7 @@ spv::ExecutionModel Translator::executionModel() {
 	case StageFragment:
 		return spv::ExecutionModelFragment;
 	case StageCompute:
-		return spv::ExecutionModelKernel;
+		return spv::ExecutionModelGLCompute;
 	default:
 		throw "Unknown shader stage";
 	}
