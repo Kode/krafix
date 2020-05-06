@@ -711,7 +711,7 @@ static void preprocessSpirv(std::vector<unsigned int>& spirv) {
 		int opcode = spirv[index] & 0xffff;
 
 		unsigned* operands = wordCount > 1 ? &spirv[index + 1] : NULL;
-		unsigned length = wordCount - 1;
+		int length = wordCount - 1;
 
 		if (opcode == 71 && length >= 2) {
 			if (operands[1] == 33) {
