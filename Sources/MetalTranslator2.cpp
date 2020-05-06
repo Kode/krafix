@@ -78,6 +78,7 @@ void MetalTranslator2::outputCode(const Target& target, const char* sourcefilena
 	{
 		spirv_cross::CompilerMSL::Options opts = compiler->get_msl_options();
 		opts.platform = target.system == iOS ? spirv_cross::CompilerMSL::Options::iOS : spirv_cross::CompilerMSL::Options::macOS;
+		opts.enable_decoration_binding = true;
 		compiler->set_msl_options(opts);
 	}
 
