@@ -686,6 +686,23 @@ static void writeSpirv(const char* filename, std::vector<unsigned int>& words) {
 	out.close();
 }
 
+static void preprocessSpirv(std::vector<unsigned int>& spirv) {
+	unsigned binding = 0;
+	for (unsigned index = 0; index < spirv.size(); ++index) {
+		int wordCount = spirv[index] >> 16;
+		int opcode = spirv[index] & 0xffff;
+
+		unsigned* operands = wordCount > 1 ? &spirv[index + 1] : NULL;
+		unsigned length = wordCount - 1;
+
+		if (opcode == 71 && length >= 2) {
+			if (operands[1] == 33) {
+				operands[2] = binding++;
+			}
+		}
+	}
+}
+
 //
 // For linking mode: Will independently parse each compilation unit, but then put them
 // in the same program and link them together, making at most one linked module per
@@ -802,6 +819,8 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 						std::string filename = std::string(tempdir) + "/" + removeExtension(extractFilename(sourcefilename)) + ".spirv";
 						writeSpirv(filename.c_str(), spirv);
 					}
+
+					preprocessSpirv(spirv);
 
 					static bool firstRun = true;
 					if (!quiet && firstRun) {
