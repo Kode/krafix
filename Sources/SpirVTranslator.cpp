@@ -202,7 +202,7 @@ namespace {
 				instructionsData[instructionsDataIndex++] = 16;
 				newinstructions.push_back(dec3);
 			}
-			
+
 			if (utype == booltype || utype == inttype || utype == floattype) offset += 4;
 			else if (utype == vec2type) offset += 8;
 			else if (utype == vec3type) offset += 12;
@@ -492,7 +492,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	bool decorationsInserted = false;
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
-		
+
 		switch (state) {
 		case SpirVStart:
 			if (isDebugInformation(inst)) {
@@ -552,7 +552,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			}
 			break;
 		}
-		
+
 		if (inst.opcode == OpEntryPoint) {
 			unsigned executionModel = inst.operands[0];
 			if (executionModel == 4) { // Fragment Shader
@@ -715,11 +715,17 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 				newinstructions.push_back(inst);
 			}
 		}
+		else if (inst.opcode == OpDecorate) {
+			Decoration decoration = (Decoration)inst.operands[1];
+			if (decoration != DecorationBinding) {
+				newinstructions.push_back(inst);
+			}
+		}
 		else {
 			newinstructions.push_back(inst);
 		}
 	}
-	
+
 	bound = currentId + 1;
 	writeInstructions(filename, output, newinstructions);
 }
