@@ -343,11 +343,13 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	std::map<unsigned, std::string> names;
 	std::vector<Var> invars;
 	std::vector<Var> outvars;
+	std::vector<Var> tempvars;
 	std::vector<Var> images;
 	std::vector<Var> uniforms;
 	std::map<unsigned, bool> imageTypes;
 	std::map<unsigned, unsigned> pointers;
 	std::map<unsigned, unsigned> constants;
+	std::map<unsigned, unsigned> accessChains;
 	unsigned position;
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
@@ -365,8 +367,13 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			Decoration decoration = (Decoration)inst.operands[1];
 			if (decoration == DecorationBuiltIn) {
 				names[id] = "";
-				if (inst.operands[2] == 0) position = id;
 			}
+			break;
+		}
+		case OpAccessChain: {
+			unsigned id = inst.operands[1];
+			unsigned accessId = inst.operands[2];
+			accessChains[id] = accessId;
 			break;
 		}
 		case OpTypeSampledImage: {
@@ -463,6 +470,24 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					}
 					else {
 						uniforms.push_back(var);
+					}
+				}
+			}
+			else tempvars.push_back(var);
+			break;
+		}
+		case OpStore: {
+			unsigned to = inst.operands[0];
+			int accessId = accessChains[to];
+			for (unsigned j = 0; j < tempvars.size(); ++j) {
+				if (tempvars[j].id == accessId) {
+					for (const auto &pair : pointers) {
+						if (tempvars[j].type == pair.first) {
+							if (strcmp(names[pair.second].c_str(), "gl_PerVertex") == 0) {
+								position = to;
+								break;
+							}
+						}
 					}
 				}
 			}
