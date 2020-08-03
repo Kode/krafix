@@ -74,7 +74,7 @@ namespace {
 	}
 }
 
-void SpirVTranslator::writeInstructions(const char* filename, char* output, std::vector<Instruction>& instructions) {
+int SpirVTranslator::writeInstructions(const char* filename, char* output, std::vector<Instruction>& instructions) {
 	std::ofstream fileout;
 	std::ostrstream arrayout(output, 1024 * 1024);
 	std::ostream* out;
@@ -87,23 +87,33 @@ void SpirVTranslator::writeInstructions(const char* filename, char* output, std:
 		out = &fileout;
 	}
 
+	int length = 0;
 	writeInstruction(out, magicNumber);
+	length += 4;
 	writeInstruction(out, version);
+	length += 4;
 	writeInstruction(out, generator);
+	length += 4;
 	writeInstruction(out, bound);
+	length += 4;
 	writeInstruction(out, schema);
+	length += 4;
 
 	for (unsigned i = 0; i < instructions.size(); ++i) {
 		Instruction& inst = instructions[i];
 		writeInstruction(out, ((inst.length + 1) << 16) | (unsigned)inst.opcode);
+		length += 4;
 		for (unsigned i2 = 0; i2 < inst.length; ++i2) {
 			writeInstruction(out, inst.operands[i2]);
+			length += 4;
 		}
 	}
 
 	if (!output) {
 		fileout.close();
 	}
+
+	return length;
 }
 
 namespace {
@@ -752,5 +762,5 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	}
 
 	bound = currentId + 1;
-	writeInstructions(filename, output, newinstructions);
+	outputLength = writeInstructions(filename, output, newinstructions);
 }

@@ -892,6 +892,12 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 							if (returnCode != 0) CompileFailed = true;
 							delete[] tempoutput;
 						}
+						else if (target.lang == krafix::SpirV) {
+							translator->outputCode(target, sourcefilename, filename, output, attributes);
+							if (output != nullptr) {
+								*length = dynamic_cast<krafix::SpirVTranslator*>(translator)->outputLength;
+							}
+						}
 						else {
 							translator->outputCode(target, sourcefilename, filename, output, attributes);
 							if (output != nullptr) {
