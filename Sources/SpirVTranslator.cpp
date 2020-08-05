@@ -218,7 +218,7 @@ namespace {
 			else if (utype == vec3type) offset += 12;
 			else if (utype == vec4type) offset += 16;
 			else if (utype == mat2type) offset += 16;
-			else if (utype == mat3type) offset += 36;
+			else if (utype == mat3type) offset += 48; // 36 + 12 padding for DecorationMatrixStride of 16
 			else if (utype == mat4type) offset += 64;
 			else offset += 1; // Type not handled
 		}
