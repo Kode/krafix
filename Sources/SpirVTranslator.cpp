@@ -217,9 +217,8 @@ namespace {
 				newinstructions.push_back(dec3);
 			}
 			else if (utype == floatarraytype || utype == vec2arraytype || utype == vec3arraytype || utype == vec4arraytype) {
-				Instruction dec3(OpDecorate, &instructionsData[instructionsDataIndex], 4);
+				Instruction dec3(OpDecorate, &instructionsData[instructionsDataIndex], 3);
 				structtypeindices.push_back(instructionsDataIndex);
-				instructionsData[instructionsDataIndex++] = 0;
 				instructionsData[instructionsDataIndex++] = utype;
 				instructionsData[instructionsDataIndex++] = DecorationArrayStride;
 				instructionsData[instructionsDataIndex++] = 16;
