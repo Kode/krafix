@@ -48,7 +48,7 @@ jobs:
     - name: Set email
       run: git config --global user.email "robbot2019@robdangero.us"
     - name: Add binary
-      run: git -C kraffiti_bin add -A
+      run: git -C krafix_bin add -A
     - name: Commit binary
       run: git -C krafix_bin commit -a -m "Update Linux binary to $GITHUB_SHA."
     - name: Tag binary
