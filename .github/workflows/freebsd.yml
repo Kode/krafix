@@ -21,16 +21,6 @@ jobs:
       run: git submodule update --init --recursive
     - name: Get Kinc
       run: git clone --recursive https://github.com/Kode/Kinc.git
-
-    - name: Change to own submodule url
-      run: git -C Kinc config --file=.gitmodules submodule.Tools/kincmake.url https://github.com/tcdude/kincmake.git
-    - name: Change to FreeBSD-Build branch
-      run: git -C Kinc config --file=.gitmodules submodule.Tools/kincmake.branch FreeBSD-Build
-    - name: Sync submodule
-      run: git -C Kinc submodule sync
-    - name: Update submodule
-      run: git -C Kinc submodule update --init --recursive --remote
-
     - name: Compile in FreeBSD VM
       id: build
       uses: vmactions/freebsd-vm@v0.1.3
