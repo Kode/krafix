@@ -937,7 +937,7 @@ krafix::TargetSystem getSystem(const char* system) {
 	if (strcmp(system, "windows") == 0) return krafix::Windows;
 	if (strcmp(system, "windowsapp") == 0) return krafix::WindowsApp;
 	if (strcmp(system, "osx") == 0) return krafix::OSX;
-	if (strcmp(system, "linux") == 0) return krafix::Linux;
+	if (strcmp(system, "linux") == 0 || strcmp(system, "freebsd") == 0) return krafix::Linux;
 	if (strcmp(system, "ios") == 0) return krafix::iOS;
 	if (strcmp(system, "android") == 0) return krafix::Android;
 	if (strcmp(system, "html5") == 0) return krafix::HTML5;
