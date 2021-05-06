@@ -79,17 +79,17 @@ jobs:
       - name: Get krafix_bin
         run: git clone https://github.com/Kode/krafix_bin.git
       - name: Copy armv6 binary
-        run: cp "${PWD}/artifacts/krafix-linux-armv6" krafix_bin/krafix-linux-armv6 && git -C krafix_bin add krafix-linux-armv6 || echo "armv6 not yet present..."
+        run: cp "${PWD}/artifacts/krafix-linux-armv6" krafix_bin/krafix-linux-armv6 && git -C krafix_bin add krafix-linux-armv6 && echo "BUILDARCH=armv6" >> $GITHUB_ENV || echo "armv6 not yet present..."
       - name: Copy aarch64 binary
-        run: cp "${PWD}/artifacts/krafix-linux-aarch64" krafix_bin/krafix-linux-aarch64 && git -C krafix_bin add krafix-linux-aarch64 || echo "aarch64 not yet present..."
+        run: cp "${PWD}/artifacts/krafix-linux-aarch64" krafix_bin/krafix-linux-aarch64 && git -C krafix_bin add krafix-linux-aarch64 && echo "BUILDARCH=aarch64" >> $GITHUB_ENV || echo "aarch64 not yet present..."
       - name: Set name
         run: git config --global user.name "Robbot"
       - name: Set email
         run: git config --global user.email "robbot2019@robdangero.us"
       - name: Commit binary
-        run: git -C krafix_bin commit -a -m "Update Linux binary to $GITHUB_SHA."
+        run: git -C krafix_bin commit -a -m "Update Linux-ARM binary to $GITHUB_SHA."
       - name: Tag binary
-        run: git -C krafix_bin tag linux_$GITHUB_SHA
+        run: git -C krafix_bin tag linux$BUILDARCH-$GITHUB_SHA
       - name: Push binary
         run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git master --tags
         env:
