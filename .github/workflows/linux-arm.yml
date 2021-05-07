@@ -79,9 +79,9 @@ jobs:
       - name: Get krafix_bin
         run: git clone https://github.com/Kode/krafix_bin.git
       - name: Copy armv6 binary
-        run: cp "${PWD}/artifacts/krafix-linux-armv6" krafix_bin/krafix-linux-armv6 && git -C krafix_bin add krafix-linux-armv6 && echo "BUILDARCH=armv6" >> $GITHUB_ENV || echo "armv6 not yet present..."
+        run: cp "${PWD}/artifacts/krafix-linux-armv6" krafix_bin/krafix-linuxarm && git -C krafix_bin add krafix-linuxarm && echo "BUILDARCH=armv6" >> $GITHUB_ENV || echo "armv6 not yet present..."
       - name: Copy aarch64 binary
-        run: cp "${PWD}/artifacts/krafix-linux-aarch64" krafix_bin/krafix-linux-aarch64 && git -C krafix_bin add krafix-linux-aarch64 && echo "BUILDARCH=aarch64" >> $GITHUB_ENV || echo "aarch64 not yet present..."
+        run: cp "${PWD}/artifacts/krafix-linux-aarch64" krafix_bin/krafix-linuxaarch64 && git -C krafix_bin add krafix-linuxaarch64 && echo "BUILDARCH=aarch64" >> $GITHUB_ENV || echo "aarch64 not yet present..."
       - name: Set name
         run: git config --global user.name "Robbot"
       - name: Set email
