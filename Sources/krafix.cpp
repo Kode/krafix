@@ -1652,6 +1652,7 @@ void executeSync(const char* command) {
 	WaitForSingleObject(processInfo.hProcess, INFINITE);
 	CloseHandle(processInfo.hProcess);
 	CloseHandle(processInfo.hThread);
-#endif
+#else
 	system(command);
+#endif
 }
