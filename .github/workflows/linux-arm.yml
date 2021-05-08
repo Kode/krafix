@@ -1,0 +1,101 @@
+name: Linux-ARM
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+
+jobs:
+  build_job:
+    runs-on: ubuntu-18.04
+    name: Build on ${{ matrix.distro }} ${{ matrix.arch }}
+
+    # Run steps for both armv6 and aarch64
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            distro: stretch
+          - arch: armv6
+            distro: jessie
+
+    steps:
+      - uses: actions/checkout@v2.1.0
+      - uses: uraimo/run-on-arch-action@v2.0.9
+        name: Build artifact
+        id: build
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ${{ matrix.distro }}
+
+          # Not required, but speeds up builds
+          githubToken: ${{ github.token }}
+
+          # Create an artifacts directory
+          setup: |
+            mkdir -p "${PWD}/artifacts"
+
+          # Mount the artifacts directory as /artifacts in the container
+          dockerRunArgs: |
+            --volume "${PWD}/artifacts:/artifacts"
+
+          # Pass the correct artifact name
+          env: | # YAML, but pipe character is necessary
+            artifact_name: krafix-linux-${{ matrix.arch }}
+
+          # The shell to run commands with in the container
+          shell: /bin/bash
+
+          # Install some dependencies in the container. This speeds up builds if
+          # you are also using githubToken. Any dependencies installed here will
+          # be part of the container image that gets cached, so subsequent
+          # builds don't have to re-install them. The image layer is cached
+          # publicly in your project's package repository, so it is vital that
+          # no secrets are present in the container state or logs.
+          install: |
+              apt-get update -y -q
+              apt-get upgrade -y -q
+              apt-get install -y -q libasound2-dev libxinerama-dev libgl1-mesa-dev libxi-dev git build-essential
+
+          # Produce a binary artifact and place it in the mounted volume
+          run: |
+            echo " * Get Submodules"
+            git submodule update --init --recursive
+            echo " * Get Kinc"
+            git clone --recursive https://github.com/Kode/Kinc.git
+            echo " * Get Node.js"
+            git clone https://github.com/Kode/nodejs_bin.git --depth 1
+            echo " * Setup Node.js"
+            nodejs_bin/copysysbin.sh
+            echo " * Compile"
+            nodejs_bin/node Kinc/make --compile  || nodejs_bin/node-linuxarm Kinc/make --compile
+            echo " * Copying artifact"
+            cp build/Release/krafix "/artifacts/${artifact_name}"
+
+      - name: Get krafix_bin
+        run: git clone https://github.com/Kode/krafix_bin.git
+      - name: Copy armv6 binary
+        run: cp "${PWD}/artifacts/krafix-linux-armv6" krafix_bin/krafix-linuxarm && git -C krafix_bin add krafix-linuxarm && echo "BUILDARCH=armv6" >> $GITHUB_ENV || echo "armv6 not yet present..."
+      - name: Copy aarch64 binary
+        run: cp "${PWD}/artifacts/krafix-linux-aarch64" krafix_bin/krafix-linuxaarch64 && git -C krafix_bin add krafix-linuxaarch64 && echo "BUILDARCH=aarch64" >> $GITHUB_ENV || echo "aarch64 not yet present..."
+      - name: Set name
+        run: git config --global user.name "Robbot"
+      - name: Set email
+        run: git config --global user.email "robbot2019@robdangero.us"
+      - name: Is commit needed?
+        run: |
+          [[ `git -C krafix_bin status --porcelain` ]] && echo "NEEDCOMMIT=1" >> $GITHUB_ENV || echo "No changes to repository"
+      - name: Commit binary
+        run: |
+          [[ $NEEDCOMMIT ]] && git -C krafix_bin commit -a -m "Update Linux-$BUILDARCH binary to $GITHUB_SHA." || echo "No commit necessary"
+      - name: Tag binary
+        run: |
+          [[ $NEEDCOMMIT ]] && git -C krafix_bin tag linux$BUILDARCH-$GITHUB_SHA || echo "No commit necessary"
+      - name: Push binary
+        run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git master --tags  || echo "WARNING! Push binary failed. This is supposed to fail on forked repositories."
+        env:
+          ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
