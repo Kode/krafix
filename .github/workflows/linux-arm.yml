@@ -86,16 +86,26 @@ jobs:
         run: git config --global user.name "Robbot"
       - name: Set email
         run: git config --global user.email "robbot2019@robdangero.us"
-      - name: Is commit needed?
-        run: |
-          [[ `git -C krafix_bin status --porcelain` ]] && echo "NEEDCOMMIT=1" >> $GITHUB_ENV || echo "No changes to repository"
       - name: Commit binary
-        run: |
-          [[ $NEEDCOMMIT ]] && git -C krafix_bin commit -a -m "Update Linux-$BUILDARCH binary to $GITHUB_SHA." || echo "No commit necessary"
+        id: commit
+        continue-on-error: true
+        run: git -C krafix_bin commit -a -m "Update Linux-$BUILDARCH binary to $GITHUB_SHA."
       - name: Tag binary
-        run: |
-          [[ $NEEDCOMMIT ]] && git -C krafix_bin tag linux$BUILDARCH-$GITHUB_SHA || echo "No commit necessary"
+        if: steps.commit.outcome == 'success'
+        run: git -C krafix_bin tag linux_$BUILDARCH_$GITHUB_SHA
       - name: Push binary
-        run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git master --tags  || echo "WARNING! Push binary failed. This is supposed to fail on forked repositories."
+        id: push1
+        if: steps.commit.outcome == 'success'
+        continue-on-error: true
+        run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git master --tags
+        env:
+          ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
+      - name: Pull
+        if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
+        run: git -C krafix_bin pull
+      - name: Push binary again
+        if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
+        continue-on-error: true
+        run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git master --tags
         env:
           ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}

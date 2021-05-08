@@ -32,10 +32,25 @@ jobs:
     - name: Set email
       run: git config --global user.email "robbot2019@robdangero.us"
     - name: Commit binary
-      run: git -C krafix_bin commit -a -m "Update Windows binary to ${env:GITHUB_SHA}."
+      id: commit
+      continue-on-error: true
+      run: git -C krafix_bin commit -a -m "Update Windows binary to $GITHUB_SHA."
     - name: Tag binary
-      run: git -C krafix_bin tag windows_${env:GITHUB_SHA}
+      if: steps.commit.outcome == 'success'
+      run: git -C krafix_bin tag windows_$GITHUB_SHA
     - name: Push binary
-      run: git -C krafix_bin push https://Kode-Robbot:${env:ROBBOT_PASS}@github.com/Kode/krafix_bin.git master --tags
+      id: push1
+      if: steps.commit.outcome == 'success'
+      continue-on-error: true
+      run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git master --tags
+      env:
+        ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
+    - name: Pull
+      if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
+      run: git -C krafix_bin pull
+    - name: Push binary again
+      if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
+      continue-on-error: true
+      run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git master --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
