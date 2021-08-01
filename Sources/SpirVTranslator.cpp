@@ -659,6 +659,12 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 				newinstructions.push_back(inst);
 			}
 		}
+		else if (inst.opcode == OpName) {
+
+		}
+		else if (inst.opcode == OpMemberName) {
+
+		}
 		else if (inst.opcode == OpSource) {
 
 		}
