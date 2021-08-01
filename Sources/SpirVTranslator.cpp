@@ -533,7 +533,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			int accessId = accessChains[to];
 			for (unsigned j = 0; j < tempvars.size(); ++j) {
 				if (tempvars[j].id == accessId) {
-					for (const auto &pair : pointers) {
+					for (const auto& pair : pointers) {
 						if (tempvars[j].type == pair.first) {
 							if (strcmp(names[pair.second].c_str(), "gl_PerVertex") == 0) {
 								position = to;
@@ -658,6 +658,36 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			else {
 				newinstructions.push_back(inst);
 			}
+		}
+		else if (inst.opcode == OpSource) {
+
+		}
+		else if (inst.opcode == OpSourceContinued) {
+
+		}
+		else if (inst.opcode == OpSourceExtension) {
+
+		}
+		else if (inst.opcode == OpExecutionMode) {
+			unsigned executionMode = inst.operands[1];
+			if (executionMode == 8) {
+				Instruction copy = inst;
+				copy.operands[1] = 7;
+				newinstructions.push_back(copy);
+			}
+			else {
+				newinstructions.push_back(inst);
+			}
+		}
+		else if (inst.opcode == OpTypeImage) {
+			Instruction copy = inst;
+			if (stage == StageCompute) {
+				copy.length -= 1;
+			}
+			else {
+				copy.length -= 2;
+			}
+			newinstructions.push_back(copy);
 		}
 		else if (inst.opcode == OpVariable) {
 			unsigned type = inst.operands[0];
