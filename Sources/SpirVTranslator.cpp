@@ -688,7 +688,15 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			}
 		}
 		else if (inst.opcode == OpName) {
-
+			bool isInput = false;
+			for (auto var : invars) {
+				if (inst.operands[0] == var.id) {
+					isInput = true;
+				}
+			}
+			if (isInput) {
+				newinstructions.push_back(inst);
+			}
 		}
 		else if (inst.opcode == OpMemberName) {
 
