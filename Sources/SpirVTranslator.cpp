@@ -694,7 +694,22 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					isInput = true;
 				}
 			}
-			if (isInput) {
+
+			bool isUniform = false;
+			for (auto uniform : uniforms) {
+				if (inst.operands[0] == uniform.id) {
+					isInput = true;
+				}
+			}
+
+			bool isImage = false;
+			for (auto image : images) {
+				if (inst.operands[0] == image.id) {
+					isInput = true;
+				}
+			}
+
+			if (isInput || isUniform || isImage) {
 				newinstructions.push_back(inst);
 			}
 		}
