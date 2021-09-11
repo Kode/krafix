@@ -92,7 +92,7 @@ jobs:
         run: git -C krafix_bin commit -a -m "Update Linux-$BUILDARCH binary to $GITHUB_SHA."
       - name: Tag binary
         if: steps.commit.outcome == 'success'
-        run: git -C krafix_bin tag linux_$BUILDARCH_$GITHUB_SHA
+        run: git -C krafix_bin tag linux_${BUILDARCH}_$GITHUB_SHA
       - name: Push binary
         id: push1
         if: steps.commit.outcome == 'success'
