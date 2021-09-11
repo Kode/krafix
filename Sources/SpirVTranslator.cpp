@@ -158,7 +158,7 @@ namespace {
 	unsigned vec3arraytype = 0;
 	unsigned vec4arraytype = 0;
 
-	void outputDecorations(unsigned* instructionsData, unsigned& instructionsDataIndex, std::vector<unsigned>& structtypeindices, std::vector<Instruction>& newinstructions, std::vector<Var>& uniforms,
+	void outputDecorations(unsigned* instructionsData, unsigned& instructionsDataIndex, std::vector<unsigned>& structtypeindices, std::vector<unsigned>& structidindices, std::vector<Instruction>& newinstructions, std::vector<Var>& uniforms,
 		std::map<unsigned, unsigned>& pointers, std::vector<Var>& invars, std::vector<Var>& outvars, std::vector<Var>& images, std::map<unsigned, unsigned> arraySizes, ShaderStage stage) {
 
 		unsigned location = 0;
@@ -218,7 +218,6 @@ namespace {
 			}
 			else if (utype == floatarraytype || utype == vec2arraytype || utype == vec3arraytype || utype == vec4arraytype) {
 				Instruction dec3(OpDecorate, &instructionsData[instructionsDataIndex], 3);
-				structtypeindices.push_back(instructionsDataIndex);
 				instructionsData[instructionsDataIndex++] = utype;
 				instructionsData[instructionsDataIndex++] = DecorationArrayStride;
 				instructionsData[instructionsDataIndex++] = 16;
@@ -236,6 +235,20 @@ namespace {
 			else if (utype == vec3arraytype) offset += arraySizes[vec3arraytype] * 4 * 3;
 			else if (utype == vec4arraytype) offset += arraySizes[vec4arraytype] * 4 * 4;
 			else offset += 1; // Type not handled
+
+			Instruction decbind(OpDecorate, &instructionsData[instructionsDataIndex], 3);
+			structidindices.push_back(instructionsDataIndex);
+			instructionsData[instructionsDataIndex++] = 0;
+			instructionsData[instructionsDataIndex++] = DecorationBinding;
+			instructionsData[instructionsDataIndex++] = stage == StageVertex ? 0 : 1;
+			newinstructions.push_back(decbind);
+
+			Instruction decdescset(OpDecorate, &instructionsData[instructionsDataIndex], 3);
+			structidindices.push_back(instructionsDataIndex);
+			instructionsData[instructionsDataIndex++] = 0;
+			instructionsData[instructionsDataIndex++] = DecorationDescriptorSet;
+			instructionsData[instructionsDataIndex++] = 0;
+			newinstructions.push_back(decdescset);
 		}
 		if (uniforms.size() > 0) {
 			Instruction dec1(OpDecorate, &instructionsData[instructionsDataIndex], 2);
@@ -243,17 +256,10 @@ namespace {
 			instructionsData[instructionsDataIndex++] = 0;
 			instructionsData[instructionsDataIndex++] = DecorationBlock;
 			newinstructions.push_back(dec1);
-
-			Instruction decbind(OpDecorate, &instructionsData[instructionsDataIndex], 3);
-			structtypeindices.push_back(instructionsDataIndex);
-			instructionsData[instructionsDataIndex++] = 0;
-			instructionsData[instructionsDataIndex++] = DecorationBinding;
-			instructionsData[instructionsDataIndex++] = stage == StageVertex ? 0 : 1;
-			newinstructions.push_back(decbind);
 		}
 	}
 
-	void outputTypes(unsigned* instructionsData, unsigned& instructionsDataIndex, std::vector<unsigned>& structtypeindices, unsigned& structvarindex, std::vector<Instruction>& newinstructions, std::vector<Var>& uniforms,
+	void outputTypes(unsigned* instructionsData, unsigned& instructionsDataIndex, std::vector<unsigned>& structtypeindices, std::vector<unsigned>& structidindices, unsigned& structvarindex, std::vector<Instruction>& newinstructions, std::vector<Var>& uniforms,
 		std::map<unsigned, unsigned>& pointers, std::map<unsigned, unsigned>& constants, unsigned& currentId, unsigned& structid, unsigned& floatpointertype,
 		unsigned& dotfive, unsigned& two, unsigned& three, unsigned& tempposition, ShaderStage stage) {
 		if (uniforms.size() > 0) {
@@ -272,6 +278,7 @@ namespace {
 			Instruction variable(OpVariable, &instructionsData[instructionsDataIndex], 3);
 			instructionsData[instructionsDataIndex++] = pointertype;
 			structid = instructionsData[instructionsDataIndex++] = currentId++;
+			for (auto index : structidindices) instructionsData[index] = structid;
 			instructionsData[structvarindex] = structid;
 			instructionsData[instructionsDataIndex++] = StorageClassUniform;
 			newinstructions.push_back(variable);
@@ -558,7 +565,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	unsigned instructionsDataIndex = 0;
 	unsigned currentId = bound;
 	unsigned structid;
-	std::vector<unsigned> structtypeindices;
+	std::vector<unsigned> structtypeindices, structidindices;
 	unsigned structvarindex;
 	unsigned tempposition;
 	unsigned floatpointertype;
@@ -590,7 +597,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					namesInserted = true;
 				}
 				if (!decorationsInserted) {
-					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images, arraySizes, stage);
+					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, structidindices, newinstructions, uniforms, pointers, invars, outvars, images, arraySizes, stage);
 					decorationsInserted = true;
 				}
 			}
@@ -602,7 +609,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					namesInserted = true;
 				}
 				if (!decorationsInserted) {
-					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images, arraySizes, stage);
+					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, structidindices, newinstructions, uniforms, pointers, invars, outvars, images, arraySizes, stage);
 					decorationsInserted = true;
 				}
 			}
@@ -616,14 +623,14 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					namesInserted = true;
 				}
 				if (!decorationsInserted) {
-					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, newinstructions, uniforms, pointers, invars, outvars, images, arraySizes, stage);
+					outputDecorations(instructionsData, instructionsDataIndex, structtypeindices, structidindices, newinstructions, uniforms, pointers, invars, outvars, images, arraySizes, stage);
 					decorationsInserted = true;
 				}
 			}
 			break;
 		case SpirVTypes:
 			if (inst.opcode == OpFunction) {
-				outputTypes(instructionsData, instructionsDataIndex, structtypeindices, structvarindex, newinstructions, uniforms, pointers, constants, currentId,
+				outputTypes(instructionsData, instructionsDataIndex, structtypeindices, structidindices, structvarindex, newinstructions, uniforms, pointers, constants, currentId,
 					structid, floatpointertype, dotfive, two, three, tempposition, stage);
 				state = SpirVFunctions;
 			}
