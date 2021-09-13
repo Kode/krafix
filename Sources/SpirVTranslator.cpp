@@ -235,7 +235,8 @@ namespace {
 			else if (utype == vec3arraytype) offset += arraySizes[vec3arraytype] * 4 * 3;
 			else if (utype == vec4arraytype) offset += arraySizes[vec4arraytype] * 4 * 4;
 			else offset += 1; // Type not handled
-
+		}
+		if (uniforms.size() > 0) {
 			Instruction decbind(OpDecorate, &instructionsData[instructionsDataIndex], 3);
 			structidindices.push_back(instructionsDataIndex);
 			instructionsData[instructionsDataIndex++] = 0;
@@ -249,8 +250,7 @@ namespace {
 			instructionsData[instructionsDataIndex++] = DecorationDescriptorSet;
 			instructionsData[instructionsDataIndex++] = 0;
 			newinstructions.push_back(decdescset);
-		}
-		if (uniforms.size() > 0) {
+
 			Instruction dec1(OpDecorate, &instructionsData[instructionsDataIndex], 2);
 			structtypeindices.push_back(instructionsDataIndex);
 			instructionsData[instructionsDataIndex++] = 0;
