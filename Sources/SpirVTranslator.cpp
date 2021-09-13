@@ -146,6 +146,7 @@ namespace {
 
 	unsigned booltype = 0;
 	unsigned inttype = 0;
+	unsigned uinttype = 0;
 	unsigned floattype = 0;
 	unsigned vec4type = 0;
 	unsigned vec3type = 0;
@@ -223,18 +224,24 @@ namespace {
 				instructionsData[instructionsDataIndex++] = 16;
 				newinstructions.push_back(dec3);
 			}
-			if (utype == booltype || utype == inttype || utype == floattype) offset += 4;
+			if (utype == booltype || utype == inttype || utype == floattype || utype == uinttype) {
+				offset += 4;
+			}
 			else if (utype == vec2type) offset += 8;
 			else if (utype == vec3type) offset += 12;
 			else if (utype == vec4type) offset += 16;
 			else if (utype == mat2type) offset += 16;
-			else if (utype == mat3type) offset += 48; // 36 + 12 padding for DecorationMatrixStride of 16
+			else if (utype == mat3type) {
+				offset += 48; // 36 + 12 padding for DecorationMatrixStride of 16
+			}
 			else if (utype == mat4type) offset += 64;
 			else if (utype == floatarraytype) offset += arraySizes[floatarraytype] * 4;
 			else if (utype == vec2arraytype) offset += arraySizes[vec2arraytype] * 4 * 2;
 			else if (utype == vec3arraytype) offset += arraySizes[vec3arraytype] * 4 * 3;
 			else if (utype == vec4arraytype) offset += arraySizes[vec4arraytype] * 4 * 4;
-			else offset += 1; // Type not handled
+			else {
+				offset += 1; // Type not handled
+			}
 		}
 		if (uniforms.size() > 0) {
 			Instruction decbind(OpDecorate, &instructionsData[instructionsDataIndex], 3);
@@ -283,16 +290,16 @@ namespace {
 			instructionsData[instructionsDataIndex++] = StorageClassUniform;
 			newinstructions.push_back(variable);
 
-			if (inttype == 0) {
+			if (uinttype == 0) {
 				Instruction typeint(OpTypeInt, &instructionsData[instructionsDataIndex], 3);
-				inttype = instructionsData[instructionsDataIndex++] = currentId++;
+				uinttype = instructionsData[instructionsDataIndex++] = currentId++;
 				instructionsData[instructionsDataIndex++] = 32;
 				instructionsData[instructionsDataIndex++] = 0;
 				newinstructions.push_back(typeint);
 			}
 			for (unsigned i = 0; i < uniforms.size(); ++i) {
 				Instruction constant(OpConstant, &instructionsData[instructionsDataIndex], 3);
-				instructionsData[instructionsDataIndex++] = inttype;
+				instructionsData[instructionsDataIndex++] = uinttype;
 				unsigned constantid = currentId++;
 				instructionsData[instructionsDataIndex++] = constantid;
 				constants[i] = constantid;
@@ -326,22 +333,22 @@ namespace {
 			*(float*)&instructionsData[instructionsDataIndex++] = 0.5f;
 			newinstructions.push_back(dotfiveconstant);
 
-			if (inttype == 0) {
+			if (uinttype == 0) {
 				Instruction inty(OpTypeInt, &instructionsData[instructionsDataIndex], 3);
-				inttype = instructionsData[instructionsDataIndex++] = currentId++;
+				uinttype = instructionsData[instructionsDataIndex++] = currentId++;
 				instructionsData[instructionsDataIndex++] = 32;
 				instructionsData[instructionsDataIndex++] = 0;
 				newinstructions.push_back(inty);
 			}
 
 			Instruction twoconstant(OpConstant, &instructionsData[instructionsDataIndex], 3);
-			instructionsData[instructionsDataIndex++] = inttype;
+			instructionsData[instructionsDataIndex++] = uinttype;
 			two = instructionsData[instructionsDataIndex++] = currentId++;
 			instructionsData[instructionsDataIndex++] = 2;
 			newinstructions.push_back(twoconstant);
 
 			Instruction threeconstant(OpConstant, &instructionsData[instructionsDataIndex], 3);
-			instructionsData[instructionsDataIndex++] = inttype;
+			instructionsData[instructionsDataIndex++] = uinttype;
 			three = instructionsData[instructionsDataIndex++] = currentId++;
 			instructionsData[instructionsDataIndex++] = 3;
 			newinstructions.push_back(threeconstant);
@@ -445,8 +452,11 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			unsigned id = inst.operands[0];
 			unsigned width = inst.operands[1];
 			unsigned signedness = inst.operands[2];
-			if (width == 32 && signedness == 0) {
+			if (width == 32 && signedness == 1) {
 				inttype = id;
+			}
+			else if (width == 32 && signedness == 0) {
+				uinttype = id;
 			}
 			break;
 		}
