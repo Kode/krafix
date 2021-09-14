@@ -767,10 +767,50 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 				newinstructions.push_back(inst);
 			}
 		}
+		else if (inst.opcode == OpAccessChain) {
+			// replace all accesses to global uniforms
+			unsigned resultType = inst.operands[0];
+			unsigned resultId = inst.operands[1];
+			unsigned base = inst.operands[2];
+
+			Var uniform;
+			unsigned index;
+			bool found = false;
+			for (unsigned i = 0; i < uniforms.size(); ++i) {
+				if (uniforms[i].id == base) {
+					uniform = uniforms[i];
+					index = i;
+					found = true;
+					break;
+				}
+			}
+
+			if (found) {
+				Instruction access1(OpAccessChain, &instructionsData[instructionsDataIndex], 4);
+				instructionsData[instructionsDataIndex++] = uniform.pointertype;
+				unsigned newbase = instructionsData[instructionsDataIndex++] = currentId++;
+				instructionsData[instructionsDataIndex++] = structid;
+				instructionsData[instructionsDataIndex++] = constants[index];
+				newinstructions.push_back(access1);
+				Instruction access2(OpAccessChain, &instructionsData[instructionsDataIndex], inst.length);
+				instructionsData[instructionsDataIndex++] = resultType;
+				instructionsData[instructionsDataIndex++] = resultId;
+				instructionsData[instructionsDataIndex++] = newbase;
+				for (unsigned i = 3; i < inst.length; ++i) {
+					instructionsData[instructionsDataIndex++] = inst.operands[i];
+				}
+				newinstructions.push_back(access2);
+			}
+			else {
+				newinstructions.push_back(inst);
+			}
+		}
 		else if (inst.opcode == OpLoad) {
+			// replace all loads from global uniforms
 			unsigned type = inst.operands[0];
 			unsigned id = inst.operands[1];
 			unsigned pointer = inst.operands[2];
+
 			Var uniform;
 			unsigned index;
 			bool found = false;
@@ -782,17 +822,18 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 					break;
 				}
 			}
+
 			if (found) {
 				Instruction access(OpAccessChain, &instructionsData[instructionsDataIndex], 4);
 				instructionsData[instructionsDataIndex++] = uniform.pointertype;
-				unsigned pointer = instructionsData[instructionsDataIndex++] = currentId++;
+				unsigned newpointer = instructionsData[instructionsDataIndex++] = currentId++;
 				instructionsData[instructionsDataIndex++] = structid;
 				instructionsData[instructionsDataIndex++] = constants[index];
 				newinstructions.push_back(access);
 				Instruction load(OpLoad, &instructionsData[instructionsDataIndex], 3);
 				instructionsData[instructionsDataIndex++] = type;
 				instructionsData[instructionsDataIndex++] = id;
-				instructionsData[instructionsDataIndex++] = pointer;
+				instructionsData[instructionsDataIndex++] = newpointer;
 				newinstructions.push_back(load);
 			}
 			else {
@@ -908,4 +949,5 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 
 	bound = currentId + 1;
 	outputLength = writeInstructions(filename, output, newinstructions);
+	//outputLength = writeInstructions(filename, output, instructions);
 }
