@@ -270,7 +270,7 @@ namespace {
 		std::map<unsigned, unsigned>& pointers, std::map<unsigned, unsigned>& constants, unsigned& currentId, unsigned& structid, unsigned& floatpointertype,
 		unsigned& dotfive, unsigned& two, unsigned& three, unsigned& tempposition, ShaderStage stage) {
 		if (uniforms.size() > 0) {
-			Instruction typestruct(OpTypeStruct, &instructionsData[instructionsDataIndex], 1 + uniforms.size());
+			Instruction typestruct(OpTypeStruct, &instructionsData[instructionsDataIndex], 1 + (unsigned)uniforms.size());
 			unsigned structtype = instructionsData[instructionsDataIndex++] = currentId++;
 			for (unsigned i = 0; i < uniforms.size(); ++i) {
 				instructionsData[instructionsDataIndex++] = pointers[uniforms[i].type];
@@ -705,21 +705,14 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 				}
 			}
 
-			bool isUniform = false;
-			for (auto uniform : uniforms) {
-				if (inst.operands[0] == uniform.id) {
-					isInput = true;
-				}
-			}
-
 			bool isImage = false;
 			for (auto image : images) {
 				if (inst.operands[0] == image.id) {
-					isInput = true;
+					isImage = true;
 				}
 			}
 
-			if (isInput || isUniform || isImage) {
+			if (isInput || isImage) {
 				newinstructions.push_back(inst);
 			}
 		}
