@@ -27,7 +27,7 @@ jobs:
       with:
         usesh: true
         mem: 2048
-        prepare: freebsd-update cron && pkg update && pkg upgrade && pkg install -y node alsa-lib libXinerama mesa-libs libXi
+        prepare: pkg update && pkg upgrade && pkg install -y openssl111 node alsa-lib libXinerama mesa-libs libXi
         run: node Kinc/make --compile --compiler clang
     - name: Get krafix_bin
       run: git clone https://github.com/Kode/krafix_bin.git
