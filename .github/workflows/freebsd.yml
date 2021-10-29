@@ -27,7 +27,7 @@ jobs:
       with:
         usesh: true
         mem: 2048
-        prepare: pkg install -y node alsa-lib libXinerama mesa-libs libXi
+        prepare: freebsd-update fetch && freebsd-update install && pkg install -y node alsa-lib libXinerama mesa-libs libXi
         run: node Kinc/make --compile --compiler clang
     - name: Get krafix_bin
       run: git clone https://github.com/Kode/krafix_bin.git
