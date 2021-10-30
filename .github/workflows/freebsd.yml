@@ -27,7 +27,7 @@ jobs:
       with:
         usesh: true
         mem: 2048
-        prepare: portsnap cron extract && cd /usr/ports/www/node && make BATCH=yes install && pkg update && pkg upgrade && pkg install -y alsa-lib libXinerama mesa-libs libXi
+        prepare: pkg install -y node10 alsa-lib libXinerama mesa-libs libXi
         run: node Kinc/make --compile --compiler clang
     - name: Get krafix_bin
       run: git clone https://github.com/Kode/krafix_bin.git
