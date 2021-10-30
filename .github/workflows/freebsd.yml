@@ -12,7 +12,7 @@ on:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: macos-10.15
     name: FreeBSD build
 
     steps:
@@ -23,11 +23,11 @@ jobs:
       run: git clone --recursive https://github.com/Kode/Kinc.git
     - name: Compile in FreeBSD VM
       id: build
-      uses: vmactions/freebsd-vm@v0.1.3
+      uses: vmactions/freebsd-vm@v0.1.5
       with:
         usesh: true
         mem: 2048
-        prepare: pkg install -y node alsa-lib libXinerama mesa-libs libXi
+        prepare: pkg install -y node10 alsa-lib libXinerama mesa-libs libXi
         run: node Kinc/make --compile --compiler clang
     - name: Get krafix_bin
       run: git clone https://github.com/Kode/krafix_bin.git
