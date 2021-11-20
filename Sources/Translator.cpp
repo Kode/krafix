@@ -49,7 +49,7 @@ Translator::Translator(std::vector<unsigned>& spirv, ShaderStage stage) : stage(
 	version = spirv[index++];
 	generator = spirv[index++];
 	bound = spirv[index++];
-	schema = index++;
+	schema = spirv[index++];
 
 	while (index < spirv.size()) {
 		instructions.push_back(Instruction(spirv, index));
