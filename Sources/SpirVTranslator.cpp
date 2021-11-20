@@ -649,28 +649,32 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 
 		if (inst.opcode == OpEntryPoint) {
 			unsigned executionModel = inst.operands[0];
-			unsigned i = 2;
-			for (; ; ++i) {
-				char* chars = (char*)&inst.operands[i];
-				if (chars[0] == 0 || chars[1] == 0 || chars[2] == 0 || chars[3] == 0) break;
+			if (executionModel == 4) { // Fragment Shader
+				unsigned i = 2;
+				for (; ; ++i) {
+					char* chars = (char*)&inst.operands[i];
+					if (chars[0] == 0 || chars[1] == 0 || chars[2] == 0 || chars[3] == 0) break;
+				}
+				Instruction newinst(OpEntryPoint, &instructionsData[instructionsDataIndex], 0);
+				unsigned length = 0;
+				for (unsigned i2 = 0; i2 <= i; ++i2) {
+					instructionsData[instructionsDataIndex++] = inst.operands[i2];
+					++length;
+				}
+				for (auto var : invars) {
+					instructionsData[instructionsDataIndex++] = var.id;
+					++length;
+				}
+				for (auto var : outvars) {
+					instructionsData[instructionsDataIndex++] = var.id;
+					++length;
+				}
+				newinst.length = length;
+				newinstructions.push_back(newinst);
 			}
-			Instruction newinst(OpEntryPoint, &instructionsData[instructionsDataIndex], 0);
-			unsigned length = 0;
-			for (unsigned i2 = 0; i2 <= i; ++i2) {
-				instructionsData[instructionsDataIndex++] = inst.operands[i2];
-				++length;
+			else {
+				newinstructions.push_back(inst);
 			}
-			for (auto var : invars) {
-				instructionsData[instructionsDataIndex++] = var.id;
-				++length;
-			}
-			for (auto var : outvars) {
-				instructionsData[instructionsDataIndex++] = var.id;
-				++length;
-			}
-			newinst.length = length;
-			newinstructions.push_back(newinst);
-
 		}
 		else if (inst.opcode == OpName) {
 			bool isInput = false;
