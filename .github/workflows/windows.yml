@@ -19,10 +19,8 @@ jobs:
       run: git submodule update --init --recursive
     - name: Get Kinc
       run: git clone --recursive https://github.com/Kode/Kinc.git
-    - name: Get Node.js
-      run: git clone https://github.com/Kode/nodejs_bin.git --depth 1
     - name: Compile
-      run: .\nodejs_bin\node.exe Kinc/make -v vs2019 --compile
+      run: Kinc\make --compile
     - name: Get krafix_bin
       run: git clone https://github.com/Kode/krafix_bin.git
     - name: Copy binary

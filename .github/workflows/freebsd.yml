@@ -26,8 +26,8 @@ jobs:
       with:
         usesh: true
         mem: 2048
-        prepare: pkg install -y node10 alsa-lib libXinerama mesa-libs libXi
-        run: node Kinc/make --compile --compiler clang
+        prepare: pkg install -y alsa-lib libXinerama mesa-libs libXi
+        run: ./Kinc/make --compile --compiler clang
     - name: Get krafix_bin
       run: git clone https://github.com/Kode/krafix_bin.git
     - name: Copy binary

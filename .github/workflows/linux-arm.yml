@@ -66,12 +66,8 @@ jobs:
             git submodule update --init --recursive
             echo " * Get Kinc"
             git clone --recursive https://github.com/Kode/Kinc.git
-            echo " * Get Node.js"
-            git clone https://github.com/Kode/nodejs_bin.git --depth 1
-            echo " * Setup Node.js"
-            nodejs_bin/copysysbin.sh
             echo " * Compile"
-            nodejs_bin/node Kinc/make --compile  || nodejs_bin/node-linuxarm Kinc/make --compile
+            ./Kinc/make --compile
             echo " * Copying artifact"
             cp build/Release/krafix "/artifacts/${artifact_name}"
 
