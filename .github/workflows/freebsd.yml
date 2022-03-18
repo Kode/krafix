@@ -3,11 +3,10 @@ name: FreeBSD
 on:
   push:
     branches:
-    - master
-    - FreeBSD-Build
+    - main
   pull_request:
     branches:
-    - master
+    - main
 
 jobs:
   build:
@@ -50,7 +49,7 @@ jobs:
       id: push1
       if: steps.commit.outcome == 'success'
       continue-on-error: true
-      run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git master --tags
+      run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
     - name: Pull
@@ -59,6 +58,6 @@ jobs:
     - name: Push binary again
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
       continue-on-error: true
-      run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git master --tags
+      run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
