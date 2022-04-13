@@ -77,8 +77,6 @@ jobs:
         run: git config --global user.name "Robbot"
       - name: Set email
         run: git config --global user.email "robbot2019@robdangero.us"
-      - name: Add binary
-        run: git -C ${{ matrix.repo }} add .
       - name: Commit binary
         id: commit
         continue-on-error: true
