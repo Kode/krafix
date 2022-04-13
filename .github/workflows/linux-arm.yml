@@ -1,4 +1,4 @@
-name: Linux-ARM
+name: Linux (ARM)
 
 on:
   push:
@@ -18,13 +18,15 @@ jobs:
       matrix:
         include:
           - arch: aarch64
-            distro: stretch
-          - arch: armv6
-            distro: jessie
+            distro: buster
+            repo: "KincTools_linux_arm64"
+          - arch: armv7
+            distro: buster
+            repo: "KincTools_linux_arm"
 
     steps:
       - uses: actions/checkout@v2.1.0
-      - uses: uraimo/run-on-arch-action@v2.0.9
+      - uses: uraimo/run-on-arch-action@v2
         name: Build artifact
         id: build
         with:
@@ -41,10 +43,6 @@ jobs:
           # Mount the artifacts directory as /artifacts in the container
           dockerRunArgs: |
             --volume "${PWD}/artifacts:/artifacts"
-
-          # Pass the correct artifact name
-          env: | # YAML, but pipe character is necessary
-            artifact_name: krafix-linux-${{ matrix.arch }}
 
           # The shell to run commands with in the container
           shell: /bin/bash
@@ -65,42 +63,42 @@ jobs:
             echo " * Get Submodules"
             git submodule update --init --recursive
             echo " * Get Kinc"
-            git clone --recursive https://github.com/Kode/Kinc.git
+            git clone --recursive --depth 1 https://github.com/Kode/Kinc.git
             echo " * Compile"
             ./Kinc/make --compile
             echo " * Copying artifact"
-            cp build/Release/krafix "/artifacts/${artifact_name}"
+            cp build/Release/krafix "/artifacts/krafix"
 
-      - name: Get krafix_bin
-        run: git clone https://github.com/Kode/krafix_bin.git
-      - name: Copy armv6 binary
-        run: cp "${PWD}/artifacts/krafix-linux-armv6" krafix_bin/krafix-linuxarm && git -C krafix_bin add krafix-linuxarm && echo "BUILDARCH=armv6" >> $GITHUB_ENV || echo "armv6 not yet present..."
-      - name: Copy aarch64 binary
-        run: cp "${PWD}/artifacts/krafix-linux-aarch64" krafix_bin/krafix-linuxaarch64 && git -C krafix_bin add krafix-linuxaarch64 && echo "BUILDARCH=aarch64" >> $GITHUB_ENV || echo "aarch64 not yet present..."
+      - name: Get binary-repository
+        run: git clone https://github.com/Kode/${{ matrix.repo }}.git
+      - name: Copy binary
+        run: cp "${PWD}/artifacts/krafix" ${{ matrix.repo }}/krafix
       - name: Set name
         run: git config --global user.name "Robbot"
       - name: Set email
         run: git config --global user.email "robbot2019@robdangero.us"
+      - name: Add binary
+        run: git -C ${{ matrix.repo }} add .
       - name: Commit binary
         id: commit
         continue-on-error: true
-        run: git -C krafix_bin commit -a -m "Update Linux-$BUILDARCH binary to $GITHUB_SHA."
+        run: git -C ${{ matrix.repo }} commit -a -m "Update krafix binary to $GITHUB_SHA."
       - name: Tag binary
         if: steps.commit.outcome == 'success'
-        run: git -C krafix_bin tag linux_${BUILDARCH}_$GITHUB_SHA
+        run: git -C ${{ matrix.repo }} tag krafix_$GITHUB_SHA
       - name: Push binary
         id: push1
         if: steps.commit.outcome == 'success'
         continue-on-error: true
-        run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git main --tags
+        run: git -C ${{ matrix.repo }} push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/${{ matrix.repo }}.git main --tags
         env:
           ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
       - name: Pull
         if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
-        run: git -C krafix_bin pull --no-rebase
+        run: git -C ${{ matrix.repo }} pull --no-rebase
       - name: Push binary again
         if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
         continue-on-error: true
-        run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git main --tags
+        run: git -C ${{ matrix.repo }} push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/${{ matrix.repo }}.git main --tags
         env:
           ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
