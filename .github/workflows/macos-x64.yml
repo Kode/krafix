@@ -1,4 +1,4 @@
-name: Linux
+name: macOS (x64)
 
 on:
   push:
@@ -11,48 +11,46 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-18.04
+    runs-on: macOS-latest
     
     steps:
     - uses: actions/checkout@v1
-    - name: Apt Update
-      run: sudo apt-get update
-    - name: Apt Install
-      run: sudo apt-get install libasound2-dev libxinerama-dev libgl1-mesa-dev libxi-dev --yes --quiet
     - name: Get Submodules
       run: git submodule update --init --recursive
     - name: Get Kinc
       run: git clone --recursive https://github.com/Kode/Kinc.git
     - name: Compile
       run: ./Kinc/make --compile
-    - name: Get krafix_bin
-      run: git clone https://github.com/Kode/krafix_bin.git
+    - name: Get KincTools_macos_x64
+      run: git clone https://github.com/Kode/KincTools_macos_x64.git
     - name: Copy binary
-      run: cp build/Release/krafix krafix_bin/krafix-linux64
+      run: cp build/build/Release/krafix KincTools_macos_x64/krafix
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
       run: git config --global user.email "robbot2019@robdangero.us"
+    - name: Add binary
+      run: git -C KincTools_macos_x64 add .
     - name: Commit binary
       id: commit
       continue-on-error: true
-      run: git -C krafix_bin commit -a -m "Update Linux binary to $GITHUB_SHA."
+      run: git -C KincTools_macos_x64 commit -a -m "Update krafix binary to $GITHUB_SHA."
     - name: Tag binary
       if: steps.commit.outcome == 'success'
-      run: git -C krafix_bin tag linux_$GITHUB_SHA
+      run: git -C KincTools_macos_x64 tag krafix_$GITHUB_SHA
     - name: Push binary
       id: push1
       if: steps.commit.outcome == 'success'
       continue-on-error: true
-      run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git main --tags
+      run: git -C KincTools_macos_x64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_macos_x64.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
     - name: Pull
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
-      run: git -C krafix_bin pull --no-rebase
+      run: git -C KincTools_macos_x64 pull --no-rebase
     - name: Push binary again
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
       continue-on-error: true
-      run: git -C krafix_bin push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/krafix_bin.git main --tags
+      run: git -C KincTools_macos_x64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_macos_x64.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
