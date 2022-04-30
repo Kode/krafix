@@ -1,4 +1,4 @@
-name: macOS (x64)
+name: macOS
 
 on:
   push:
@@ -21,10 +21,10 @@ jobs:
       run: git clone --recursive https://github.com/Kode/Kinc.git
     - name: Compile
       run: ./Kinc/make --compile
-    - name: Get KincTools_macos_x64
-      run: git clone https://github.com/Kode/KincTools_macos_x64.git
+    - name: Get KincTools_macos
+      run: git clone https://github.com/Kode/KincTools_macos.git
     - name: Copy binary
-      run: cp build/build/Release/krafix KincTools_macos_x64/krafix
+      run: cp build/build/Release/krafix KincTools_macos/krafix
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
@@ -32,23 +32,23 @@ jobs:
     - name: Commit binary
       id: commit
       continue-on-error: true
-      run: git -C KincTools_macos_x64 commit -a -m "Update krafix binary to $GITHUB_SHA."
+      run: git -C KincTools_macos commit -a -m "Update krafix binary to $GITHUB_SHA."
     - name: Tag binary
       if: steps.commit.outcome == 'success'
-      run: git -C KincTools_macos_x64 tag krafix_$GITHUB_SHA
+      run: git -C KincTools_macos tag krafix_$GITHUB_SHA
     - name: Push binary
       id: push1
       if: steps.commit.outcome == 'success'
       continue-on-error: true
-      run: git -C KincTools_macos_x64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_macos_x64.git main --tags
+      run: git -C KincTools_macos push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_macos.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
     - name: Pull
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
-      run: git -C KincTools_macos_x64 pull --no-rebase
+      run: git -C KincTools_macos pull --no-rebase
     - name: Push binary again
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
       continue-on-error: true
-      run: git -C KincTools_macos_x64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_macos_x64.git main --tags
+      run: git -C KincTools_macos push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_macos.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
