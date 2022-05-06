@@ -17,12 +17,10 @@ jobs:
     - uses: actions/checkout@v1
     - name: Get Submodules
       run: git submodule update --init --recursive
-    - name: Get Kinc
-      run: git clone --recursive https://github.com/Kode/Kinc.git
-    - name: Compile
-      run: ./Kinc/make --compile
     - name: Get KincTools_macos
       run: git clone https://github.com/Kode/KincTools_macos.git
+    - name: Compile
+      run: ./KincTools_macos/kmake --compile
     - name: Copy binary
       run: cp build/build/Release/krafix KincTools_macos/krafix
     - name: Set name

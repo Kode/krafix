@@ -17,8 +17,8 @@ jobs:
     - uses: actions/checkout@v1
     - name: Get Submodules
       run: git submodule update --init --recursive
-    - name: Get Kinc
-      run: git clone --recursive --depth 1 https://github.com/Kode/Kinc.git
+    - name: Get KincTools_freebsd_x64
+      run: git clone https://github.com/Kode/KincTools_freebsd_x64.git
     - name: Compile in FreeBSD VM
       id: build
       uses: vmactions/freebsd-vm@v0.1.6
@@ -26,9 +26,7 @@ jobs:
         usesh: false
         mem: 2048
         prepare: pkg install -y alsa-lib libXinerama mesa-libs libXi bash
-        run: ./Kinc/make --compile --compiler clang
-    - name: Get KincTools_freebsd_x64
-      run: git clone https://github.com/Kode/KincTools_freebsd_x64.git
+        run: ./KincTools_freebsd_x64/kmake --compile --compiler clang
     - name: Copy binary
       run: cp build/Release/krafix KincTools_freebsd_x64/krafix
     - name: Set name
