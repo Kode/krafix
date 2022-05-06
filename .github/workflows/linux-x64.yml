@@ -11,24 +11,20 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v1
-    - name: Apt Update
-      run: sudo apt-get update
-    - name: Apt Install
-      run: sudo apt-get install libasound2-dev libxinerama-dev libgl1-mesa-dev libxi-dev --yes --quiet
     - name: Get Submodules
       run: git submodule update --init --recursive
-    - name: Get Kinc
-      run: git clone --recursive https://github.com/Kode/Kinc.git
-    - name: Compile
-      run: ./Kinc/make --compile
+    - name: Docker Build
+      run: docker build -t krafiximage .
+    - name: Docker Run
+      run: docker run --mount type=bind,source="$(pwd)",target=/workdir krafiximage
     - name: Get KincTools_linux_x64
       run: git clone https://github.com/Kode/KincTools_linux_x64.git
     - name: Copy binary
-      run: cp build/Release/krafix KincTools_linux_x64/krafix
+      run: cp ./krafix_linux_x64 KincTools_linux_x64/krafix
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
