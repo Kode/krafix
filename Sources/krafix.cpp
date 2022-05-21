@@ -1171,7 +1171,7 @@ int compileWithTextureUnits(const char* targetlang, const char* from, std::strin
 	return errors;
 }
 
-void krafix_compile(const char* source, char* output, int* length, const char* targetlang, const char* system, const char* shadertype) {
+extern "C" void krafix_compile(const char* source, char* output, int* length, const char* targetlang, const char* system, const char* shadertype) {
 	std::string defines;
 	std::vector<int> textureUnitCounts;
 	bool instancedoptional = false;
