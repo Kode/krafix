@@ -35,7 +35,9 @@
 //
 
 // this only applies to the standalone wrapper, not the front end in general
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #include "./../glslang/StandAlone/ResourceLimits.h"
 #include "./../glslang/StandAlone/Worklist.h"
@@ -595,7 +597,7 @@ int compileHLSLToD3D9(const char* from, const char* to, const char* source, char
 int compileHLSLToD3D11(const char* from, const char* to, const char* source, char* output, int* length, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug);
 
 std::string extractFilename(std::string path) {
-	int i = path.size() - 1;
+	int i = (int)path.size() - 1;
 	for (; i > 0; --i) {
 		if (path[i] == '/' || path[i] == '\\') {
 			++i;
@@ -606,7 +608,7 @@ std::string extractFilename(std::string path) {
 }
 
 std::string removeExtension(std::string filename) {
-	int i = filename.size() - 1;
+	int i = (int)filename.size() - 1;
 	for (; i > 0; --i) {
 		if (filename[i] == '.') {
 			break;
@@ -620,7 +622,7 @@ class KrafixIncluder : public glslang::TShader::Includer {
 public:
 	KrafixIncluder(std::string from) {
 		dir = from;
-		for (int i = from.size() - 1; i >= 0; --i) {
+		for (int i = (int)from.size() - 1; i >= 0; --i) {
 			if (dir[i] == '/' || dir[i] == '\\') {
 				dir = dir.substr(0, i + 1);
 				break;
@@ -901,7 +903,7 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 						else {
 							translator->outputCode(target, sourcefilename, filename, output, attributes);
 							if (output != nullptr) {
-								*length = strlen(output);
+								*length = (int)strlen(output);
 							}
 						}
 					}
@@ -1216,7 +1218,13 @@ extern "C" void krafix_compile(const char* source, char* output, int* length, co
 	}*/
 
 	int errors = 0;
-	errors = compileWithTextureUnits(targetlang, nullptr, "", shadertype, nullptr, source, output, length, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
+
+	char from[256];
+	strcpy(from, ".");
+	strcat(from, shadertype);
+	strcat(from, ".glsl");
+
+	errors = compileWithTextureUnits(targetlang, from, "", shadertype, nullptr, source, output, length, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
 }
 
 // d3d11 in/basic.vert.glsl test.d3d11 temp windows
