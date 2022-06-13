@@ -707,17 +707,76 @@ static void writeSpirv(const char* filename, std::vector<unsigned int>& words) {
 }
 
 static void preprocessSpirv(std::vector<unsigned int>& spirv) {
-	unsigned binding = 0;
-	for (unsigned index = 0; index < spirv.size(); ++index) {
-		int wordCount = spirv[index] >> 16;
+	const unsigned OpTypeImage = 25;
+	const unsigned OpTypeSampledImage = 27;
+	const unsigned OpTypeArray = 28;
+	const unsigned OpTypePointer = 32;
+	const unsigned OpConstant = 43;
+	const unsigned OpVariable = 59;
+	const unsigned OpDecorate = 71;
+
+	const unsigned DecorationBinding = 33;
+
+	std::set<unsigned> imageTypes;
+	std::map<unsigned, unsigned> constants;
+	std::map<unsigned, unsigned> arrayLengths;
+
+	unsigned wordCount = 1;
+
+	for (unsigned index = 5; index < spirv.size(); index += wordCount) {
+		wordCount = spirv[index] >> 16;
 		int opcode = spirv[index] & 0xffff;
 
 		unsigned* operands = wordCount > 1 ? &spirv[index + 1] : NULL;
 		int length = wordCount - 1;
 
-		if (opcode == 71 && length >= 2) {
-			if (operands[1] == 33) {
-				operands[2] = binding++;
+		if (opcode == OpTypeImage) {
+			imageTypes.insert(operands[0]);
+		}
+
+		if (opcode == OpTypeSampledImage) {
+			imageTypes.insert(operands[0]);
+		}
+
+		if (opcode == OpConstant) {
+			constants[operands[1]] = operands[2];
+		}
+
+		if (opcode == OpTypeArray) {
+			arrayLengths[operands[0]] = constants[operands[2]];
+		}
+
+		if (opcode == OpTypePointer) {
+			if (arrayLengths.find(operands[2]) != arrayLengths.end()) {
+				arrayLengths[operands[0]] = arrayLengths[operands[2]];
+			}
+		}
+
+		if (opcode == OpVariable) {
+			if (arrayLengths.find(operands[0]) != arrayLengths.end()) {
+				arrayLengths[operands[1]] = arrayLengths[operands[0]];
+			}
+		}
+	}
+
+	unsigned binding = 0;
+
+	for (unsigned index = 5; index < spirv.size(); index += wordCount) {
+		wordCount = spirv[index] >> 16;
+		int opcode = spirv[index] & 0xffff;
+
+		unsigned* operands = wordCount > 1 ? &spirv[index + 1] : NULL;
+		int length = wordCount - 1;
+
+		if (opcode == OpDecorate && length >= 2) {
+			if (operands[1] == DecorationBinding) {
+				operands[2] = binding;
+				if (arrayLengths.find(operands[0]) != arrayLengths.end()) {
+					binding += arrayLengths[operands[0]];
+				}
+				else {
+					binding += 1;
+				}
 			}
 		}
 	}
