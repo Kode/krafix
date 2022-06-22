@@ -937,7 +937,7 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 
 					try {
 						if (target.lang == krafix::HLSL && target.system != krafix::Unity) {
-							std::string temp = sourcefilename == nullptr ? "" : std::string(tempdir) + "/" + removeExtension(extractFilename(sourcefilename)) + ".hlsl";
+							std::string temp = tempdir == nullptr ? "" : std::string(tempdir) + "/" + removeExtension(extractFilename(sourcefilename)) + ".hlsl";
 							char* tempoutput = nullptr;
 							if (output) {
 								tempoutput = new char[1024 * 1024];
