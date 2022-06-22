@@ -1,6 +1,11 @@
 let project = new Project('krafix');
 
-let library = false;
+project.useAsLibrary = () => {
+	project.addDefine('KRAFIX_LIBRARY');
+	project.cmd = false;
+	project.debugDir = null;
+	project.kore = true;
+};
 
 project.addDefine('SPIRV_CROSS_KRAFIX');
 project.addDefine('ENABLE_HLSL');
@@ -9,14 +14,9 @@ project.addDefine('ENABLE_HLSL');
 project.addDefine('NV_EXTENSIONS');
 project.addDefine('AMD_EXTENSIONS');
 
-if (library) {
-	project.addDefine('KRAFIX_LIBRARY');
-}
-else {
-	project.setCmd();
-	project.setDebugDir('tests');
-	project.kore = false;
-}
+project.setCmd();
+project.setDebugDir('tests');
+project.kore = false;
 
 project.cpp11 = true;
 
