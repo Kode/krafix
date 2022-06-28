@@ -1232,7 +1232,11 @@ int compileWithTextureUnits(const char* targetlang, const char* from, std::strin
 	return errors;
 }
 
-extern "C" void krafix_compile(const char* source, char* output, int* length, const char* targetlang, const char* system, const char* shadertype) {
+extern "C" int krafix_compile(const char* source, char* output, int* length, const char* targetlang, const char* system, const char* shadertype) {
+	// Reset fail states
+	CompileFailed = false;
+	LinkFailed = false;
+	
 	std::string defines;
 	std::vector<int> textureUnitCounts;
 	bool instancedoptional = false;
@@ -1276,18 +1280,12 @@ extern "C" void krafix_compile(const char* source, char* output, int* length, co
 		}
 	}*/
 
-	int errors = 0;
-
 	char from[256];
 	strcpy(from, ".");
 	strcat(from, shadertype);
 	strcat(from, ".glsl");
 
-	errors = compileWithTextureUnits(targetlang, from, "", shadertype, nullptr, source, output, length, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
-
-	// Reset fail states
-	CompileFailed = false;
-	LinkFailed = false;
+	return compileWithTextureUnits(targetlang, from, "", shadertype, nullptr, source, output, length, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
 }
 
 // d3d11 in/basic.vert.glsl test.d3d11 temp windows
