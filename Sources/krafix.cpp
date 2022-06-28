@@ -1284,6 +1284,10 @@ extern "C" void krafix_compile(const char* source, char* output, int* length, co
 	strcat(from, ".glsl");
 
 	errors = compileWithTextureUnits(targetlang, from, "", shadertype, nullptr, source, output, length, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
+
+	// Reset fail states
+	CompileFailed = false;
+	LinkFailed = false;
 }
 
 // d3d11 in/basic.vert.glsl test.d3d11 temp windows
