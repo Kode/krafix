@@ -224,11 +224,12 @@ namespace {
 				instructionsData[instructionsDataIndex++] = 16;
 				newinstructions.push_back(dec3);
 			}
+
 			if (utype == booltype || utype == inttype || utype == floattype || utype == uinttype) {
 				offset += 4;
 			}
 			else if (utype == vec2type) offset += 8;
-			else if (utype == vec3type) offset += 12;
+			else if (utype == vec3type) offset += 16;
 			else if (utype == vec4type) offset += 16;
 			else if (utype == mat2type) offset += 16;
 			else if (utype == mat3type) {
