@@ -226,7 +226,7 @@ namespace {
 			}
 
 			if (utype == booltype || utype == inttype || utype == floattype || utype == uinttype) {
-				offset += 4;
+				offset += 8;
 			}
 			else if (utype == vec2type) offset += 8;
 			else if (utype == vec3type) offset += 16;
@@ -236,9 +236,9 @@ namespace {
 				offset += 48; // 36 + 12 padding for DecorationMatrixStride of 16
 			}
 			else if (utype == mat4type) offset += 64;
-			else if (utype == floatarraytype) offset += arraySizes[floatarraytype] * 4;
-			else if (utype == vec2arraytype) offset += arraySizes[vec2arraytype] * 4 * 2;
-			else if (utype == vec3arraytype) offset += arraySizes[vec3arraytype] * 4 * 3;
+			else if (utype == floatarraytype) offset += arraySizes[floatarraytype] * 4 * 4; // looks like float-arrays are comically large in SPIR-V
+			else if (utype == vec2arraytype) offset += arraySizes[vec2arraytype] * 4 * 4;
+			else if (utype == vec3arraytype) offset += arraySizes[vec3arraytype] * 4 * 4;
 			else if (utype == vec4arraytype) offset += arraySizes[vec4arraytype] * 4 * 4;
 			else {
 				offset += 1; // Type not handled
