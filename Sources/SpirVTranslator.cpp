@@ -737,6 +737,29 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 				newinstructions.push_back(inst);
 			}
 		}
+		else if (inst.opcode == OpTypePointer) {
+			// Putting uniforms into a uniform-block changes the types from UniformConstant to Uniform
+			unsigned resultId = inst.operands[0];
+			unsigned storageClass = inst.operands[1];
+			unsigned typeId = inst.operands[2];
+
+			bool replaced = false;
+
+			if (storageClass == 0) {
+				if (!imageTypes[typeId]) {
+					Instruction typePointer(OpTypePointer, &instructionsData[instructionsDataIndex], 3);
+					instructionsData[instructionsDataIndex++] = resultId;
+					instructionsData[instructionsDataIndex++] = 2; // Uniform
+					instructionsData[instructionsDataIndex++] = typeId;
+					newinstructions.push_back(typePointer);
+					replaced = true;
+				}
+			}
+			
+			if (!replaced) {
+				newinstructions.push_back(inst);
+			}
+		}
 		else if (inst.opcode == OpAccessChain) {
 			// replace all accesses to global uniforms
 			unsigned resultType = inst.operands[0];
