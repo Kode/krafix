@@ -756,20 +756,17 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 			}
 
 			if (found) {
-				Instruction access1(OpAccessChain, &instructionsData[instructionsDataIndex], 4);
-				instructionsData[instructionsDataIndex++] = uniform.pointertype;
-				unsigned newbase = instructionsData[instructionsDataIndex++] = currentId++;
-				instructionsData[instructionsDataIndex++] = structid;
-				instructionsData[instructionsDataIndex++] = constants[index];
-				newinstructions.push_back(access1);
-				Instruction access2(OpAccessChain, &instructionsData[instructionsDataIndex], inst.length);
+				// OpAccessChain can be a chain of any size so we just sneak in the access to the
+				// uniform-struct at the front
+				Instruction access(OpAccessChain, &instructionsData[instructionsDataIndex], inst.length + 1);
 				instructionsData[instructionsDataIndex++] = resultType;
 				instructionsData[instructionsDataIndex++] = resultId;
-				instructionsData[instructionsDataIndex++] = newbase;
+				instructionsData[instructionsDataIndex++] = structid;
+				instructionsData[instructionsDataIndex++] = constants[index];
 				for (unsigned i = 3; i < inst.length; ++i) {
 					instructionsData[instructionsDataIndex++] = inst.operands[i];
 				}
-				newinstructions.push_back(access2);
+				newinstructions.push_back(access);
 			}
 			else {
 				newinstructions.push_back(inst);
