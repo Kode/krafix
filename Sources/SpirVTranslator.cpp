@@ -191,6 +191,13 @@ namespace {
 		}
 		unsigned offset = 0;
 		for (unsigned i = 0; i < uniforms.size(); ++i) {
+			Instruction nonwr(OpMemberDecorate, &instructionsData[instructionsDataIndex], 3);
+			structtypeindices.push_back(instructionsDataIndex);
+			instructionsData[instructionsDataIndex++] = 0;
+			instructionsData[instructionsDataIndex++] = i;
+			instructionsData[instructionsDataIndex++] = DecorationNonWritable;
+			newinstructions.push_back(nonwr);
+
 			Instruction newinst(OpMemberDecorate, &instructionsData[instructionsDataIndex], 4);
 			structtypeindices.push_back(instructionsDataIndex);
 			instructionsData[instructionsDataIndex++] = 0;
@@ -236,8 +243,8 @@ namespace {
 				offset += 48; // 36 + 12 padding for DecorationMatrixStride of 16
 			}
 			else if (utype == mat4type) offset += 64;
-			else if (utype == floatarraytype) offset += arraySizes[floatarraytype] * 4 * 4; // looks like float-arrays are comically large in SPIR-V
-			else if (utype == vec2arraytype) offset += arraySizes[vec2arraytype] * 4 * 4;
+			else if (utype == floatarraytype) offset += arraySizes[floatarraytype] * 4;
+			else if (utype == vec2arraytype) offset += arraySizes[vec2arraytype] * 4 * 2;
 			else if (utype == vec3arraytype) offset += arraySizes[vec3arraytype] * 4 * 4;
 			else if (utype == vec4arraytype) offset += arraySizes[vec4arraytype] * 4 * 4;
 			else {
@@ -262,7 +269,7 @@ namespace {
 			Instruction dec1(OpDecorate, &instructionsData[instructionsDataIndex], 2);
 			structtypeindices.push_back(instructionsDataIndex);
 			instructionsData[instructionsDataIndex++] = 0;
-			instructionsData[instructionsDataIndex++] = DecorationBlock;
+			instructionsData[instructionsDataIndex++] = DecorationBufferBlock;
 			newinstructions.push_back(dec1);
 		}
 	}
