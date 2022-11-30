@@ -3,10 +3,10 @@ name: FreeBSD
 on:
   push:
     branches:
-    - main
+    - deactivated
   pull_request:
     branches:
-    - main
+    - deactivated
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
