@@ -228,7 +228,18 @@ namespace {
 				Instruction dec3(OpDecorate, &instructionsData[instructionsDataIndex], 3);
 				instructionsData[instructionsDataIndex++] = utype;
 				instructionsData[instructionsDataIndex++] = DecorationArrayStride;
-				instructionsData[instructionsDataIndex++] = 16;
+				if (utype == floatarraytype) {
+					instructionsData[instructionsDataIndex++] = 1 * 4;
+				}
+				if (utype == vec2arraytype) {
+					instructionsData[instructionsDataIndex++] = 2 * 4;
+				}
+				if (utype == vec3arraytype) {
+					instructionsData[instructionsDataIndex++] = 3 * 4;
+				}
+				if (utype == vec4arraytype) {
+					instructionsData[instructionsDataIndex++] = 4 * 4;
+				}
 				newinstructions.push_back(dec3);
 			}
 
@@ -243,9 +254,19 @@ namespace {
 				offset += 48; // 36 + 12 padding for DecorationMatrixStride of 16
 			}
 			else if (utype == mat4type) offset += 64;
-			else if (utype == floatarraytype) offset += arraySizes[floatarraytype] * 4;
+			else if (utype == floatarraytype) {
+				offset += arraySizes[floatarraytype] * 4;
+				if (offset % 8 != 0) {
+					offset += 4;
+				}
+			}
 			else if (utype == vec2arraytype) offset += arraySizes[vec2arraytype] * 4 * 2;
-			else if (utype == vec3arraytype) offset += arraySizes[vec3arraytype] * 4 * 4;
+			else if (utype == vec3arraytype) {
+				offset += arraySizes[vec3arraytype] * 4 * 3;
+				if (offset % 8 != 0) {
+					offset += 4;
+				}
+			}
 			else if (utype == vec4arraytype) offset += arraySizes[vec4arraytype] * 4 * 4;
 			else {
 				offset += 1; // Type not handled
