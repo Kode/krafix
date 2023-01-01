@@ -64,6 +64,12 @@ jobs:
 
           # Produce a binary artifact and place it in the mounted volume
           run: |
+            echo " * Make Git happy"
+            git config --global --add safe.directory /home/runner/work/krafix/krafix
+            git config --global --add safe.directory /home/runner/work/krafix/krafix/glslang
+            git config --global --add safe.directory /home/runner/work/krafix/krafix/tests
+            git config --global --add safe.directory /home/runner/work/krafix/krafix/sourcemap.cpp
+            git config --global --add safe.directory /home/runner/work/krafix/krafix/SPIRV-Cross
             echo " * Get Submodules"
             git submodule update --init --recursive
             echo " * Get KincTools"
