@@ -406,6 +406,21 @@ namespace {
 }
 
 void SpirVTranslator::outputCode(const Target& target, const char* sourcefilename, const char* filename, char* output, std::map<std::string, int>& attributes) {
+	booltype = 0;
+	inttype = 0;
+	uinttype = 0;
+	floattype = 0;
+	vec4type = 0;
+	vec3type = 0;
+	vec2type = 0;
+	mat4type = 0;
+	mat3type = 0;
+	mat2type = 0;
+	floatarraytype = 0;
+	vec2arraytype = 0;
+	vec3arraytype = 0;
+	vec4arraytype = 0;
+
 	using namespace spv;
 
 	std::map<unsigned, std::string> names;
