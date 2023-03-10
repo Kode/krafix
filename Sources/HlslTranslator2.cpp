@@ -52,18 +52,16 @@ void HlslTranslator2::outputCode(const Target& target, const char* sourcefilenam
 
 	if (stage == StageVertex) {
 		std::vector<std::string> inputs;
-		auto variables = compiler->get_active_interface_variables();
+		auto variables = compiler->get_shader_resources().stage_inputs;
 		for (auto var : variables) {
-			if (compiler->get_storage_class(var) == spv::StorageClassInput) {
-				if (compiler->get_type_from_variable(var).vecsize == 4 && compiler->get_type_from_variable(var).columns == 4) {
-					inputs.push_back(compiler->get_name(var) + "_0");
-					inputs.push_back(compiler->get_name(var) + "_1");
-					inputs.push_back(compiler->get_name(var) + "_2");
-					inputs.push_back(compiler->get_name(var) + "_3");
-				}
-				else {
-					inputs.push_back(compiler->get_name(var));
-				}
+			if (compiler->get_type_from_variable(var.id).vecsize == 4 && compiler->get_type_from_variable(var.id).columns == 4) {
+				inputs.push_back(compiler->get_name(var.id) + "_0");
+				inputs.push_back(compiler->get_name(var.id) + "_1");
+				inputs.push_back(compiler->get_name(var.id) + "_2");
+				inputs.push_back(compiler->get_name(var.id) + "_3");
+			}
+			else {
+				inputs.push_back(compiler->get_name(var.id));
 			}
 		}
 		std::sort(inputs.begin(), inputs.end());
