@@ -1025,7 +1025,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	std::vector<uint32_t> spirv;
 	outputLength = writeInstructions(spirv, instructions);
 
-	spvtools::Optimizer optimizer(SPV_ENV_UNIVERSAL_1_0);
+	spvtools::Optimizer optimizer(SPV_ENV_VULKAN_1_0);
 	optimizer.RegisterPerformancePasses();
 	std::vector<uint32_t> optimizedSpirv;
 	optimizer.Run(spirv.data(), spirv.size(), &optimizedSpirv);
