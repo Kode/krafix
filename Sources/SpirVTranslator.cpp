@@ -29,10 +29,7 @@ namespace {
 	}
 
 	void writeInstruction(std::vector<uint32_t>& out, unsigned word) {
-		out.push_back(word & 0xff);
-		out.push_back((word >> 8) & 0xff);
-		out.push_back((word >> 16) & 0xff);
-		out.push_back((word >> 24) & 0xff);
+		out.push_back(word);
 	}
 
 	bool isDebugInformation(Instruction& instruction) {
