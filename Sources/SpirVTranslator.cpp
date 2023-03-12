@@ -8,6 +8,8 @@
 #include <sstream>
 #include <strstream>
 
+#include <spirv-tools/optimizer.hpp>
+
 using namespace krafix;
 
 namespace {
@@ -24,6 +26,13 @@ namespace {
 		out->put((word >> 8) & 0xff);
 		out->put((word >> 16) & 0xff);
 		out->put((word >> 24) & 0xff);
+	}
+
+	void writeInstruction(std::vector<uint32_t>& out, unsigned word) {
+		out.push_back(word & 0xff);
+		out.push_back((word >> 8) & 0xff);
+		out.push_back((word >> 16) & 0xff);
+		out.push_back((word >> 24) & 0xff);
 	}
 
 	bool isDebugInformation(Instruction& instruction) {
@@ -111,6 +120,32 @@ int SpirVTranslator::writeInstructions(const char* filename, char* output, std::
 
 	if (!output) {
 		fileout.close();
+	}
+
+	return length;
+}
+
+int SpirVTranslator::writeInstructions(std::vector<uint32_t>& output, std::vector<Instruction>& instructions) {
+	int length = 0;
+	writeInstruction(output, magicNumber);
+	length += 4;
+	writeInstruction(output, version);
+	length += 4;
+	writeInstruction(output, generator);
+	length += 4;
+	writeInstruction(output, bound);
+	length += 4;
+	writeInstruction(output, schema);
+	length += 4;
+
+	for (unsigned i = 0; i < instructions.size(); ++i) {
+		Instruction& inst = instructions[i];
+		writeInstruction(output, ((inst.length + 1) << 16) | (unsigned)inst.opcode);
+		length += 4;
+		for (unsigned i2 = 0; i2 < inst.length; ++i2) {
+			writeInstruction(output, inst.operands[i2]);
+			length += 4;
+		}
 	}
 
 	return length;
@@ -984,6 +1019,18 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	}
 
 	bound = currentId + 1;
-	outputLength = writeInstructions(filename, output, newinstructions);
+
 	//outputLength = writeInstructions(filename, output, instructions);
+
+	std::vector<uint32_t> spirv;
+	outputLength = writeInstructions(spirv, instructions);
+
+	spvtools::Optimizer optimizer(SPV_ENV_UNIVERSAL_1_0);
+	optimizer.RegisterPerformancePasses();
+	std::vector<uint32_t> optimizedSpirv;
+	optimizer.Run(spirv.data(), spirv.size(), &optimizedSpirv);
+	
+	FILE* file = fopen(filename, "wb");
+	fwrite(optimizedSpirv.data(), 4, optimizedSpirv.size(), file);
+	fclose(file);
 }
