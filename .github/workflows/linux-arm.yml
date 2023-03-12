@@ -70,6 +70,8 @@ jobs:
             git config --global --add safe.directory /home/runner/work/krafix/krafix/tests
             git config --global --add safe.directory /home/runner/work/krafix/krafix/sourcemap.cpp
             git config --global --add safe.directory /home/runner/work/krafix/krafix/SPIRV-Cross
+            git config --global --add safe.directory /home/runner/work/krafix/krafix/SPIRV-Headers
+            git config --global --add safe.directory /home/runner/work/krafix/krafix/SPIRV-Tools
             echo " * Get Submodules"
             git submodule update --init --recursive
             echo " * Get KincTools"
