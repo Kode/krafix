@@ -14,3 +14,11 @@
 	path = SPIRV-Cross
 	url = https://github.com/Kode/SPIRV-Cross.git
 	branch = main
+[submodule "SPIRV-Tools"]
+	path = SPIRV-Tools
+	url = https://github.com/Kode/SPIRV-Tools.git
+	branch = main
+[submodule "SPIRV-Headers"]
+	path = SPIRV-Headers
+	url = https://github.com/Kode/SPIRV-Headers.git
+	branch = main

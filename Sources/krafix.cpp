@@ -71,6 +71,8 @@
 
 #include "../SPIRV-Cross/spirv_common.hpp"
 
+#include <spirv-tools/optimizer.hpp>
+
 extern "C" {
 	SH_IMPORT_EXPORT void ShOutputHtml();
 }
@@ -890,7 +892,7 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 		else {
 			for (int stage = 0; stage < EShLangCount; ++stage) {
 				if (program.getIntermediate((EShLanguage)stage)) {
-					std::vector<unsigned int> spirv;
+					std::vector<uint32_t> spirv;
 					std::string warningsErrors;
 					spv::SpvBuildLogger logger;
 					glslang::GlslangToSpv(*program.getIntermediate((EShLanguage)stage), spirv, &logger);
@@ -908,6 +910,12 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 						varPrinter->print();
 						firstRun = false;
 					}
+
+					spvtools::Optimizer optimizer(SPV_ENV_UNIVERSAL_1_0);
+					optimizer.RegisterPerformancePasses();
+					std::vector<uint32_t> optimizedSpirv;
+					optimizer.Run(spirv.data(), spirv.size(), &optimizedSpirv);
+					spirv = optimizedSpirv;
 
 					krafix::Translator* translator = NULL;
 					std::map<std::string, int> attributes;
