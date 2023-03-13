@@ -8,7 +8,7 @@
 #include <sstream>
 #include <strstream>
 
-//#include <spirv-tools/optimizer.hpp>
+#include <spirv-tools/optimizer.hpp>
 
 using namespace krafix;
 
@@ -1017,10 +1017,10 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 
 	bound = currentId + 1;
 
-	outputLength = writeInstructions(filename, output, instructions);
+	//outputLength = writeInstructions(filename, output, newinstructions);
 
-	/*std::vector<uint32_t> spirv;
-	outputLength = writeInstructions(spirv, instructions);
+	std::vector<uint32_t> spirv;
+	outputLength = writeInstructions(spirv, newinstructions);
 
 	spvtools::Optimizer optimizer(SPV_ENV_VULKAN_1_0);
 	optimizer.RegisterPerformancePasses();
@@ -1029,5 +1029,5 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	
 	FILE* file = fopen(filename, "wb");
 	fwrite(optimizedSpirv.data(), 4, optimizedSpirv.size(), file);
-	fclose(file);*/
+	fclose(file);
 }
