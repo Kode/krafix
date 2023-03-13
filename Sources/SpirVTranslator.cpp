@@ -8,7 +8,7 @@
 #include <sstream>
 #include <strstream>
 
-#include <spirv-tools/optimizer.hpp>
+//#include <spirv-tools/optimizer.hpp>
 
 using namespace krafix;
 

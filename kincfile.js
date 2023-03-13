@@ -55,14 +55,14 @@ project.addIncludeDir('glslang/glslang/MachineIndependent');
 project.addIncludeDir('glslang/glslang/Include');
 project.addIncludeDir('glslang/OGLCompilersDLL');
 
-project.addFiles('SPIRV-Tools/source/*');
+/*project.addFiles('SPIRV-Tools/source/*');
 project.addFiles('SPIRV-Tools/source/opt/*');
 project.addFiles('SPIRV-Tools/source/util/*');
 project.addFiles('SPIRV-Tools/source/val/*');
 project.addIncludeDir('SPIRV-Tools');
 project.addIncludeDir('SPIRV-Tools/include');
 project.addIncludeDir('SPIRV-Tools/generated');
-project.addIncludeDir('SPIRV-Headers/include');
+project.addIncludeDir('SPIRV-Headers/include');*/
 
 if (platform === Platform.Windows) {
 	project.addFile('glslang/glslang/OSDependent/Windows/**');
