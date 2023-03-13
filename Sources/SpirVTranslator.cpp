@@ -1017,9 +1017,9 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 
 	bound = currentId + 1;
 
-	//outputLength = writeInstructions(filename, output, instructions);
+	outputLength = writeInstructions(filename, output, instructions);
 
-	std::vector<uint32_t> spirv;
+	/*std::vector<uint32_t> spirv;
 	outputLength = writeInstructions(spirv, instructions);
 
 	spvtools::Optimizer optimizer(SPV_ENV_VULKAN_1_0);
@@ -1029,5 +1029,5 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	
 	FILE* file = fopen(filename, "wb");
 	fwrite(optimizedSpirv.data(), 4, optimizedSpirv.size(), file);
-	fclose(file);
+	fclose(file);*/
 }
