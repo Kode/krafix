@@ -236,7 +236,7 @@ bool SetConfigFile(const std::string& name)
 //
 void Error(const char* message)
 {
-	printf("%s: Error %s (use -h for usage)\n", ExecutableName, message);
+	printf("%s: Error %s (use -heeeeeeeeeeeeeeeeeelp for usage)\n", ExecutableName, message);
 	exit(EFailUsage);
 }
 
