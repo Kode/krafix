@@ -1027,7 +1027,13 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	std::vector<uint32_t> optimizedSpirv;
 	optimizer.Run(spirv.data(), spirv.size(), &optimizedSpirv);
 	
-	FILE* file = fopen(filename, "wb");
-	fwrite(optimizedSpirv.data(), 4, optimizedSpirv.size(), file);
-	fclose(file);
+	outputLength = (int)(optimizedSpirv.size() * 4);
+	if (output) {
+		memcpy(output, optimizedSpirv.data(), outputLength);
+	}
+	else {
+		FILE* file = fopen(filename, "wb");
+		fwrite(optimizedSpirv.data(), 4, optimizedSpirv.size(), file);
+		fclose(file);
+	}
 }
