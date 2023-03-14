@@ -29,7 +29,9 @@ jobs:
             repo: "KincTools_linux_arm"
 
     steps:
-      - uses: actions/checkout@v2.1.0
+      - uses: actions/checkout@v2
+      - name: Get Submodules
+        run: git submodule update --init --recursive
       - uses: uraimo/run-on-arch-action@v2
         name: Build artifact
         id: build
@@ -64,16 +66,6 @@ jobs:
 
           # Produce a binary artifact and place it in the mounted volume
           run: |
-            echo " * Make Git happy"
-            git config --global --add safe.directory /home/runner/work/krafix/krafix
-            git config --global --add safe.directory /home/runner/work/krafix/krafix/glslang
-            git config --global --add safe.directory /home/runner/work/krafix/krafix/tests
-            git config --global --add safe.directory /home/runner/work/krafix/krafix/sourcemap.cpp
-            git config --global --add safe.directory /home/runner/work/krafix/krafix/SPIRV-Cross
-            git config --global --add safe.directory /home/runner/work/krafix/krafix/SPIRV-Headers
-            git config --global --add safe.directory /home/runner/work/krafix/krafix/SPIRV-Tools
-            echo " * Get Submodules"
-            git submodule update --init --recursive
             echo " * Get KincTools"
             git clone --recursive --depth 1 https://github.com/Kode/${{ matrix.repo }}.git
             echo " * Compile"
