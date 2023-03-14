@@ -37,7 +37,7 @@ jobs:
         sync: rsync
         copyback: false
         mem: 10240
-        prepare: pkg install -y alsa-lib libXinerama mesa-libs libXi bash
+        prepare: pkg install -y alsa-lib libXinerama mesa-libs libXi bash git ninja
         run: |
           bash -c './KincTools_freebsd_x64/kmake --compile --compiler clang'
           # Copy binary
