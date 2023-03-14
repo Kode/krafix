@@ -4,7 +4,6 @@ on:
   push:
     branches:
     - main
-    - fix-linux-arm-action
   pull_request:
     branches:
     - main
