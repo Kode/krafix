@@ -4,7 +4,6 @@ on:
   push:
     branches:
     - main
-    - freebsd-action-fix
   pull_request:
     branches:
     - main
@@ -43,7 +42,7 @@ jobs:
           # Copy binary
           cp build/Release/krafix KincTools_freebsd_x64/krafix
           # Git config
-          git config --global --add safe.directory /Users/runner/work/kraffiti/kraffiti/KincTools_freebsd_x64
+          git config --global --add safe.directory /Users/runner/work/krafix/krafix/KincTools_freebsd_x64
           git config --global user.name "Robbot"
           git config --global user.email "robbot2019@robdangero.us"
           # Commit binary
