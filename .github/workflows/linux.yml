@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Get Submodules
+      run: git submodule update --init --recursive
 
     - name: Setup latest Alpine Linux
       id: alpine-target
@@ -74,6 +76,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Get Submodules
+      run: git submodule update --init --recursive
 
     - name: Setup latest Alpine Linux
       uses: jirutka/setup-alpine@v1
@@ -134,6 +138,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Get Submodules
+      run: git submodule update --init --recursive
 
     - name: Setup latest Alpine Linux
       uses: jirutka/setup-alpine@v1
