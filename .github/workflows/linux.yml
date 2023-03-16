@@ -4,7 +4,6 @@ on:
   push:
     branches:
     - main
-    - all-linux-musl
   pull_request:
     branches:
     - main
