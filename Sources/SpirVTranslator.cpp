@@ -1034,7 +1034,13 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 		throw spirv_cross::CompilerError("Optimizer error");
 	}
 	
-	FILE* file = fopen(filename, "wb");
-	fwrite(optimizedSpirv.data(), 4, optimizedSpirv.size(), file);
-	fclose(file);
+	outputLength = (int)(optimizedSpirv.size() * 4);
+	if (output) {
+		memcpy(output, optimizedSpirv.data(), outputLength);
+	}
+	else {
+		FILE* file = fopen(filename, "wb");
+		fwrite(optimizedSpirv.data(), 4, optimizedSpirv.size(), file);
+		fclose(file);
+	}
 }
