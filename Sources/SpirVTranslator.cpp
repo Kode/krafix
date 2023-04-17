@@ -1,6 +1,9 @@
 #include "SpirVTranslator.h"
+
 #include <SPIRV/spirv.hpp>
 #include "../glslang/glslang/Public/ShaderLang.h"
+#include "../SPIRV-Cross/spirv_cross_error_handling.hpp"
+
 #include <algorithm>
 #include <fstream>
 #include <map>
@@ -1025,7 +1028,11 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	spvtools::Optimizer optimizer(SPV_ENV_VULKAN_1_0);
 	optimizer.RegisterPerformancePasses();
 	std::vector<uint32_t> optimizedSpirv;
-	optimizer.Run(spirv.data(), spirv.size(), &optimizedSpirv);
+	bool success = optimizer.Run(spirv.data(), spirv.size(), &optimizedSpirv);
+
+	if (!success) {
+		throw spirv_cross::CompilerError("Optimizer error");
+	}
 	
 	FILE* file = fopen(filename, "wb");
 	fwrite(optimizedSpirv.data(), 4, optimizedSpirv.size(), file);
