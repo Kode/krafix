@@ -154,6 +154,16 @@ int SpirVTranslator::writeInstructions(std::vector<uint32_t>& output, std::vecto
 namespace {
 	using namespace spv;
 
+	uint32_t alignOffset(uint32_t offset, uint32_t alignment) {
+		uint32_t mask = alignment - 1;
+		if ((offset & mask) == 0) {
+			return offset;
+		}
+		else {
+			return (offset + alignment - 1) & ~mask;
+		}
+	}
+
 	void outputNames(unsigned* instructionsData, unsigned& instructionsDataIndex, std::vector<unsigned>& structtypeindices, unsigned& structvarindex, std::vector<Instruction>& newinstructions, std::vector<Var>& uniforms) {
 		if (uniforms.size() > 0) {
 			Instruction structtypename(OpName, &instructionsData[instructionsDataIndex], 0);
@@ -238,7 +248,7 @@ namespace {
 			instructionsData[instructionsDataIndex++] = 0;
 			instructionsData[instructionsDataIndex++] = i;
 			instructionsData[instructionsDataIndex++] = DecorationOffset;
-			instructionsData[instructionsDataIndex++] = offset;
+			unsigned int* offsetPointer = &instructionsData[instructionsDataIndex++];
 			newinstructions.push_back(newinst);
 
 			int utype = pointers[uniforms[i].type];
@@ -279,12 +289,56 @@ namespace {
 			}
 
 			if (utype == booltype || utype == inttype || utype == floattype || utype == uinttype) {
+				offset = alignOffset(offset, 4);
+			}
+			else if (utype == vec2type) {
+				offset = alignOffset(offset, 8);
+			}
+			else if (utype == vec3type) {
+				offset = alignOffset(offset, 16);
+			}
+			else if (utype == vec4type) {
+				offset = alignOffset(offset, 16);
+			}
+			else if (utype == mat2type) {
+				offset = alignOffset(offset, 16);
+			}
+			else if (utype == mat3type) {
+				offset = alignOffset(offset, 48);
+			}
+			else if (utype == mat4type) {
+				offset = alignOffset(offset, 64);
+			}
+			else if (utype == floatarraytype) {
+				offset = alignOffset(offset, 16);
+			}
+			else if (utype == vec2arraytype) {
+				offset = alignOffset(offset, 16);
+			}
+			else if (utype == vec3arraytype) {
+				offset = alignOffset(offset, 16);
+			}
+			else if (utype == vec4arraytype) {
+				offset = alignOffset(offset, 16);
+			}
+			
+			*offsetPointer = offset;
+
+			if (utype == booltype || utype == inttype || utype == floattype || utype == uinttype) {
+				offset += 4;
+			}
+			else if (utype == vec2type) {
 				offset += 8;
 			}
-			else if (utype == vec2type) offset += 8;
-			else if (utype == vec3type) offset += 16;
-			else if (utype == vec4type) offset += 16;
-			else if (utype == mat2type) offset += 16;
+			else if (utype == vec3type) {
+				offset += 12;
+			}
+			else if (utype == vec4type) {
+				offset += 16;
+			}
+			else if (utype == mat2type) {
+				offset += 16;
+			}
 			else if (utype == mat3type) {
 				offset += 48; // 36 + 12 padding for DecorationMatrixStride of 16
 			}
@@ -295,14 +349,18 @@ namespace {
 					offset += 4;
 				}
 			}
-			else if (utype == vec2arraytype) offset += arraySizes[vec2arraytype] * 4 * 2;
+			else if (utype == vec2arraytype) {
+				offset += arraySizes[vec2arraytype] * 4 * 2;
+			}
 			else if (utype == vec3arraytype) {
 				offset += arraySizes[vec3arraytype] * 4 * 3;
 				if (offset % 8 != 0) {
 					offset += 4;
 				}
 			}
-			else if (utype == vec4arraytype) offset += arraySizes[vec4arraytype] * 4 * 4;
+			else if (utype == vec4arraytype) {
+				offset += arraySizes[vec4arraytype] * 4 * 4;
+			}
 			else {
 				offset += 1; // Type not handled
 			}
