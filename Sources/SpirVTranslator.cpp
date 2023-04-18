@@ -644,6 +644,9 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 		case OpTypeArray: {
 			unsigned id = inst.operands[0];
 			unsigned componentType = inst.operands[1];
+			if (imageTypes[componentType]) {
+				imageTypes[id] = true;
+			}
 			arraySizes[id] = arraySizeConstants[inst.operands[2]];
 			if (componentType == floattype) {
 				floatarraytype = id;
