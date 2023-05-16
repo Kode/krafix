@@ -618,6 +618,9 @@ std::string removeExtension(std::string filename) {
 	else return filename.substr(0, i);
 }
 
+static bool deps = false;
+static std::vector<std::string> dependencies;
+
 class KrafixIncluder : public glslang::TShader::Includer {
 public:
 	KrafixIncluder(std::string from) {
@@ -636,6 +639,10 @@ public:
 
 	IncludeResult* includeLocal(const char* headerName, const char* includerName, size_t inclusionDepth) override {
 		std::string realfilename = dir + headerName;
+		if (deps) {
+			dependencies.push_back(realfilename);
+		}
+
 		std::stringstream content;
 		std::string line;
 		std::ifstream file(realfilename);
@@ -1333,6 +1340,9 @@ int C_DECL main(int argc, char* argv[]) {
 		else if (arg == "--relax") {
 			relax = true;
 		}
+		else if (arg == "--deps") {
+			deps = true;
+		}
 		else if (arg == "--outputintermediatespirv") {
 			outputSpirv = true;
 		}
@@ -1348,6 +1358,10 @@ int C_DECL main(int argc, char* argv[]) {
 	//glslang::InitializeProcess();
 
 	KrafixIncluder includer(from);
+
+	if (deps) {
+		dependencies.push_back(argv[0]);
+	}
 
 	bool usesTextureUnitsCount = false;
 	bool usesInstancedoptional = false;
@@ -1397,6 +1411,16 @@ int C_DECL main(int argc, char* argv[]) {
 		int length = 0;
 		errors = compileWithTextureUnits(targetlang, from, towithoutext, ext, tempdir, nullptr, nullptr, &length, system, includer, defines, version, textureUnitCounts, usesTextureUnitsCount, instancedoptional && usesInstancedoptional, relax);
 	}
+
+	if (deps && errors == 0) {
+		std::ofstream out;
+		out.open(towithoutext + ".deps", std::ios::binary | std::ios::out);
+		for (int i = 0; i < dependencies.size(); ++i) {
+			out << dependencies[i] << "\n";
+		}
+		out.close();
+	}
+
 	return errors;
 }
 #endif
