@@ -1306,6 +1306,8 @@ int C_DECL main(int argc, char* argv[]) {
 
 	const char* tempdir = argv[4];
 
+	std::vector<std::string> allOptions;
+
 	std::string defines;
 	std::vector<int> textureUnitCounts;
 	bool instancedoptional = false;
@@ -1318,18 +1320,23 @@ int C_DECL main(int argc, char* argv[]) {
 		if (getversion) {
 			version = atoi(argv[i]);
 			getversion = false;
+			allOptions.push_back(std::string("version: ") + argv[i]);
 		}
 		else if (arg.substr(0, 2) == "-D") {
 			defines += "#define " + arg.substr(2) + "\n";
+			allOptions.push_back(std::string("define: ") + arg.substr(2));
 		}
 		else if (arg.substr(0, 2) == "-T") {
 			textureUnitCounts.push_back(atoi(arg.substr(2).c_str()));
+			allOptions.push_back(std::string("TextureUnitCount: " + arg.substr(2)));
 		}
 		else if (arg == "--instancedoptional") {
 			instancedoptional = true;
+			allOptions.push_back("instancedoptional");
 		}
 		else if (arg == "--debug") {
 			debugMode = true;
+			allOptions.push_back("debug");
 		}
 		else if (arg == "--version") {
 			getversion = true;
@@ -1339,6 +1346,7 @@ int C_DECL main(int argc, char* argv[]) {
 		}
 		else if (arg == "--relax") {
 			relax = true;
+			allOptions.push_back("relax");
 		}
 		else if (arg == "--deps") {
 			deps = true;
@@ -1415,9 +1423,17 @@ int C_DECL main(int argc, char* argv[]) {
 	if (deps && errors == 0) {
 		std::ofstream out;
 		out.open(towithoutext + ".deps", std::ios::binary | std::ios::out);
+
+		for (int i = 0; i < allOptions.size(); ++i) {
+			out << allOptions[i] << "\n";
+		}
+
+		out << "--\n";
+
 		for (int i = 0; i < dependencies.size(); ++i) {
 			out << dependencies[i] << "\n";
 		}
+
 		out.close();
 	}
 
