@@ -1313,6 +1313,8 @@ int C_DECL main(int argc, char* argv[]) {
 	bool instancedoptional = false;
 	int version = -1;
 	bool getversion = false;
+	bool getDependencyFileLocation = false;
+	std::string dependencyFileLocation;
 	bool relax = false;
 
 	for (int i = 6; i < argc; ++i) {
@@ -1321,6 +1323,11 @@ int C_DECL main(int argc, char* argv[]) {
 			version = atoi(argv[i]);
 			getversion = false;
 			allOptions.push_back(std::string("version: ") + argv[i]);
+		}
+		else if (getDependencyFileLocation) {
+			dependencyFileLocation = argv[i];
+			getDependencyFileLocation = false;
+			deps = true;
 		}
 		else if (arg.substr(0, 2) == "-D") {
 			defines += "#define " + arg.substr(2) + "\n";
@@ -1349,7 +1356,7 @@ int C_DECL main(int argc, char* argv[]) {
 			allOptions.push_back("relax");
 		}
 		else if (arg == "--deps") {
-			deps = true;
+			getDependencyFileLocation = true;
 		}
 		else if (arg == "--outputintermediatespirv") {
 			outputSpirv = true;
@@ -1422,7 +1429,7 @@ int C_DECL main(int argc, char* argv[]) {
 
 	if (deps && errors == 0) {
 		std::ofstream out;
-		out.open(towithoutext + ".deps", std::ios::binary | std::ios::out);
+		out.open(dependencyFileLocation, std::ios::binary | std::ios::out);
 
 		for (int i = 0; i < allOptions.size(); ++i) {
 			out << allOptions[i] << "\n";
