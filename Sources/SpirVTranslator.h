@@ -2,6 +2,8 @@
 
 #include "Translator.h"
 
+#include <cstdint>
+
 namespace krafix {
 	class SpirVTranslator : public Translator {
 	public:
