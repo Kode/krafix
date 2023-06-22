@@ -1240,15 +1240,15 @@ int compileWithTextureUnits(const char* targetlang, const char* from, std::strin
 	return errors;
 }
 
-extern "C" int krafix_compile(const char* source, char* output, int* length, const char* targetlang, const char* system, const char* shadertype) {
+extern "C" int krafix_compile(const char* source, char* output, int* length, const char* targetlang, const char* system, const char* shadertype, int version) {
 	// Reset fail states
 	CompileFailed = false;
 	LinkFailed = false;
-	
+
 	std::string defines;
 	std::vector<int> textureUnitCounts;
 	bool instancedoptional = false;
-	int version = -1;
+	// int version = -1;
 	bool getversion = false;
 	bool relax = false;
 
