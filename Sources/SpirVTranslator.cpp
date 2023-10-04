@@ -1092,7 +1092,8 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 	bool success = optimizer.Run(spirv.data(), spirv.size(), &optimizedSpirv);
 
 	if (!success) {
-		throw spirv_cross::CompilerError("Optimizer error");
+		fprintf(stderr, "Optimizer error, falling back to unoptimized SPIRV.\n");
+		optimizedSpirv = spirv;
 	}
 	
 	outputLength = (int)(optimizedSpirv.size() * 4);
