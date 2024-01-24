@@ -860,12 +860,7 @@ void SpirVTranslator::outputCode(const Target& target, const char* sourcefilenam
 		}
 		else if (inst.opcode == OpTypeImage) {
 			Instruction copy = inst;
-			if (stage == StageCompute) {
-				copy.length -= 1;
-			}
-			else {
-				copy.length -= 2;
-			}
+			copy.length -= 2; // cut the video flag and the access flag
 			newinstructions.push_back(copy);
 		}
 		else if (inst.opcode == OpVariable) {
