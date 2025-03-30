@@ -595,6 +595,7 @@ struct ShaderCompUnit {
 void executeSync(const char* command);
 int compileHLSLToD3D9(const char* from, const char* to, const char* source, char* output, int* length, const std::map<std::string, int>& attributes, EShLanguage stage);
 int compileHLSLToD3D11(const char* from, const char* to, const char* source, char* output, int* length, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug);
+int compileHLSLToD3D12(const char* from, const char* to, const char* source, char* output, int* length, const std::map<std::string, int>& attributes, EShLanguage stage, bool debug);
 
 std::string extractFilename(std::string path) {
 	int i = (int)path.size() - 1;
@@ -954,8 +955,12 @@ void CompileAndLinkShaderUnits(std::vector<ShaderCompUnit> compUnits, krafix::Ta
 							if (target.version == 9) {
 								returnCode = compileHLSLToD3D9(temp.c_str(), filename, tempoutput, output, length, attributes, (EShLanguage)stage);
 							}
-							else {
+							else if ( target.version == 11) {
 								returnCode = compileHLSLToD3D11(temp.c_str(), filename, tempoutput, output, length, attributes, (EShLanguage)stage, debugMode);
+							}
+							else {
+								returnCode = compileHLSLToD3D12(temp.c_str(), filename, tempoutput, output, length, attributes, (EShLanguage)stage, debugMode);
+
 							}
 							if (returnCode != 0) CompileFailed = true;
 							delete[] tempoutput;
@@ -1120,6 +1125,12 @@ int compile(const char* targetlang, const char* from, std::string to, const char
 	else if (strcmp(targetlang, "d3d11") == 0) {
 		target.lang = krafix::HLSL;
 		target.version = version > 0 ? version : 11;
+		defines += "#define HLSL " + std::to_string(target.version) + "\n";
+		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, length, includer, defines.c_str(), relax);
+	}
+	else if (strcmp(targetlang, "d3d12") == 0) {
+		target.lang = krafix::HLSL;
+		target.version = version > 0 ? version : 12;
 		defines += "#define HLSL " + std::to_string(target.version) + "\n";
 		CompileAndLinkShaderFiles(target, from, to.c_str(), tempdir, source, output, length, includer, defines.c_str(), relax);
 	}
