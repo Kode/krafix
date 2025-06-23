@@ -30,6 +30,8 @@ jobs:
       run: git config --global user.name "Robbot"
     - name: Set email
       run: git config --global user.email "robbot2019@robdangero.us"
+    - name: Git add
+      run: git -C KoreTools_macos_x64 add .
     - name: Commit binary
       id: commit
       continue-on-error: true
@@ -71,6 +73,8 @@ jobs:
       run: git config --global user.name "Robbot"
     - name: Set email
       run: git config --global user.email "robbot2019@robdangero.us"
+    - name: Git add
+      run: git -C KoreTools_macos_arm64 add .
     - name: Commit binary
       id: commit
       continue-on-error: true
