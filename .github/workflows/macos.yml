@@ -13,20 +13,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-
+  build-x64:
     runs-on: macOS-latest
     
     steps:
     - uses: actions/checkout@v1
     - name: Get Submodules
       run: git submodule update --init --recursive
-    - name: Get KincTools_macos
-      run: git clone https://github.com/Kode/KincTools_macos.git
+    - name: Get KoreTools_macos_x64
+      run: git clone https://github.com/Kode/KoreTools_macos_x64.git
     - name: Compile
-      run: ./KincTools_macos/kmake --compile
+      run: ./KoreTools_macos_x64/kmake --compile --arch x64
     - name: Copy binary
-      run: cp build/build/Release/krafix KincTools_macos/krafix
+      run: cp build/build/Release/krafix KoreTools_macos_x64/krafix
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
@@ -34,23 +33,64 @@ jobs:
     - name: Commit binary
       id: commit
       continue-on-error: true
-      run: git -C KincTools_macos commit -a -m "Update krafix binary to $GITHUB_SHA."
+      run: git -C KoreTools_macos_x64 commit -a -m "Update krafix binary to $GITHUB_SHA."
     - name: Tag binary
       if: steps.commit.outcome == 'success'
-      run: git -C KincTools_macos tag krafix_$GITHUB_SHA
+      run: git -C KoreTools_macos_x64 tag krafix_$GITHUB_SHA
     - name: Push binary
       id: push1
       if: steps.commit.outcome == 'success'
       continue-on-error: true
-      run: git -C KincTools_macos push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_macos.git main --tags
+      run: git -C KoreTools_macos_x64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KoreTools_macos_x64.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
     - name: Pull
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
-      run: git -C KincTools_macos pull --no-rebase
+      run: git -C KoreTools_macos_x64 pull --no-rebase
     - name: Push binary again
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
       continue-on-error: true
-      run: git -C KincTools_macos push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_macos.git main --tags
+      run: git -C KoreTools_macos_x64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KoreTools_macos_x64.git main --tags
+      env:
+        ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
+
+  build-arm64:
+    runs-on: macOS-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: Get Submodules
+      run: git submodule update --init --recursive
+    - name: Get KoreTools_macos_arm64
+      run: git clone https://github.com/Kode/KoreTools_macos_arm64.git
+    - name: Compile
+      run: ./KoreTools_macos_arm64/kmake --compile --arch arm64
+    - name: Copy binary
+      run: cp build/build/Release/krafix KoreTools_macos_arm64/krafix
+    - name: Set name
+      run: git config --global user.name "Robbot"
+    - name: Set email
+      run: git config --global user.email "robbot2019@robdangero.us"
+    - name: Commit binary
+      id: commit
+      continue-on-error: true
+      run: git -C KoreTools_macos_arm64 commit -a -m "Update krafix binary to $GITHUB_SHA."
+    - name: Tag binary
+      if: steps.commit.outcome == 'success'
+      run: git -C KoreTools_macos_arm64 tag krafix_$GITHUB_SHA
+    - name: Push binary
+      id: push1
+      if: steps.commit.outcome == 'success'
+      continue-on-error: true
+      run: git -C KoreTools_macos_arm64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KoreTools_macos_arm64.git main --tags
+      env:
+        ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
+    - name: Pull
+      if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
+      run: git -C KoreTools_macos_arm64 pull --no-rebase
+    - name: Push binary again
+      if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
+      continue-on-error: true
+      run: git -C KoreTools_macos_arm64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KoreTools_macos_arm64.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
