@@ -33,14 +33,14 @@ jobs:
     - name: Build in Alpine chroot
       run: |
         cd /home/runner/work/krafix/krafix
-        git clone --depth 1 https://github.com/Kode/KincTools_linux_x64.git KincTools
-        ./KincTools/kmake --compile
+        git clone --depth 1 https://github.com/Kode/KoreTools_linux_x64.git KoreTools
+        ./KoreTools/kmake --compile
       shell: alpine.sh --root {0}
 
-    - name: Get KincTools_linux_x64
-      run: git clone https://github.com/Kode/KincTools_linux_x64.git
+    - name: Get KoreTools_linux_x64
+      run: git clone https://github.com/Kode/KoreTools_linux_x64.git
     - name: Copy binary
-      run: cp /home/runner/work/krafix/krafix/build/release/krafix KincTools_linux_x64/krafix
+      run: cp /home/runner/work/krafix/krafix/build/release/krafix KoreTools_linux_x64/krafix
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
@@ -48,24 +48,24 @@ jobs:
     - name: Commit binary
       id: commit
       continue-on-error: true
-      run: git -C KincTools_linux_x64 commit -a -m "Update krafix binary to $GITHUB_SHA."
+      run: git -C KoreTools_linux_x64 commit -a -m "Update krafix binary to $GITHUB_SHA."
     - name: Tag binary
       if: steps.commit.outcome == 'success'
-      run: git -C KincTools_linux_x64 tag krafix_$GITHUB_SHA
+      run: git -C KoreTools_linux_x64 tag krafix_$GITHUB_SHA
     - name: Push binary
       id: push1
       if: steps.commit.outcome == 'success'
       continue-on-error: true
-      run: git -C KincTools_linux_x64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_linux_x64.git main --tags
+      run: git -C KoreTools_linux_x64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KoreTools_linux_x64.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
     - name: Pull
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
-      run: git -C KincTools_linux_x64 pull --no-rebase
+      run: git -C KoreTools_linux_x64 pull --no-rebase
     - name: Push binary again
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
       continue-on-error: true
-      run: git -C KincTools_linux_x64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_linux_x64.git main --tags
+      run: git -C KoreTools_linux_x64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KoreTools_linux_x64.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
 
@@ -97,14 +97,14 @@ jobs:
       run: |
         export PATH=$PATH:/home/runner/work/aarch64-linux-musl-cross/bin
         cd /home/runner/work/krafix/krafix
-        git clone --depth 1 https://github.com/Kode/KincTools_linux_x64.git KincTools
-        ./KincTools/kmake --compile --cc aarch64-linux-musl-gcc --cxx aarch64-linux-musl-g++
+        git clone --depth 1 https://github.com/Kode/KoreTools_linux_x64.git KoreTools
+        ./KoreTools/kmake --compile --cc aarch64-linux-musl-gcc --cxx aarch64-linux-musl-g++
       shell: alpine.sh --root {0}
 
-    - name: Get KincTools_linux_arm64
-      run: git clone https://github.com/Kode/KincTools_linux_arm64.git
+    - name: Get KoreTools_linux_arm64
+      run: git clone https://github.com/Kode/KoreTools_linux_arm64.git
     - name: Copy binary
-      run: cp /home/runner/work/krafix/krafix/build/release/krafix KincTools_linux_arm64/krafix
+      run: cp /home/runner/work/krafix/krafix/build/release/krafix KoreTools_linux_arm64/krafix
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
@@ -113,24 +113,24 @@ jobs:
       id: commit
       continue-on-error: true
       run: |
-        git -C KincTools_linux_arm64 commit -a -m "Update krafix_arm64 binary to $GITHUB_SHA."
+        git -C KoreTools_linux_arm64 commit -a -m "Update krafix_arm64 binary to $GITHUB_SHA."
     - name: Tag binary
       if: steps.commit.outcome == 'success'
-      run: git -C KincTools_linux_arm64 tag linux_arm64_krafix_$GITHUB_SHA
+      run: git -C KoreTools_linux_arm64 tag krafix_$GITHUB_SHA
     - name: Push binary
       id: push1
       if: steps.commit.outcome == 'success'
       continue-on-error: true
-      run: git -C KincTools_linux_arm64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_linux_arm64.git main --tags
+      run: git -C KoreTools_linux_arm64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KoreTools_linux_arm64.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
     - name: Pull
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
-      run: git -C KincTools_linux_arm64 pull --no-rebase
+      run: git -C KoreTools_linux_arm64 pull --no-rebase
     - name: Push binary again
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
       continue-on-error: true
-      run: git -C KincTools_linux_arm64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_linux_arm64.git main --tags
+      run: git -C KoreTools_linux_arm64 push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KoreTools_linux_arm64.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
 
@@ -162,15 +162,15 @@ jobs:
       run: |
         export PATH=$PATH:/home/runner/work/armv7l-linux-musleabihf-cross/bin
         cd /home/runner/work/krafix/krafix
-        git clone --depth 1 https://github.com/Kode/KincTools_linux_x64.git KincTools
-        ./KincTools/kmake --compile --cc armv7l-linux-musleabihf-gcc --cxx armv7l-linux-musleabihf-g++
+        git clone --depth 1 https://github.com/Kode/KoreTools_linux_x64.git KoreTools
+        ./KoreTools/kmake --compile --cc armv7l-linux-musleabihf-gcc --cxx armv7l-linux-musleabihf-g++
 
       shell: alpine.sh --root {0}
 
-    - name: Get KincTools_linux_arm
-      run: git clone https://github.com/Kode/KincTools_linux_arm.git
+    - name: Get KoreTools_linux_arm
+      run: git clone https://github.com/Kode/KoreTools_linux_arm.git
     - name: Copy binary
-      run: cp /home/runner/work/krafix/krafix/build/release/krafix KincTools_linux_arm/krafix
+      run: cp /home/runner/work/krafix/krafix/build/release/krafix KoreTools_linux_arm/krafix
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
@@ -179,23 +179,23 @@ jobs:
       id: commit
       continue-on-error: true
       run: |
-        git -C KincTools_linux_arm commit -a -m "Update krafix_arm binary to $GITHUB_SHA."
+        git -C KoreTools_linux_arm commit -a -m "Update krafix_arm binary to $GITHUB_SHA."
     - name: Tag binary
       if: steps.commit.outcome == 'success'
-      run: git -C KincTools_linux_arm tag linux_arm_krafix_$GITHUB_SHA
+      run: git -C KoreTools_linux_arm tag krafix_$GITHUB_SHA
     - name: Push binary
       id: push1
       if: steps.commit.outcome == 'success'
       continue-on-error: true
-      run: git -C KincTools_linux_arm push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_linux_arm.git main --tags
+      run: git -C KoreTools_linux_arm push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KoreTools_linux_arm.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
     - name: Pull
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
-      run: git -C KincTools_linux_arm pull --no-rebase
+      run: git -C KoreTools_linux_arm pull --no-rebase
     - name: Push binary again
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
       continue-on-error: true
-      run: git -C KincTools_linux_arm push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KincTools_linux_arm.git main --tags
+      run: git -C KoreTools_linux_arm push https://Kode-Robbot:$ROBBOT_PASS@github.com/Kode/KoreTools_linux_arm.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}

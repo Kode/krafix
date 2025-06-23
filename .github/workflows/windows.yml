@@ -14,19 +14,18 @@ concurrency:
 
 jobs:
   build:
-
     runs-on: windows-latest
     
     steps:
     - uses: actions/checkout@v1
     - name: Get Submodules
       run: git submodule update --init --recursive
-    - name: Get KincTools_windows_x64
-      run: git clone https://github.com/Kode/KincTools_windows_x64.git
+    - name: Get KoreTools_windows_x64
+      run: git clone https://github.com/Kode/KoreTools_windows_x64.git
     - name: Compile
-      run: KincTools_windows_x64\kmake --compile
+      run: KoreTools_windows_x64\kmake --compile
     - name: Copy binary
-      run: copy build\x64\Release\krafix.exe KincTools_windows_x64\krafix.exe
+      run: copy build\x64\Release\krafix.exe KoreTools_windows_x64\krafix.exe
     - name: Set name
       run: git config --global user.name "Robbot"
     - name: Set email
@@ -34,23 +33,23 @@ jobs:
     - name: Commit binary
       id: commit
       continue-on-error: true
-      run: git -C KincTools_windows_x64 commit -a -m "Update krafix binary to ${env:GITHUB_SHA}."
+      run: git -C KoreTools_windows_x64 commit -a -m "Update krafix binary to ${env:GITHUB_SHA}."
     - name: Tag binary
       if: steps.commit.outcome == 'success'
-      run: git -C KincTools_windows_x64 tag krafix_${env:GITHUB_SHA}
+      run: git -C KoreTools_windows_x64 tag krafix_${env:GITHUB_SHA}
     - name: Push binary
       id: push1
       if: steps.commit.outcome == 'success'
       continue-on-error: true
-      run: git -C KincTools_windows_x64 push https://Kode-Robbot:${env:ROBBOT_PASS}@github.com/Kode/KincTools_windows_x64.git main --tags
+      run: git -C KoreTools_windows_x64 push https://Kode-Robbot:${env:ROBBOT_PASS}@github.com/Kode/KoreTools_windows_x64.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
     - name: Pull
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
-      run: git -C KincTools_windows_x64 pull --no-rebase
+      run: git -C KoreTools_windows_x64 pull --no-rebase
     - name: Push binary again
       if: steps.commit.outcome == 'success' && steps.push1.outcome != 'success'
       continue-on-error: true
-      run: git -C KincTools_windows_x64 push https://Kode-Robbot:${env:ROBBOT_PASS}@github.com/Kode/KincTools_windows_x64.git main --tags
+      run: git -C KoreTools_windows_x64 push https://Kode-Robbot:${env:ROBBOT_PASS}@github.com/Kode/KoreTools_windows_x64.git main --tags
       env:
         ROBBOT_PASS: ${{ secrets.ROBBOT_PASS }}
