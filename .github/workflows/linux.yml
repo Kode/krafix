@@ -98,7 +98,7 @@ jobs:
         export PATH=$PATH:/home/runner/work/aarch64-linux-musl-cross/bin
         cd /home/runner/work/krafix/krafix
         git clone --depth 1 https://github.com/Kode/KoreTools_linux_x64.git KoreTools
-        ./KoreTools/kmake --compile --cc aarch64-linux-musl-gcc --cxx aarch64-linux-musl-g++
+        ./KoreTools/kmake --compile --cc aarch64-linux-musl-gcc --cxx aarch64-linux-musl-g++ --strip aarch64-linux-musl-strip
       shell: alpine.sh --root {0}
 
     - name: Get KoreTools_linux_arm64
@@ -163,7 +163,7 @@ jobs:
         export PATH=$PATH:/home/runner/work/armv7l-linux-musleabihf-cross/bin
         cd /home/runner/work/krafix/krafix
         git clone --depth 1 https://github.com/Kode/KoreTools_linux_x64.git KoreTools
-        ./KoreTools/kmake --compile --cc armv7l-linux-musleabihf-gcc --cxx armv7l-linux-musleabihf-g++
+        ./KoreTools/kmake --compile --cc armv7l-linux-musleabihf-gcc --cxx armv7l-linux-musleabihf-g++ --strip armv7l-linux-musleabihf-strip
 
       shell: alpine.sh --root {0}
 
